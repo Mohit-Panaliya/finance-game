@@ -1,0 +1,26 @@
+[package]
+name = "sea-orm-turso"
+version = "0.1.0"
+edition = "2021"
+authors = ["Mohit Panaliya"]
+description = "A universal SeaORM adapter for Turso Database (MVCC, in-process, async)"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Mohit-Panaliya/sea-orm-turso"
+homepage = "https://github.com/Mohit-Panaliya/sea-orm-turso"
+documentation = "https://docs.rs/sea-orm-turso"
+readme = "README.md"
+keywords = ["database", "orm", "turso", "sqlite", "mvcc"]
+categories = ["database", "asynchronous"]
+
+[dependencies]
+sea-orm = { version = "2.0", default-features = false, features = ["macros", "proxy", "with-chrono", "with-json", "with-uuid", "with-time"] }
+sea-query = { version = "1.0", default-features = false, features = ["with-chrono", "with-json", "with-uuid", "with-time"] }
+turso = { version = "0.4" }
+async-trait = "0.1"
+tokio = { version = "1", features = ["sync"] }
+tracing = "0.1"
+chrono = "0.4"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }
+sea-orm = { version = "2.0", features = ["macros"] }

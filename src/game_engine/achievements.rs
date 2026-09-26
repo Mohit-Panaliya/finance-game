@@ -1,0 +1,271 @@
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AchievementDef {
+    pub id: &'static str,
+    pub code: &'static str,
+    pub title: &'static str,
+    pub description: &'static str,
+    pub icon: &'static str,
+    pub xp_reward: i64,
+    pub gem_reward: f64,
+    pub requirement_kind: &'static str,
+    pub requirement_value: i64,
+    pub tier: &'static str,
+    pub sort_order: i64,
+}
+
+pub const DEFS: &[AchievementDef] = &[
+    AchievementDef {
+        id: "ach_first_bank",
+        code: "first_bank",
+        title: "First Vault",
+        description: "Open your first bank account",
+        icon: "bank",
+        xp_reward: 50,
+        gem_reward: 5.0,
+        requirement_kind: "bank_count",
+        requirement_value: 1,
+        tier: "bronze",
+        sort_order: 1,
+    },
+    AchievementDef {
+        id: "ach_5_banks",
+        code: "5_banks",
+        title: "Bank Baron",
+        description: "Hold 5 bank accounts",
+        icon: "bank",
+        xp_reward: 150,
+        gem_reward: 15.0,
+        requirement_kind: "bank_count",
+        requirement_value: 5,
+        tier: "silver",
+        sort_order: 2,
+    },
+    AchievementDef {
+        id: "ach_networth_1L",
+        code: "networth_1L",
+        title: "Lakh Club",
+        description: "Reach a net worth of ₹1,00,000",
+        icon: "coin",
+        xp_reward: 200,
+        gem_reward: 20.0,
+        requirement_kind: "net_worth",
+        requirement_value: 100_000,
+        tier: "silver",
+        sort_order: 3,
+    },
+    AchievementDef {
+        id: "ach_networth_10L",
+        code: "networth_10L",
+        title: "Ten Lakh Titan",
+        description: "Reach a net worth of ₹10,00,000",
+        icon: "coin",
+        xp_reward: 500,
+        gem_reward: 50.0,
+        requirement_kind: "net_worth",
+        requirement_value: 1_000_000,
+        tier: "gold",
+        sort_order: 4,
+    },
+    AchievementDef {
+        id: "ach_networth_1Cr",
+        code: "networth_1Cr",
+        title: "Crore Club",
+        description: "Reach a net worth of ₹1,00,00,000",
+        icon: "crown",
+        xp_reward: 2000,
+        gem_reward: 200.0,
+        requirement_kind: "net_worth",
+        requirement_value: 100_000_000,
+        tier: "legendary",
+        sort_order: 5,
+    },
+    AchievementDef {
+        id: "ach_first_expense",
+        code: "first_expense",
+        title: "First Expense",
+        description: "Log your first expense",
+        icon: "receipt",
+        xp_reward: 30,
+        gem_reward: 3.0,
+        requirement_kind: "expense_count",
+        requirement_value: 1,
+        tier: "bronze",
+        sort_order: 6,
+    },
+    AchievementDef {
+        id: "ach_100_expenses",
+        code: "100_expenses",
+        title: "Centurion Scribe",
+        description: "Log 100 expenses",
+        icon: "receipt",
+        xp_reward: 300,
+        gem_reward: 30.0,
+        requirement_kind: "expense_count",
+        requirement_value: 100,
+        tier: "silver",
+        sort_order: 7,
+    },
+    AchievementDef {
+        id: "ach_first_fd",
+        code: "first_fd",
+        title: "Locked Away",
+        description: "Open your first fixed deposit",
+        icon: "lock",
+        xp_reward: 80,
+        gem_reward: 8.0,
+        requirement_kind: "fd_count",
+        requirement_value: 1,
+        tier: "bronze",
+        sort_order: 8,
+    },
+    AchievementDef {
+        id: "ach_first_investment",
+        code: "first_investment",
+        title: "Market Maker",
+        description: "Make your first investment",
+        icon: "chart",
+        xp_reward: 80,
+        gem_reward: 8.0,
+        requirement_kind: "investment_count",
+        requirement_value: 1,
+        tier: "bronze",
+        sort_order: 9,
+    },
+    AchievementDef {
+        id: "ach_level_5",
+        code: "level_5",
+        title: "Level 5",
+        description: "Reach village level 5",
+        icon: "star",
+        xp_reward: 100,
+        gem_reward: 10.0,
+        requirement_kind: "level",
+        requirement_value: 5,
+        tier: "bronze",
+        sort_order: 10,
+    },
+    AchievementDef {
+        id: "ach_level_10",
+        code: "level_10",
+        title: "Level 10",
+        description: "Reach village level 10",
+        icon: "star",
+        xp_reward: 250,
+        gem_reward: 25.0,
+        requirement_kind: "level",
+        requirement_value: 10,
+        tier: "silver",
+        sort_order: 11,
+    },
+    AchievementDef {
+        id: "ach_level_20",
+        code: "level_20",
+        title: "Level 20",
+        description: "Reach village level 20",
+        icon: "star",
+        xp_reward: 600,
+        gem_reward: 60.0,
+        requirement_kind: "level",
+        requirement_value: 20,
+        tier: "gold",
+        sort_order: 12,
+    },
+    AchievementDef {
+        id: "ach_trophies_10",
+        code: "trophies_10",
+        title: "Trophy Hunter",
+        description: "Earn 10 trophies",
+        icon: "trophy",
+        xp_reward: 120,
+        gem_reward: 12.0,
+        requirement_kind: "trophy",
+        requirement_value: 10,
+        tier: "silver",
+        sort_order: 13,
+    },
+    AchievementDef {
+        id: "ach_win_10_battles",
+        code: "win_10_battles",
+        title: "Warlord",
+        description: "Win 10 battles",
+        icon: "sword",
+        xp_reward: 400,
+        gem_reward: 40.0,
+        requirement_kind: "battle_wins",
+        requirement_value: 10,
+        tier: "gold",
+        sort_order: 14,
+    },
+    AchievementDef {
+        id: "ach_expense_streak",
+        code: "expense_streak",
+        title: "Budget Keeper",
+        description: "Keep expenses below income for 7 straight months",
+        icon: "flame",
+        xp_reward: 350,
+        gem_reward: 35.0,
+        requirement_kind: "expense_streak",
+        requirement_value: 7,
+        tier: "gold",
+        sort_order: 15,
+    },
+];
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct UserAggregates {
+    pub bank_count: i64,
+    pub asset_count: i64,
+    pub fd_count: i64,
+    pub investment_count: i64,
+    pub net_worth: f64,
+    pub total_income: f64,
+    pub total_expense: f64,
+    pub buildings_count: i64,
+    pub troops_count: i64,
+    pub battle_wins: i64,
+    pub highest_trophy: i64,
+    pub buildings_level_sum: i64,
+    pub expense_count: i64,
+    pub level: i64,
+    pub trophy: i64,
+    pub expense_streak: i64,
+}
+
+#[must_use]
+pub fn progress_for(def: &AchievementDef, agg: &UserAggregates) -> i64 {
+    let raw = match def.requirement_kind {
+        "bank_count" => agg.bank_count,
+        "asset_count" => agg.asset_count,
+        "net_worth" => agg.net_worth as i64,
+        "expense_count" => agg.expense_count,
+        "fd_count" => agg.fd_count,
+        "investment_count" => agg.investment_count,
+        "level" => agg.level,
+        "trophy" => agg.trophy,
+        "battle_wins" => agg.battle_wins,
+        "expense_streak" => agg.expense_streak,
+        _ => 0,
+    };
+    raw.min(def.requirement_value)
+}
+
+#[must_use]
+pub fn is_unlocked(def: &AchievementDef, agg: &UserAggregates) -> bool {
+    progress_for(def, agg) >= def.requirement_value
+}
+
+#[must_use]
+pub fn unlocked_ids(agg: &UserAggregates) -> Vec<&'static str> {
+    DEFS
+        .iter()
+        .filter(|d| is_unlocked(d, agg))
+        .map(|d| d.id)
+        .collect()
+}
+
+#[must_use]
+pub fn find(id: &str) -> Option<&'static AchievementDef> {
+    DEFS.iter().find(|d| d.id == id || d.code == id)
+}

@@ -1,0 +1,42 @@
+# Test config (in-memory turso via DATABASE_URL override in tests)
+logger:
+  enable: false
+  pretty_backtrace: false
+  level: error
+  format: compact
+
+server:
+  port: <%= get_env(name="PORT", default="5156") %>
+  binding: 127.0.0.1
+  host: http://localhost
+  middlewares:
+    static:
+      enable: false
+
+workers:
+  mode: ForegroundBlocking
+  enable: false
+
+database:
+  uri: <%= get_env(name="DATABASE_URL", default="sqlite://finance_game_test.sqlite?mode=rwc") %>
+  enable_logging: false
+  connect_timeout: 500
+  idle_timeout: 500
+  min_connections: 1
+  max_connections: 1
+  auto_migrate: true
+  dangerously_truncate: false
+  dangerously_recreate: false
+
+auth:
+  jwt:
+    secret: dGVzdC1zZWNyZXQtMjAyNi1maW5hbA==
+    expiration: 3600
+    location:
+      - from: Bearer
+
+seeder:
+  enable: false
+
+mailer:
+  enable: false

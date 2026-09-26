@@ -1,0 +1,53 @@
+[workspace]
+members = ["crates/sea-orm-turso", "migration"]
+resolver = "2"
+
+[package]
+name = "finance-game"
+version = "0.1.0"
+edition = "2021"
+publish = false
+default-run = "finance-game-cli"
+
+[workspace.dependencies]
+loco-rs = { version = "1.1" }
+sea-orm = { version = "2.0", default-features = false, features = [
+  "macros",
+  "proxy",
+  "with-chrono",
+  "with-json",
+  "with-uuid",
+  "with-time",
+] }
+sea-orm-migration = { version = "2.0", default-features = false, features = [
+  "runtime-tokio-rustls",
+] }
+
+[dependencies]
+loco-rs = { workspace = true }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1" }
+tokio = { version = "1.45", default-features = false, features = ["rt-multi-thread"] }
+async-trait = { version = "0.1" }
+axum = { version = "0.8" }
+tracing = { version = "0.1" }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+regex = { version = "1.11" }
+migration = { path = "migration" }
+sea-orm = { workspace = true }
+sea-orm-migration = { workspace = true }
+sea-orm-turso = { path = "crates/sea-orm-turso" }
+chrono = { version = "0.4", features = ["serde"] }
+validator = { version = "0.20" }
+uuid = { version = "1.6", features = ["v4", "serde"] }
+argon2 = { version = "0.5" }
+rand = { version = "0.8" }
+rust-embed = { version = "8", features = ["interpolate-folder-path"] }
+
+[[bin]]
+name = "finance-game-cli"
+path = "src/bin/main.rs"
+
+[dev-dependencies]
+loco-rs = { workspace = true, features = ["testing"] }
+serial_test = { version = "3.1.1" }
