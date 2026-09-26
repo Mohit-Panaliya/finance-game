@@ -1,111 +1,203 @@
 # Finance Forge
 
-Gamified personal-finance PWA — Clash-of-Clans style. Your **village is your net
-worth**: banks/assets/fixed deposits are buildings you upgrade and collect from,
-expenses are troops you train, incomes fund the war chest, and battles raid enemy
-villages for gold. Offline-first, landscape-first, installable.
+**Gamified personal-finance PWA — Clash of Clans style.**  
+Your village = your net worth. Banks/assets = buildings. Expenses = troops. Incomes = gold mines. Battles = raids.
+
+[Live](https://game.brightive.shop) · [API](https://game.brightive.shop/_health) · [GitHub](https://github.com/Mohit-Panaliya/finance-game)
+
+---
 
 ## Stack
 
-- **Backend**: Rust [Loco 1.1](https://loco.rs) (axum) + SeaORM 2.0
-- **DB**: one SQLite file via `crates/sea-orm-turso` (workspace crate, local libsql
-  adapter) — no external database service, WAL mode
-- **Frontend**: Vue 3 + Ionic 8 + Vite PWA (`vite-plugin-pwa`, Pinia)
-- **Ship form**: a **single release binary** — `frontend/dist` embedded with
-  `rust-embed` (`src/embedded.rs`) behind an SPA fallback (`src/app.rs`); no Node
-  runtime needed at serve time
+| Layer | Tech |
+|-------|------|
+| Backend | Rust **Loco 1.1** (axum) + **SeaORM 2.0** |
+| Database | **libsql** (Turso local) via `sea-orm-turso` crate — single SQLite file, WAL mode |
+| Frontend | **Vue 3 + Ionic 8 + Vite PWA** (Pinia, service worker, IndexedDB offline queue) |
+| Deploy | Single release binary (`rust-embed` serves `frontend/dist`) + **Caddy** (auto HTTPS) |
+| Infra | Oracle Cloud Free Tier (1/8 OCPU, 1 GB RAM, Ubuntu 24.04) |
+
+---
 
 ## Quickstart
 
-Backend (dev, verified — release binary):
-
+### Development
 ```bash
+# Backend
 cargo build --release
-./target/release/finance-game-cli start -e development -p 5155   # http://127.0.0.1:5155
+./target/release/finance-game-cli start -e development -p 5155
+
+# Frontend (hot reload)
+cd frontend && npm install && npm run dev   # Vite :5173, proxies /api → :8000
 ```
 
-Database auto-migrates on boot (`finance_game_development.sqlite`).
-
-Frontend (hot reload):
-
+### Production Build
 ```bash
-cd frontend && npm install && npm run dev    # Vite :5173, proxies /api → 127.0.0.1:8000
+cd frontend && npm run build   # → frontend/dist
+cargo build --release          # embeds dist, outputs target/release/finance-game-cli
 ```
 
-Run the backend with `-p 8000` to match the proxy (or adjust `vite.config.ts`).
-
-Full build (frontend must be built before it can be embedded):
-
+### One-line Deploy (on fresh Ubuntu)
 ```bash
-cd frontend && npm run build   # → frontend/dist  (typecheck: npm run typecheck)
-cargo build --release          # → target/release/finance-game-cli (embeds dist)
+# Build locally, scp binary + config, run as systemd on :8080, Caddy on :443
 ```
 
-Production: `./deploy.sh` (build + detached start + `/_health` poll) — full
-instructions in **[DEPLOY.md](DEPLOY.md)**.
+---
 
-## API map (all under `/api`)
+## Features
+
+### Core Game Loop
+- **Village** — net worth dashboard (gold = liquid cash, gems = investments)
+- **Buildings** — Banks, Assets, Fixed Deposits, Investments, Credit Cards
+  - Collect income (interest/dividends)
+  - Upgrade (increase limits/APY)
+- **Troops** — Expense categories (Food, Transport, Housing, etc.)
+  - Train = log expense
+- **Battles** — Raid enemy villages (simulated), earn gold/xp
+- **Achievements** — 15 tiers (First Bank, Saver, Investor, Raider…)
+- **Leaderboard** — Global net worth ranking
+
+### Finance CRUD (7 entities)
+`banks` · `assets` · `credit-cards` · `expenses` · `fixed-deposits` · `investments` · `incomes`  
+Each: list, create, read, update, delete, summary
+
+### Analysis Screen (Clash-style)
+- Net worth breakdown (banks, assets, FDs, investments, gold)
+- Yearly income by type (salary, business, investment, other)
+- Monthly expenses by category
+- ROI % by investment type
+- Cash flow waterfall
+- Top-5 expenses / income sources
+- Investment performance, FD maturity timeline, credit utilization
+- Savings rate %
+
+### Offline-First PWA
+- Service worker caches shell + assets
+- IndexedDB queues mutations (create/update/delete) when offline
+- Background sync on reconnect (`/api/sync/push` + `/pull`)
+- Landscape-first (portrait shows rotate overlay)
+- Installable: Chrome "Install app" → standalone APK-like experience
+
+---
+
+## API Map (all under `/api`)
 
 | Group | Routes |
-|---|---|
-| **auth** | `POST /register`, `POST /login`, `GET /me`, `POST /logout` (JWT Bearer or cookie) |
-| **finance ×7** | `banks`, `assets`, `credit-cards`, `expenses`, `fixed-deposits`, `investments`, `incomes` — each: `GET /` (list: `search`, `page`, `perPage`), `POST /`, `GET /{id}`, `PUT /{id}`, `DELETE /{id}`, `GET /summary` |
-| **game** | `GET /village`, `POST /buildings/collect`, `POST /buildings/upgrade`, `GET /troops`, `POST /troops/train`, `POST /battle`, `GET /battles`, `GET /achievements`, `POST /achievements/{id}/claim`, `GET /leaderboard`, `GET /stats`, `GET /analysis` |
-| **sync** | `POST /push`, `GET /pull?since=<RFC3339>` (delta by timestamp) |
+|-------|--------|
+| **Auth** | `POST /register` `POST /login` `GET /me` `POST /logout` |
+| **Finance ×7** | `GET /` `POST /` `GET /:id` `PUT /:id` `DELETE /:id` `GET /summary` |
+| **Game** | `GET /village` `POST /buildings/collect` `POST /buildings/upgrade` `GET /troops` `POST /troops/train` `POST /battle` `GET /battles` `GET /achievements` `POST /achievements/:id/claim` `GET /leaderboard` `GET /stats` `GET /analysis` |
+| **Sync** | `POST /push` `GET /pull?since=` |
+| **Health** | `GET /_health` |
 
-Plus `GET /_health`. All authenticated routes resolve the user via
-`super::uid(&ctx, &auth)` (JWT `pid` → `users.id`).
+All protected routes use **JWT Bearer** (or cookie). User resolved via `uid()` (JWT `pid` → `users.id`).
 
-## Data model
+---
 
-One SQLite file per environment (`finance_game_{development,production}.sqlite`,
-WAL), **16 tables**:
+## Data Model (16 tables)
 
-- **Finance**: `users`, `banks`, `assets`, `expenses`, `credit_cards`,
-  `fixed_deposits`, `investments`, `incomes`
-- **Game**: `villages`, `buildings`, `troops`, `achievements`,
-  `user_achievements`, `battles`, `sync_log`
-- **Bookkeeping**: `seaql_migrations` (migration state)
+| Table | Purpose |
+|-------|---------|
+| `users` | Loco auth (email, password hash, pid UUID) |
+| `banks` | Savings/checking accounts |
+| `assets` | Real estate, vehicles, gold, crypto |
+| `credit_cards` | Limits, balances, due dates |
+| `expenses` | Categorized spending |
+| `fixed_deposits` | Term deposits with maturity |
+| `investments` | Stocks, MFs, bonds with qty/price |
+| `incomes` | Salary, business, dividends (recurring support) |
+| `villages` | Per-user game state (gold, gems, xp, level) |
+| `buildings` | Village buildings (type, level, production) |
+| `troops` | Trained expense-troops |
+| `battles` | Battle logs (rewards, enemy snapshot) |
+| `user_achievements` | Progress per achievement |
+| `achievements` | Static definitions (15) |
+| `sync_log` | Offline mutation log (timestamp, entity, op, payload) |
+| `seaql_migrations` | Migration history |
 
-Schema lives in `migration/src/m20260922_000001_init.rs`; first boot auto-migrates.
-Registration auto-provisions a village plus seeded buildings/troops.
+---
 
-## PWA
+## Deployment (Current)
 
-- **Landscape-first**: manifest `orientation: landscape` + `display: fullscreen`,
-  portrait shows a rotate-device overlay, best-effort `screen.orientation.lock`
-- **Offline**: mutations queue in IndexedDB (`frontend/src/services/offlineQueue.ts`),
-  `syncStore` flushes via `/api/sync/push` and merges `/api/sync/pull`; service
-  worker (vite-plugin-pwa) runtime-caches app assets
-- **Installable**: manifest + SVG/PNG icons, theme `#1a0f00`
+| Item | Value |
+|------|-------|
+| **Domain** | `game.brightive.shop` (A → 129.154.251.25) |
+| **TLS** | Caddy (Let's Encrypt, auto-renew) |
+| **App** | systemd `finance-game` on `:8080` |
+| **Proxy** | Caddy `reverse_proxy localhost:8080` |
+| **DB** | `/home/ubuntu/finance_game_production.sqlite` (auto-migrate) |
+| **JWT** | Rotated on deploy (base64, 32 bytes) |
+| **Logs** | `journalctl -u finance-game -f` |
 
-## Testing
-
-`scripts/smoke.sh` — end-to-end smoke checks (health, auth, finance CRUD, game,
-sync) against a running server, when present.
-
-## Architecture
-
-```
-src/
-  app.rs               — Hooks: route registration + embedded-asset SPA fallback
-  controllers/         — HTTP handlers: auth, 7 finance resources, game, sync
-  models/              — SeaORM entities + request/response DTOs
-  game_engine/         — xp, economy, troops, battle, achievements, sync
-  initializers/        — turso_db (TursoConnection → ctx.shared_store)
-  embedded.rs          — rust-embed of frontend/dist
-crates/sea-orm-turso/  — local libsql SeaORM driver (workspace crate)
-migration/             — schema migrations
-frontend/src/
-  pages/               — Vue pages (Village, Army, Battle, Records, Analysis, …)
-  components/game/     — GameModal, GameDatePicker, GameSelect, XpBar, ResourceBar, …
-  stores/              — Pinia: auth, finance, game, sync
-config/                — development / production / test YAML
-deploy.sh              — production build + run (see DEPLOY.md)
+```bash
+# On server
+sudo systemctl status finance-game caddy
+curl https://game.brightive.shop/_health
 ```
 
-## Docs
+---
 
-- [DEPLOY.md](DEPLOY.md) — production deployment (deploy.sh, production.yaml)
-- [CONVENTIONS.md](CONVENTIONS.md) — adapter rules and code conventions
-- `../../TODO.md` — build status / task board
+## Android / iOS
+
+**PWA — no store needed.**  
+Open https://game.brightive.shop in Chrome/Safari → menu → **"Install app"** / **"Add to Home Screen"**.  
+Runs full-screen, landscape, offline.
+
+---
+
+## Resource Footprint (OCI Free Tier)
+
+| Metric | Value |
+|--------|-------|
+| RAM | ~65 MB (app 48 MB + Caddy 12 MB) |
+| CPU | <1% idle, <5% under load |
+| Disk | ~100 MB (binary 50 MB + DB + config) |
+| Network | ~1 KB/request |
+
+---
+
+## Project Structure
+
+```
+finance-game/
+├── src/
+│   ├── controllers/        # 9 controllers (auth, banks, assets, cards, expenses, fds, investments, incomes, game)
+│   ├── models/             # SeaORM entities + active models
+│   ├── game_engine/        # Combat, building, troop logic
+│   ├── initializers/       # Turso DB init + achievments seed
+│   ├── views/              # API response serializers
+│   ├── embedded.rs         # rust-embed (frontend/dist)
+│   └── app.rs              # Router + fallback SPA handler
+├── crates/sea-orm-turso/   # Local libsql adapter (RefGuard<Connection>)
+├── migration/              # SeaORM migrations (16 tables)
+├── config/*.yaml           # dev / prod / test
+├── frontend/
+│   ├── src/
+│   │   ├── pages/          # Village, Battle, Records, Army, Achievements, Analysis
+│   │   ├── components/game/  # GameDatePicker, GameSelect, SyncChip, panels
+│   │   ├── stores/         # Pinia (auth, village, offline queue)
+│   │   └── theme/game.css  # Clash palette, stone panels, landscape lock
+│   └── vite.config.ts      # PWA manifest (landscape, fullscreen)
+├── scripts/smoke.sh        # 33-check E2E test
+├── deploy.sh               # Build + systemd deploy
+├── DEPLOY.md               # Production runbook
+├── CONVENTIONS.md          # Code patterns
+└── TODO.md                 # Task tracker
+```
+
+---
+
+## Conventions (Key)
+
+- `ctx.shared_store.get_ref::<TursoConnection>()` → `&*db` (NOT `ConnectionTrait`)
+- Optional fields: `Set(Some(v))`, required: `Set(v)`
+- Timestamps: RFC3339 strings; dates: `YYYY-MM-DD`
+- Integers: `i64`; enums: `String`
+- No native `<select>`/`<input type=date>` → `GameSelect` / `GameDatePicker`
+- Landscape lock: `screen.orientation.lock('landscape')` + CSS rotate overlay
+
+---
+
+## License
+
+MIT — build your own village.
