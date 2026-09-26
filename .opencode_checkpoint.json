@@ -1,0 +1,42 @@
+{
+  "session": "erp-reopen-fix-and-benchmark",
+  "timestamp": "2026-09-26",
+  "phase": "complete-reopen-fixed-benchmarked-pushed",
+  "verification": {
+    "backend_build_errors": 0,
+    "backend_tests": "70/70",
+    "e2e_flows": "41/41 PASS",
+    "reopen_boots": "boot1-boot4 all HTTP 200, data persists, zero migration rework",
+    "frontend": "tsc 0, build ok, vitest 106/106",
+    "git": "Rust-in-memory-ERP@3ff9833 pushed; finance-game@f4a444e pushed (repo created, private)"
+  },
+  "benchmark": {
+    "boot_ms": 620,
+    "idle_rss_mb": 55,
+    "peak_rss_mb": 194,
+    "binary_mb": 46,
+    "flow_quote_to_si_ms": 31,
+    "read_rps_at_32c": "~260-313 (pool max_connections=5 bound)",
+    "login_rps": "~100 (argon2id CPU)",
+    "write_rps": "~330",
+    "scripts": [
+      "backend/scripts/benchmark.py",
+      "backend/scripts/scale.py"
+    ]
+  },
+  "key_fixes_this_session": [
+    "DB reopen panic root cause A: 033 ALTER TABLE stock_bins orphaned UNIQUE autoindex (turso 0.4.4) -> rebuilt via DROP+CREATE",
+    "DB reopen panic root cause B: runner re-ran all migrations; turso rejects CREATE VIEW IF NOT EXISTS on re-run -> schema_migrations tracking + already-exists tolerance",
+    "Legacy DBs self-heal on next boot; DBs corrupted by old 033 must be wiped",
+    "$N UPDATE no-op sweep: 8 extra sites fixed outside accounts.rs",
+    "E2E harness path fix: PI under /accounts not /buying; 4 compile errors after payment ActiveModel refactor"
+  ],
+  "next_steps": [
+    "1. Docker compose deployment E2E",
+    "2. GL entries on invoice submit (A9 shows gl_rows=0)",
+    "3. Raise max_connections for read scaling; consider read replica/pool per core"
+  ],
+  "constraints": [
+    "DO NOT push to Mohit-Panaliya/finance-game (user directive 2026-09-26) \u2014 repo is read-only for pushes; no git push, no force-push, no remote URL changes there"
+  ]
+}
