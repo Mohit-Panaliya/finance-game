@@ -1,10 +1,7 @@
 pub mod app;
 pub mod controllers;
-pub mod dtos;
 pub mod embedded;
-pub mod game_engine;
 pub mod initializers;
 pub mod models;
-pub mod tasks;
+pub mod sync_engine;
 pub mod views;
-pub mod workers;

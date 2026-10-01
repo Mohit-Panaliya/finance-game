@@ -1,342 +1,261 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { IonPage, IonContent, IonHeader } from '@ionic/vue'
-import GameButton from '@/components/game/GameButton.vue'
-import SyncChip from '@/components/game/SyncChip.vue'
-import ParticleBurst from '@/components/game/ParticleBurst.vue'
+import { IonContent, IonIcon, IonPage } from '@ionic/vue'
+import {
+  cloudDownloadOutline,
+  cloudUploadOutline,
+  informationCircleOutline,
+  logOutOutline,
+  refreshOutline
+} from 'ionicons/icons'
 import { useAuthStore } from '@/stores/authStore'
+import { useFinanceStore } from '@/stores/financeStore'
 import { useSyncStore } from '@/stores/syncStore'
-import { useGameStore } from '@/stores/gameStore'
 import { getQueue } from '@/services/offlineQueue'
+import { formatMoney, formatNumber } from '@/utils/money'
+import { formatDateTime } from '@/utils/date'
+import { ENTITY_LIST, entityConfig, summaryHead } from '@/entityConfig'
+import AppButton from '@/components/ui/AppButton.vue'
+import SyncChip from '@/components/ui/SyncChip.vue'
 
-const router = useRouter()
 const auth = useAuthStore()
+const finance = useFinanceStore()
 const sync = useSyncStore()
-const game = useGameStore()
+const router = useRouter()
 
-const queuePreview = ref(0)
-const navigatorOnLine = ref(typeof navigator === 'undefined' ? true : navigator.onLine)
-const burst = ref(false)
-const note = ref('')
+/** Transient status line. @ionic/vue v8 exposes no useIonToast, so this is plain state. */
+const notice = ref('')
+let noticeTimer: ReturnType<typeof setTimeout> | undefined
+function notify(message: string, tone: 'success' | 'warning' = 'success'): void {
+  notice.value = message
+  noticeTone.value = tone
+  if (noticeTimer) clearTimeout(noticeTimer)
+  noticeTimer = setTimeout(() => {
+    notice.value = ''
+  }, 2600)
+}
+const noticeTone = ref<'success' | 'warning'>('success')
 
-const statusLabel = computed(() => {
-  switch (sync.status) {
-    case 'offline': return 'OFFLINE — queueing changes'
-    case 'pushing': return 'PUSHING changes to the keep…'
-    case 'synced': return 'SYNCED with the realm'
-    case 'error': return `SYNC ERROR — ${sync.message}`
-    default: return 'ONLINE — ready to trade'
+/** Reactive connectivity flag — `navigator` is not available on the component instance. */
+const online = ref(typeof navigator !== 'undefined' ? navigator.onLine : true)
+onMounted(() => {
+  const up = () => (online.value = true)
+  const down = () => (online.value = false)
+  window.addEventListener('online', up)
+  window.addEventListener('offline', down)
+  void auth.fetchMe()
+  return () => {
+    window.removeEventListener('online', up)
+    window.removeEventListener('offline', down)
+    if (noticeTimer) clearTimeout(noticeTimer)
   }
 })
 
-const lastSync = computed(() =>
-  sync.lastSyncAt ? new Date(sync.lastSyncAt).toLocaleTimeString() : 'never'
+const user = computed(() => auth.user)
+const email = computed(() => user.value?.email ?? user.value?.username ?? '—')
+const displayName = computed(() => user.value?.name ?? user.value?.username ?? '—')
+
+const lastSync = computed(() => (sync.lastSyncAt ? formatDateTime(sync.lastSyncAt) : 'Never'))
+
+const recordCount = computed(() =>
+  ENTITY_LIST.reduce((acc, e) => acc + (finance.lists[e].total || finance.lists[e].items.length), 0)
 )
 
-onMounted(async () => {
-  await refreshQueue()
-  window.addEventListener('online', () => (navigatorOnLine.value = true))
-  window.addEventListener('offline', () => (navigatorOnLine.value = false))
+const statusTone = computed(() => {
+  switch (sync.status) {
+    case 'offline':
+      return 'badge-danger'
+    case 'pushing':
+      return 'badge-accent'
+    case 'error':
+      return 'badge-danger'
+    case 'synced':
+      return 'badge-success'
+    default:
+      return 'badge-success'
+  }
 })
 
-async function refreshQueue() {
-  const q = await getQueue()
-  queuePreview.value = q.length
-  await sync.refreshCount()
-}
-
 async function syncNow() {
-  note.value = ''
   await sync.syncAll()
-  await refreshQueue()
-  burst.value = false
-  requestAnimationFrame(() => {
-    burst.value = true
-  })
-  window.setTimeout(() => {
-    burst.value = false
-  }, 1100)
-  note.value = sync.message || 'Done'
+  await finance.refresh()
+  notify(sync.message || 'Sync complete', sync.status === 'error' ? 'warning' : 'success')
 }
 
-function logout() {
-  auth.logout()
-  game.$reset()
-  void router.replace('/login')
+async function pullLatest() {
+  await sync.pull()
+  await finance.refresh()
+  notify(sync.message || 'Latest changes pulled', sync.status === 'error' ? 'warning' : 'success')
 }
+
+async function flushQueue() {
+  const ok = await sync.flush()
+  notify(ok ? 'Queue flushed' : 'Queue still waiting', ok ? 'success' : 'warning')
+}
+
+async function refreshAll() {
+  await finance.refresh()
+  notify('Data refreshed')
+}
+
+async function logout() {
+  auth.logout()
+  finance.reset()
+  sync.initialized = false
+  sync.status = navigator.onLine ? 'online' : 'offline'
+  sync.queueCount = 0
+  sync.message = ''
+  await router.replace('/login')
+}
+
+async function queueSize() {
+  const q = await getQueue()
+  notify(`${q.length} change${q.length === 1 ? '' : 's'} queued`)
+}
+
 </script>
 
 <template>
   <ion-page>
-    <ion-header class="hud">
-      <div class="hud-row">
-        <button class="back-btn" type="button" @click="router.push('/')">‹</button>
-        <h1 class="carved carved-gold hud-title">SETTINGS</h1>
-        <SyncChip />
-      </div>
-    </ion-header>
+    <ion-content class="app-content">
+      <div class="page">
+      <p v-if="notice" class="notice" :class="`notice-${noticeTone}`" role="status">{{ notice }}</p>
+        <header class="page-head">
+          <h1 class="page-title">Settings</h1>
+          <SyncChip :status="sync.status" :pending="sync.queueCount" @sync="syncNow" />
+        </header>
 
-    <ion-content :fullscreen="true" class="set-content">
-      <div class="set-scroll ff-hide-scrollbar">
-        <!-- profile -->
-        <div class="panel-stone noise card">
-          <div class="profile">
-            <div class="avatar bob">🛡️</div>
-            <div class="profile-info">
-              <span class="carved carved-gold profile-name">
-                {{ auth.user?.name ?? auth.user?.username ?? auth.user?.email ?? 'Champion' }}
+        <section class="card">
+          <p class="card-label">Signed in as</p>
+          <p class="card-value card-value-sm">{{ displayName }}</p>
+          <p class="card-foot">{{ email }}</p>
+        </section>
+
+        <section class="section">
+          <h2 class="section-title">Sync</h2>
+          <div class="card">
+            <div class="sync-head">
+              <span class="badge" :class="statusTone">{{ sync.status }}</span>
+              <span class="text-sm text-muted">{{ sync.message || 'No pending changes' }}</span>
+            </div>
+            <div class="meta-list" style="margin-top: 10px">
+              <div class="meta-row">
+                <span class="meta-key">Connection</span>
+                <span class="meta-val">{{ online ? 'Online' : 'Offline' }}</span>
+              </div>
+              <div class="meta-row">
+                <span class="meta-key">Queued changes</span>
+                <span class="meta-val">{{ formatNumber(sync.queueCount) }}</span>
+              </div>
+              <div class="meta-row">
+                <span class="meta-key">Last synced</span>
+                <span class="meta-val">{{ lastSync }}</span>
+              </div>
+              <div class="meta-row">
+                <span class="meta-key">Records loaded</span>
+                <span class="meta-val">{{ formatNumber(recordCount) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="action-grid">
+            <AppButton variant="primary" size="md" :disabled="sync.status === 'pushing'" @click="syncNow">
+              <ion-icon :icon="cloudUploadOutline" /> Sync now
+            </AppButton>
+            <AppButton variant="neutral" size="md" @click="pullLatest">
+              <ion-icon :icon="cloudDownloadOutline" /> Pull latest
+            </AppButton>
+            <AppButton variant="neutral" size="md" :disabled="!sync.queueCount" @click="flushQueue">
+              Push queue
+            </AppButton>
+            <AppButton variant="neutral" size="md" @click="refreshAll">
+              <ion-icon :icon="refreshOutline" /> Reload data
+            </AppButton>
+          </div>
+
+          <button class="link-row" type="button" @click="queueSize">
+            <span class="text-sm text-muted">Inspect offline queue</span>
+            <ion-icon class="text-faint" :icon="informationCircleOutline" />
+          </button>
+        </section>
+
+        <section class="section">
+          <h2 class="section-title">Tracked data</h2>
+          <div class="row-list">
+            <router-link
+              v-for="e in ENTITY_LIST"
+              :key="e"
+              class="row-item"
+              :to="`/accounts/${e}`"
+            >
+              <span class="row-icon"><ion-icon :icon="entityConfig(e).icon" /></span>
+              <span class="row-main">
+                <span class="row-title">{{ entityConfig(e).label }}</span>
+                <span class="row-sub">{{ finance.lists[e].total || finance.lists[e].items.length }} records</span>
               </span>
-              <span class="carved carved-sm profile-mail">
-                {{ auth.user?.email ?? 'sworn to the fortress' }}
+              <span class="row-value">
+                {{ formatMoney(summaryHead(e, finance.summaries[e]).total, 'INR', { compact: true }) }}
+                <span class="row-extra">total</span>
               </span>
-              <span class="carved carved-sm profile-lvl">Village Level {{ game.level }}</span>
+            </router-link>
+          </div>
+        </section>
+
+        <section class="section">
+          <h2 class="section-title">About</h2>
+          <div class="card">
+            <div class="meta-list">
+              <div class="meta-row">
+                <span class="meta-key">App</span>
+                <span class="meta-val">Fintrack 1.0</span>
+              </div>
+              <div class="meta-row">
+                <span class="meta-key">Installable</span>
+                <span class="meta-val">Yes — add to home screen</span>
+              </div>
+              <div class="meta-row">
+                <span class="meta-key">Offline edits</span>
+                <span class="meta-val">Queued and replayed on reconnect</span>
+              </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        <!-- sync -->
-        <div class="panel-wood noise card sync-card">
-          <div class="sync-head">
-            <h2 class="carved carved-gold">REALM SYNC</h2>
-            <span class="status-dot" :class="sync.status" />
-          </div>
-          <p class="carved status-line" :class="`status-${sync.status}`">{{ statusLabel }}</p>
-          <div class="sync-grid">
-            <div class="sync-cell">
-              <span class="k carved carved-sm">Queue</span>
-              <span class="v carved carved-gold">{{ sync.queueCount }} ops</span>
-            </div>
-            <div class="sync-cell">
-              <span class="k carved carved-sm">Last sync</span>
-              <span class="v carved">{{ lastSync }}</span>
-            </div>
-            <div class="sync-cell">
-              <span class="k carved carved-sm">IndexedDB</span>
-              <span class="v carved">{{ queuePreview }} local</span>
-            </div>
-            <div class="sync-cell">
-              <span class="k carved carved-sm">Connection</span>
-              <span class="v carved" :class="{ offline: !navigatorOnLine }">
-                {{ navigatorOnLine ? '🌐 live' : '📡 none' }}
-              </span>
-            </div>
-          </div>
-
-          <div class="sync-actions">
-            <GameButton variant="gold" size="md" sparkle @click="syncNow">SYNC NOW</GameButton>
-            <GameButton variant="blue" size="md" @click="sync.pull()">PULL LATEST</GameButton>
-          </div>
-          <p v-if="note" class="note carved carved-sm">{{ note }}</p>
-
-          <div class="burst-host">
-            <ParticleBurst :active="burst" :count="26" origin-x="30%" origin-y="60%" />
-          </div>
-        </div>
-
-        <!-- about -->
-        <div class="panel-stone noise card">
-          <h2 class="carved carved-gold card-title">THE KEEP</h2>
-          <ul class="about carved carved-sm">
-            <li>⚔️ Finance Forge — personal finance, forged as a game</li>
-            <li>🏛️ Buildings track banks, assets, vaults &amp; more</li>
-            <li>📦 Works offline — mutations queue in IndexedDB</li>
-            <li>🔄 Service worker caches assets + API GETs</li>
-            <li>📳 PWA — install from your browser menu</li>
-          </ul>
-        </div>
-
-        <GameButton variant="red" size="lg" block @click="logout">LEAVE FORTRESS</GameButton>
-
-        <p class="version carved carved-sm">Finance Forge v1.0.0 · theme #1a0f00</p>
+        <AppButton variant="danger" size="lg" block @click="logout">
+          <ion-icon :icon="logOutOutline" /> Sign out
+        </AppButton>
       </div>
     </ion-content>
   </ion-page>
 </template>
 
-
 <style scoped>
-.hud {
-  position: relative;
-  z-index: 20;
-  background: linear-gradient(180deg, rgba(26, 15, 0, 0.97), rgba(42, 26, 10, 0.9));
-  border-bottom: 3px solid rgba(245, 197, 66, 0.35);
-  padding-top: env(safe-area-inset-top);
-}
-.hud-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
-}
-.back-btn {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  border: 3px solid #0a0500;
-  background: linear-gradient(180deg, #ffe27a, var(--ff-gold) 55%, var(--ff-gold-dark));
-  color: var(--ff-brown-deep);
-  font-size: 26px;
-  font-weight: 900;
-  line-height: 1;
-  cursor: pointer;
-  box-shadow: 0 4px 0 #5c3c00;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.back-btn:active {
-  transform: translateY(4px);
-  box-shadow: none;
-}
-.hud-title {
-  margin: 0;
-  flex: 1;
-  font-size: 21px;
-  letter-spacing: 0.08em;
-}
-.set-content {
-  --background:
-    radial-gradient(circle at 30% 0%, rgba(52, 152, 219, 0.12), transparent 45%),
-    radial-gradient(circle at 50% 130%, #4a2c12, #120a00 75%);
-}
-.set-scroll {
-  padding: 16px 14px calc(30px + env(safe-area-inset-bottom));
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-.card {
-  padding: 16px 14px;
-  position: relative;
-}
-.card-title {
-  margin: 0 0 10px;
-  font-size: 17px;
-  letter-spacing: 0.1em;
-}
-.profile {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-.avatar {
-  width: 68px;
-  height: 68px;
-  border-radius: 18px;
-  background: radial-gradient(circle at 35% 30%, #ffe27a, var(--ff-gold-dark));
-  border: 4px solid #120a00;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 34px;
-  box-shadow: 0 5px 0 rgba(0, 0, 0, 0.5);
-}
-.profile-info {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
-}
-.profile-name {
-  font-size: 20px;
-}
-.profile-mail,
-.profile-lvl {
-  opacity: 0.7;
-  font-size: 12px;
-}
-.sync-card {
-  position: relative;
-  overflow: hidden;
-}
 .sync-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-}
-.sync-head h2 {
-  margin: 0;
-  font-size: 17px;
-  letter-spacing: 0.1em;
-}
-.status-dot {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--ff-green);
-  box-shadow: 0 0 10px currentColor;
-  animation: pulse-glow 1.3s ease-in-out infinite;
-}
-.status-dot.offline { background: var(--ff-red); }
-.status-dot.pushing { background: var(--ff-blue); }
-.status-dot.synced { background: var(--ff-gold); }
-.status-dot.error { background: var(--ff-red); }
-.status-line {
-  margin: 8px 0 12px;
-  font-size: 14px;
-}
-.status-offline { color: #ff9d94; }
-.status-pushing { color: #8fd0f7; }
-.status-synced { color: var(--ff-gold); }
-.status-error { color: #ff9d94; }
-.sync-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 9px;
-  margin-bottom: 13px;
-}
-.sync-cell {
-  background: rgba(0, 0, 0, 0.35);
-  border: 3px solid #120a00;
-  border-radius: 12px;
-  padding: 8px 11px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.sync-cell .k {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  opacity: 0.7;
-}
-.sync-cell .v {
-  font-size: 15px;
-}
-.sync-cell .v.offline {
-  color: var(--ff-red);
-}
-.sync-actions {
-  display: flex;
   gap: 10px;
   flex-wrap: wrap;
 }
-.note {
-  margin: 10px 0 0;
-  text-align: center;
-  color: var(--ff-green);
+.action-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
 }
-.burst-host {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-.about {
-  margin: 0;
-  padding-left: 18px;
+.link-row {
   display: flex;
-  flex-direction: column;
-  gap: 7px;
-  line-height: 1.4;
-  opacity: 0.85;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 11px 13px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
 }
-.version {
-  text-align: center;
-  opacity: 0.5;
-  margin: 4px 0 0;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+@media (max-width: 380px) {
+  .action-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

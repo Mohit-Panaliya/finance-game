@@ -17,7 +17,7 @@ use loco_rs::{
 };
 use migration::Migrator;
 
-use crate::{controllers, embedded, initializers::turso_db::TursoDb, tasks};
+use crate::{controllers, embedded, initializers::turso_db::TursoDb};
 
 const INDEX_HTML: &str = "index.html";
 
@@ -132,7 +132,7 @@ impl Hooks for App {
             .add_route(controllers::fixed_deposits::routes())
             .add_route(controllers::investments::routes())
             .add_route(controllers::incomes::routes())
-            .add_route(controllers::game::routes())
+            .add_route(controllers::analysis::routes())
             .add_route(controllers::sync::routes())
         // inject-routes-below (do not remove this comment)
     }
@@ -141,9 +141,7 @@ impl Hooks for App {
         Ok(router.fallback(serve_embedded_assets))
     }
 
-    fn register_tasks(tasks: &mut Tasks) {
-        tasks.register(tasks::seed_achievements::SeedAchievements);
-    }
+    fn register_tasks(_tasks: &mut Tasks) {}
 
     async fn connect_workers(_ctx: &AppContext, _queue: &loco_rs::bgworker::Queue) -> Result<()> {
         Ok(())

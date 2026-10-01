@@ -1,6 +1,6 @@
 import type { SyncOp } from '@/types'
 
-const DB_NAME = 'finance-forge'
+const DB_NAME = 'fintrack'
 const DB_VERSION = 1
 const STORE = 'sync_queue'
 const META_STORE = 'meta'
@@ -47,11 +47,14 @@ export function uuid(): string {
 export async function enqueue(
   entity: string,
   op: SyncOp['op'],
-  payload: unknown
+  payload: unknown,
+  entityId?: string
 ): Promise<SyncOp | null> {
   const record: SyncOp = {
     id: uuid(),
-    entity,
+    // The sync endpoint only accepts snake_case table names; entity types use dashes.
+    entity: entity.replace(/-/g, '_'),
+    entity_id: entityId || uuid(),
     op,
     payload,
     client_ts: new Date().toISOString()
@@ -65,10 +68,10 @@ export async function enqueue(
   } catch {
     // Fallback: localStorage ring buffer so we never silently drop mutations
     try {
-      const raw = localStorage.getItem('ff_sync_fallback')
+      const raw = localStorage.getItem('fintrack_sync_fallback')
       const list: SyncOp[] = raw ? JSON.parse(raw) : []
       list.push(record)
-      localStorage.setItem('ff_sync_fallback', JSON.stringify(list.slice(-200)))
+      localStorage.setItem('fintrack_sync_fallback', JSON.stringify(list.slice(-200)))
     } catch {
       /* best effort */
     }
@@ -91,7 +94,7 @@ export async function getQueue(): Promise<SyncOp[]> {
     /* fall through to localStorage */
   }
   try {
-    const raw = localStorage.getItem('ff_sync_fallback')
+    const raw = localStorage.getItem('fintrack_sync_fallback')
     if (raw) {
       const fallback = JSON.parse(raw) as SyncOp[]
       const known = new Set(out.map((o) => o.id))
@@ -115,11 +118,11 @@ export async function removeOps(ids: string[]): Promise<void> {
     /* ignore */
   }
   try {
-    const raw = localStorage.getItem('ff_sync_fallback')
+    const raw = localStorage.getItem('fintrack_sync_fallback')
     if (raw) {
       const list = JSON.parse(raw) as SyncOp[]
       const idSet = new Set(ids)
-      localStorage.setItem('ff_sync_fallback', JSON.stringify(list.filter((o) => !idSet.has(o.id))))
+      localStorage.setItem('fintrack_sync_fallback', JSON.stringify(list.filter((o) => !idSet.has(o.id))))
     }
   } catch {
     /* ignore */

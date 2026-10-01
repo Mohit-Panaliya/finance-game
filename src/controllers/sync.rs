@@ -1,7 +1,7 @@
 use loco_rs::prelude::*;
 use serde::Deserialize;
 
-use crate::game_engine::sync::{apply_push, pull_changes, SyncOp};
+use crate::sync_engine::{apply_push, pull_changes, SyncOp};
 
 pub fn routes() -> Routes {
     Routes::new()
@@ -42,8 +42,11 @@ async fn pull(
         .shared_store
         .get_ref::<sea_orm_turso::TursoConnection>()
         .ok_or_else(|| Error::string("database unavailable"))?;
-    let since = params.get("since").and_then(|v| v.as_str());
-    let payload = pull_changes(&db, super::uid(&ctx, &auth).await?, since)
+    // `since` may arrive as an RFC3339 string or as a numeric epoch-ms value
+    let since = params
+        .get("since")
+        .and_then(|v| v.as_str().map(str::to_string).or_else(|| v.as_i64().map(|n| n.to_string())));
+    let payload = pull_changes(&db, super::uid(&ctx, &auth).await?, since.as_deref())
         .await
         .map_err(|e| Error::string(&e.to_string()))?;
     format::json(payload)

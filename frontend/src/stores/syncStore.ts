@@ -46,8 +46,8 @@ export const useSyncStore = defineStore('sync', {
       this.queueCount = q.length
     },
 
-    async queue(entity: string, op: SyncOp['op'], payload: unknown) {
-      await enqueue(entity, op, payload)
+    async queue(entity: string, op: SyncOp['op'], payload: unknown, entityId?: string) {
+      await enqueue(entity, op, payload, entityId)
       await this.refreshCount()
       if (!navigator.onLine) this.status = 'offline'
     },
@@ -66,11 +66,17 @@ export const useSyncStore = defineStore('sync', {
       this.status = 'pushing'
       this.message = `Pushing ${queue.length} change${queue.length > 1 ? 's' : ''}…`
       try {
-        await api.post('/sync/push', { ops: queue })
+        const res = await api.post<{ ok?: boolean; results?: Array<{ status?: string }> }>(
+          '/sync/push',
+          { ops: queue }
+        )
         await removeOps(queue.map((o) => o.id))
+        const rejected = (res?.results ?? []).filter((r) => String(r.status ?? '').startsWith('rejected'))
         this.status = 'synced'
         this.lastSyncAt = Date.now()
-        this.message = 'All changes synced'
+        this.message = rejected.length
+          ? `Synced · ${rejected.length} change${rejected.length > 1 ? 's' : ''} rejected`
+          : 'All changes synced'
         await this.refreshCount()
         return true
       } catch (e) {
@@ -92,12 +98,17 @@ export const useSyncStore = defineStore('sync', {
         return false
       }
       try {
-        const since = await getLastServerTs()
-        const res = await api.get<{ server_ts?: number; changes?: unknown; ops?: unknown }>(
+        const last = await getLastServerTs()
+        // server_ts is an RFC3339 string and the endpoint compares `since` as a
+        // string, so the stored epoch number has to be converted before sending.
+        // On a first sync there is no watermark yet, so the param is omitted.
+        const since = last > 0 ? new Date(last).toISOString() : undefined
+        const res = await api.get<{ server_ts?: string; changes?: unknown; ops?: unknown }>(
           '/sync/pull',
-          { since }
+          since ? { since } : {}
         )
-        const serverTs = res?.server_ts ?? Date.now()
+        const raw = res?.server_ts
+        const serverTs = typeof raw === 'string' ? Date.parse(raw) || Date.now() : Number(raw) || Date.now()
         await setLastServerTs(serverTs)
         this.lastSyncAt = Date.now()
         if (this.status !== 'pushing') this.status = 'synced'

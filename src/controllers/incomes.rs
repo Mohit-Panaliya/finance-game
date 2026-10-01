@@ -134,7 +134,6 @@ async fn create(
         last_synced_at: Set(None),
         created_at: Set(Some(now.clone())),
         updated_at: Set(Some(now)),
-        game_building_id: Set(None),
     };
     let item = active
         .insert(&*db)

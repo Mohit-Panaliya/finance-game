@@ -50,7 +50,6 @@ pub struct Model {
     pub last_synced_at: Option<String>,
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
-    pub game_building_id: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -80,7 +79,6 @@ pub struct CreateFixedDepositRequest {
     pub status: Option<String>,
     pub sync_status: Option<String>,
     pub last_synced_at: Option<String>,
-    pub game_building_id: Option<String>,
 }
 
 impl CreateFixedDepositRequest {
@@ -110,7 +108,6 @@ impl CreateFixedDepositRequest {
             status: Set(self.status.unwrap_or_else(|| "active".to_string())),
             sync_status: Set(self.sync_status.unwrap_or_else(|| "synced".to_string())),
             last_synced_at: Set(self.last_synced_at),
-            game_building_id: Set(self.game_building_id),
             created_at: Set(Some(now())),
             updated_at: Set(Some(now())),
             ..Default::default()
@@ -139,7 +136,6 @@ pub struct UpdateFixedDepositRequest {
     pub status: Option<String>,
     pub sync_status: Option<String>,
     pub last_synced_at: Option<String>,
-    pub game_building_id: Option<String>,
 }
 
 impl UpdateFixedDepositRequest {
@@ -202,9 +198,6 @@ impl UpdateFixedDepositRequest {
         if let Some(v) = self.last_synced_at {
             am.last_synced_at = Set(Some(v));
         }
-        if let Some(v) = self.game_building_id {
-            am.game_building_id = Set(Some(v));
-        }
         am.updated_at = Set(Some(now()));
         am
     }
@@ -235,7 +228,6 @@ pub struct FixedDepositResponse {
     pub last_synced_at: Option<String>,
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
-    pub game_building_id: Option<String>,
     pub days_to_maturity: i64,
     pub projected_maturity_value: f64,
 }
@@ -273,7 +265,6 @@ impl From<Model> for FixedDepositResponse {
             last_synced_at: m.last_synced_at,
             created_at: m.created_at,
             updated_at: m.updated_at,
-            game_building_id: m.game_building_id,
             days_to_maturity,
             projected_maturity_value,
         }

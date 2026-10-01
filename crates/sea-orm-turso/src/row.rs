@@ -8,6 +8,12 @@ const BOOL_COLUMN_NAMES: &[&str] = &[
     "is_", "has_", "can_", "should_", "was_", "did_",
     "deleted", "archived", "published", "visible", "hidden",
     "disabled", "is_active", "is_primary",
+    // SQLite has no BOOLEAN type, so bool columns are declared INTEGER and are
+    // otherwise decoded as BigInt. investments.tax_saving is the one bool column
+    // that does not follow an is_/has_ naming convention, and its model field is
+    // a plain bool, so reading a row failed with "Missing value for column
+    // 'tax_saving'".
+    "tax_saving",
 ];
 
 fn is_likely_boolean(col_name: &str) -> bool {
@@ -188,14 +194,16 @@ mod tests {
 
     #[test]
     fn test_turso_text_to_datetime() {
+        // Every timestamp column in this project is modelled as Option<String>,
+        // so timestamps must stay Text on read or they hydrate as NULL.
         let val = turso_value_to_sea_value_typed(TursoValue::Text("2026-09-13T10:30:00+00:00".into()), false).unwrap();
-        assert!(matches!(val, SeaValue::ChronoDateTimeWithTimeZone(Some(_))));
+        assert!(matches!(val, SeaValue::String(Some(_))));
     }
 
     #[test]
     fn test_turso_text_to_naive_datetime() {
         let val = turso_value_to_sea_value_typed(TursoValue::Text("2026-09-13 10:30:00".into()), false).unwrap();
-        assert!(matches!(val, SeaValue::ChronoDateTimeWithTimeZone(Some(_))));
+        assert!(matches!(val, SeaValue::String(Some(_))));
     }
 
     #[test]

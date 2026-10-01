@@ -33,8 +33,16 @@ Boots standalone — no env var is strictly required:
 | `server.binding` | `0.0.0.0` | `BINDING` |
 | `server.port` | `5155` | `PORT` |
 | `server.host` | `http://localhost` | `HOST` |
-| `database.uri` | `sqlite://finance_game_production.sqlite?mode=rwc` | `DATABASE_URL` |
+| `database.uri` | `sqlite://finance_game_production_loco.sqlite?mode=rwc` | `DATABASE_URL` |
 | `workers` | `mode: BackgroundAsync`, `enable: false` | — |
+
+> **The `_loco` suffix in `DATABASE_URL` is mandatory.** Loco (auth, `users`)
+> opens that URL as-is, while the Turso initializer derives the finance-database
+> path with `path.replace("_loco.sqlite", ".sqlite")`. If the suffix is missing
+> the replacement is a no-op, so both engines open the *same* file with two
+> independent SQLite/WAL implementations and silently clobber each other:
+> finance rows survive a restart while newly created users vanish. The app
+> refuses to start if the two paths would collide.
 
 Middleware notes (matches `config/development.yaml`):
 

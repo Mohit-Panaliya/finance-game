@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { IonPage, IonContent } from '@ionic/vue'
-import GameInput from '@/components/game/GameInput.vue'
-import GameButton from '@/components/game/GameButton.vue'
+import { IonContent, IonIcon, IonPage } from '@ionic/vue'
+import { walletOutline } from 'ionicons/icons'
 import { useAuthStore } from '@/stores/authStore'
+import AppButton from '@/components/ui/AppButton.vue'
+import AppInput from '@/components/ui/AppInput.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -16,19 +17,23 @@ const busy = ref(false)
 const error = ref('')
 
 async function submit() {
-  if (!name.value || !email.value || !password.value) {
-    error.value = 'All fields required, squire!'
+  if (!name.value.trim() || !email.value.trim() || !password.value) {
+    error.value = 'All three fields are required.'
+    return
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim())) {
+    error.value = 'Enter a valid email address.'
     return
   }
   if (password.value.length < 6) {
-    error.value = 'Secret word must be 6+ characters'
+    error.value = 'Password must be at least 6 characters.'
     return
   }
   busy.value = true
   error.value = ''
   try {
-    await auth.register(email.value, name.value, password.value)
-    await router.replace('/')
+    await auth.register(email.value.trim(), name.value.trim(), password.value)
+    await router.replace('/dashboard')
   } catch {
     error.value = auth.error ?? 'Registration failed'
   } finally {
@@ -40,28 +45,34 @@ async function submit() {
 <template>
   <ion-page>
     <ion-content :fullscreen="true" class="reg-bg">
-      <div class="wrap">
-        <div class="banner-pole" aria-hidden="true" />
-        <div class="reg-panel panel-stone noise bounce-in">
-          <div class="crest">🛡️</div>
-          <h1 class="carved carved-gold title">RAISE YOUR BANNER</h1>
-          <p class="subtitle carved">Found a new fortress</p>
+      <div class="auth-wrap">
+        <div class="auth-card">
+          <div class="auth-mark"><ion-icon :icon="walletOutline" /></div>
+          <h1 class="auth-title">Create your account</h1>
+          <p class="auth-sub">Start tracking banks, deposits and investments</p>
 
-          <form class="form ff-col" @submit.prevent="submit">
-            <GameInput v-model="name" label="Champion Name" placeholder="e.g. Aldric the Bold" />
-            <GameInput v-model="email" type="email" label="Raven Address" placeholder="you@keep.com" />
-            <GameInput v-model="password" type="password" label="Secret Word" placeholder="6+ characters" />
-            <p v-if="error" class="error carved carved-sm">{{ error }}</p>
-            <GameButton type="submit" variant="green" size="lg" block :disabled="busy" sparkle>
-              {{ busy ? 'Building…' : 'BUILD FORTRESS' }}
-            </GameButton>
+          <form class="form-grid" @submit.prevent="submit">
+            <AppInput v-model="name" label="Name" placeholder="Your name" autocomplete="name" />
+            <AppInput v-model="email" type="email" label="Email" placeholder="you@example.com" autocomplete="email" />
+            <AppInput
+              v-model="password"
+              type="password"
+              label="Password"
+              placeholder="At least 6 characters"
+              autocomplete="new-password"
+            />
+
+            <p v-if="error" class="form-error">{{ error }}</p>
+
+            <AppButton type="submit" variant="primary" size="lg" block :disabled="busy">
+              {{ busy ? 'Creating account…' : 'Create account' }}
+            </AppButton>
           </form>
 
-          <div class="links">
-            <button class="link" type="button" @click="router.push('/login')">
-              Already sworn in? <span class="link-gold">Enter gate →</span>
-            </button>
-          </div>
+          <p class="auth-alt">
+            Already registered?
+            <router-link class="auth-link" to="/login">Sign in</router-link>
+          </p>
         </div>
       </div>
     </ion-content>
@@ -70,75 +81,58 @@ async function submit() {
 
 <style scoped>
 .reg-bg {
-  --background: radial-gradient(circle at 50% 10%, #3e2712 0%, #241405 50%, #0d0700 100%);
-  --color: var(--ff-parchment);
+  --background: var(--bg);
 }
-.wrap {
-  position: relative;
+.auth-wrap {
   min-height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px 18px calc(40px + env(safe-area-inset-bottom));
+  padding: 24px 18px calc(28px + env(safe-area-inset-bottom));
 }
-.banner-pole {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 8px;
-  height: 90px;
-  background: linear-gradient(180deg, #6b431f, #3a220d);
-  border: 2px solid #1a0f00;
-}
-.reg-panel {
-  position: relative;
+.auth-card {
   width: min(400px, 100%);
-  padding: 26px 20px 22px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 26px 20px 20px;
+  box-shadow: var(--shadow-md);
   text-align: center;
 }
-.crest {
-  font-size: 44px;
-  margin-top: -52px;
-  margin-bottom: 6px;
-  filter: drop-shadow(0 4px 0 rgba(0, 0, 0, 0.6));
-  animation: bob 2.5s ease-in-out infinite;
+.auth-mark {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 26px;
 }
-.title {
+.auth-title {
   margin: 0;
-  font-size: 25px;
-  letter-spacing: 0.05em;
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
-.subtitle {
-  margin: 4px 0 18px;
-  font-size: 13px;
-  opacity: 0.75;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+.auth-sub {
+  margin: 5px 0 22px;
+  font-size: 0.88rem;
+  color: var(--text-muted);
 }
-.form {
-  gap: 14px;
+.form-grid {
   text-align: left;
 }
-.error {
-  color: #ff9d94;
-  text-align: center;
-  margin: 0;
+.auth-alt {
+  margin: 20px 0 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
 }
-.links {
-  margin-top: 16px;
-}
-.link {
-  background: none;
-  border: none;
-  color: var(--ff-parchment);
-  font-family: var(--ff-font-body);
-  font-size: 14px;
-  cursor: pointer;
-  opacity: 0.85;
-}
-.link-gold {
-  color: var(--ff-gold);
-  font-weight: 800;
+.auth-link {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
 }
 </style>

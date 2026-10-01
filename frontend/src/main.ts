@@ -9,8 +9,9 @@ import '@ionic/vue/css/padding.css'
 import '@ionic/vue/css/float-elements.css'
 import '@ionic/vue/css/text-alignment.css'
 import '@ionic/vue/css/text-transformation.css'
-import '@ionic/vue/css/palettes/dark.css'
-import './theme/game.css'
+// Ionic 8 ships no light palette; this app is dark-only by design.
+import '@ionic/vue/css/palettes/dark.always.css'
+import './theme/app.css'
 
 import App from './App.vue'
 import router from './router'

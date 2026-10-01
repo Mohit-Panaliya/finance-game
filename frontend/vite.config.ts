@@ -10,13 +10,13 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg', 'icons/icon-192.png', 'icons/icon-512.png'],
       manifest: {
-        name: 'Finance Forge',
-        short_name: 'FinForge',
-        description: 'Clash-of-Clans style personal finance game',
-        theme_color: '#1a0f00',
-        background_color: '#1a0f00',
-        display: 'fullscreen',
-        orientation: 'landscape',
+        name: 'Fintrack',
+        short_name: 'Fintrack',
+        description: 'Track bank accounts, assets, deposits, investments, income and expenses.',
+        theme_color: '#0f1115',
+        background_color: '#0f1115',
+        display: 'standalone',
+        orientation: 'portrait',
         start_url: '/',
         scope: '/',
         icons: [
@@ -37,17 +37,10 @@ export default defineConfig({
             urlPattern: /^\/api\/.*$/,
             handler: 'StaleWhileRevalidate',
             options: {
-              cacheName: 'api-get-cache',
+              // Versioned name so the legacy shell cache is never reused.
+              cacheName: 'fintrack-api-v2',
               cacheableResponse: { statuses: [0, 200] },
               expiration: { maxEntries: 250, maxAgeSeconds: 86400 }
-            }
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'google-fonts',
-              expiration: { maxEntries: 20, maxAgeSeconds: 31536000 }
             }
           }
         ]

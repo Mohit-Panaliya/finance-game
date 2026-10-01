@@ -36,7 +36,6 @@ pub struct Model {
     pub last_synced_at: Option<String>,
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
-    pub game_troop_id: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -67,7 +66,6 @@ pub struct CreateExpenseRequest {
     pub priority: Option<String>,
     pub sync_status: Option<String>,
     pub last_synced_at: Option<String>,
-    pub game_troop_id: Option<String>,
 }
 
 impl CreateExpenseRequest {
@@ -95,7 +93,6 @@ impl CreateExpenseRequest {
             priority: Set(self.priority.unwrap_or_else(|| "medium".to_string())),
             sync_status: Set(self.sync_status.unwrap_or_else(|| "synced".to_string())),
             last_synced_at: Set(self.last_synced_at),
-            game_troop_id: Set(self.game_troop_id),
             created_at: Set(Some(now())),
             updated_at: Set(Some(now())),
             ..Default::default()
@@ -125,7 +122,6 @@ pub struct UpdateExpenseRequest {
     pub priority: Option<String>,
     pub sync_status: Option<String>,
     pub last_synced_at: Option<String>,
-    pub game_troop_id: Option<String>,
 }
 
 impl UpdateExpenseRequest {
@@ -191,9 +187,6 @@ impl UpdateExpenseRequest {
         if let Some(v) = self.last_synced_at {
             am.last_synced_at = Set(Some(v));
         }
-        if let Some(v) = self.game_troop_id {
-            am.game_troop_id = Set(Some(v));
-        }
         am.updated_at = Set(Some(now()));
         am
     }
@@ -225,7 +218,6 @@ pub struct ExpenseResponse {
     pub last_synced_at: Option<String>,
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
-    pub game_troop_id: Option<String>,
 }
 
 impl From<Model> for ExpenseResponse {
@@ -255,7 +247,6 @@ impl From<Model> for ExpenseResponse {
             last_synced_at: m.last_synced_at,
             created_at: m.created_at,
             updated_at: m.updated_at,
-            game_troop_id: m.game_troop_id,
         }
     }
 }

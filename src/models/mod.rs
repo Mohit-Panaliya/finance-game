@@ -6,5 +6,4 @@ pub mod credit_cards;
 pub mod fixed_deposits;
 pub mod investments;
 pub mod incomes;
-pub mod game;
 pub mod sync;

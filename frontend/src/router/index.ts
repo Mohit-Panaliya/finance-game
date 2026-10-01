@@ -1,21 +1,65 @@
 import { createRouter, createWebHistory } from '@ionic/vue-router'
 import type { RouteRecordRaw } from 'vue-router'
-import { useAuthStore } from '@/stores/authStore'
+import { getToken } from '@/api/client'
+import { isEntityType } from '@/entityConfig'
 
 const routes: RouteRecordRaw[] = [
-  { path: '/login', name: 'login', component: () => import('@/pages/LoginPage.vue'), meta: { public: true } },
-  { path: '/register', name: 'register', component: () => import('@/pages/RegisterPage.vue'), meta: { public: true } },
-  { path: '/', name: 'village', component: () => import('@/pages/VillagePage.vue') },
-  { path: '/battle', name: 'battle', component: () => import('@/pages/BattlePage.vue') },
-  { path: '/records', name: 'records', component: () => import('@/pages/RecordsPage.vue') },
-  { path: '/records/:entity/new', name: 'record-new', component: () => import('@/pages/RecordEntityPage.vue'), props: { startNew: true } },
-  { path: '/records/:entity', name: 'record-entity', component: () => import('@/pages/RecordEntityPage.vue') },
-  { path: '/army', name: 'army', component: () => import('@/pages/ArmyPage.vue') },
-  { path: '/achievements', name: 'achievements', component: () => import('@/pages/AchievementsPage.vue') },
-  { path: '/leaderboard', name: 'leaderboard', component: () => import('@/pages/LeaderboardPage.vue') },
-  { path: '/settings', name: 'settings', component: () => import('@/pages/SettingsPage.vue') },
-  { path: '/analysis', name: 'analysis', component: () => import('@/pages/AnalysisPage.vue') },
-  { path: '/:pathMatch(.*)*', redirect: '/' }
+  { path: '/', redirect: '/dashboard' },
+  {
+    path: '/dashboard',
+    name: 'dashboard',
+    component: () => import('@/pages/DashboardPage.vue'),
+    meta: { tab: 'dashboard', title: 'Dashboard' }
+  },
+  {
+    path: '/accounts',
+    name: 'accounts',
+    component: () => import('@/pages/AccountsPage.vue'),
+    meta: { tab: 'accounts', title: 'Accounts' }
+  },
+  {
+    path: '/accounts/:entity',
+    name: 'account-detail',
+    component: () => import('@/pages/AccountDetailPage.vue'),
+    meta: { tab: 'accounts', title: 'Records' }
+  },
+  {
+    path: '/accounts/:entity/new',
+    name: 'account-new',
+    component: () => import('@/pages/AccountDetailPage.vue'),
+    meta: { tab: 'accounts', title: 'New record' }
+  },
+  {
+    path: '/transactions',
+    name: 'transactions',
+    component: () => import('@/pages/TransactionsPage.vue'),
+    meta: { tab: 'transactions', title: 'Activity' }
+  },
+  {
+    path: '/analytics',
+    name: 'analytics',
+    component: () => import('@/pages/AnalyticsPage.vue'),
+    meta: { tab: 'analytics', title: 'Insights' }
+  },
+  {
+    path: '/settings',
+    name: 'settings',
+    component: () => import('@/pages/SettingsPage.vue'),
+    meta: { tab: 'settings', title: 'Settings' }
+  },
+  {
+    path: '/login',
+    name: 'login',
+    component: () => import('@/pages/LoginPage.vue'),
+    meta: { public: true, title: 'Sign in' }
+  },
+  {
+    path: '/register',
+    name: 'register',
+    component: () => import('@/pages/RegisterPage.vue'),
+    meta: { public: true, title: 'Create account' }
+  },
+  { path: '/:pathMatch(.*)*', redirect: '/dashboard' }
 ]
 
 const router = createRouter({
@@ -23,15 +67,28 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach(async (to) => {
-  const auth = useAuthStore()
-  if (!auth.ready) await auth.init()
-  if (to.meta.public) {
-    if (auth.isAuthenticated && (to.name === 'login' || to.name === 'register')) return '/'
-    return true
+const APP_TITLE = 'FinTrack'
+
+router.beforeEach((to) => {
+  // Read the persisted token directly: `auth.user` is still null on a hard refresh
+  // until /auth/me resolves, which would bounce signed-in users back to /login.
+  const token = getToken()
+
+  if (!to.meta.public && !token) {
+    return { name: 'login', query: { redirect: to.fullPath } }
   }
-  if (!auth.isAuthenticated) return { name: 'login', query: { redirect: to.fullPath } }
+  if (to.meta.public && token) {
+    return { name: 'dashboard' }
+  }
+  if (typeof to.params.entity === 'string' && !isEntityType(to.params.entity)) {
+    return { name: 'accounts' }
+  }
   return true
+})
+
+router.afterEach((to) => {
+  const title = (to.meta?.title as string | undefined) ?? ''
+  document.title = title ? `${title} · ${APP_TITLE}` : APP_TITLE
 })
 
 export default router

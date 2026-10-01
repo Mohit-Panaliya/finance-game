@@ -7,16 +7,20 @@ export type EntityType =
   | 'investments'
   | 'incomes'
 
+/** The 5 entity groups that own real money (credit cards are liabilities). */
+export type AccountEntityType = Extract<EntityType, 'banks' | 'assets' | 'credit-cards' | 'fixed-deposits' | 'investments'>
+
 export interface FinanceRow {
   id?: number | string
   [key: string]: unknown
 }
 
+/** Shape returned by every `GET /api/{entity}` list endpoint. */
 export interface Paged<T> {
-  items: T[]
+  data: T[]
   total?: number
   page?: number
-  per_page?: number
+  perPage?: number
 }
 
 export interface User {
@@ -26,138 +30,223 @@ export interface User {
   username?: string
 }
 
-export interface Resources {
-  gold: number
-  gems: number
-  elixir: number
-  trophies: number
-}
-
-export interface Village {
-  id?: number | string
-  level?: number
-  xp?: number
-  experience?: number
-  xp_to_next?: number
-  next_level_xp?: number
-  gold?: number
-  gems?: number
-  elixir?: number
-  trophies?: number
-  resources?: Partial<Resources>
-  [key: string]: unknown
-}
-
-export type BuildingType =
-  | 'bank'
-  | 'asset'
-  | 'fixed-deposit'
-  | 'investment'
-  | 'income'
-  | 'expense'
-  | 'credit-card'
-
-export interface Building {
-  id: number | string
-  type: string
-  name?: string
-  level: number
-  production_ready?: boolean
-  can_collect?: boolean
-  ready?: boolean
-  ready_at?: string
-  produced_amount?: number
-  collectible?: number
-  upgrade_cost?: number
-  upgrade_gold_cost?: number
-  upgrade_elixir_cost?: number
-  production_rate?: number
-  entity_id?: number | string
-  [key: string]: unknown
-}
-
-export interface Troop {
-  id?: number | string
-  troop_type?: string
-  type?: string
-  name?: string
-  count?: number
-  level?: number
-  attack?: number
-  hp?: number
-  damage?: number
-  health?: number
-  training?: number
-  training_count?: number
-  ready?: boolean
-  icon?: string
-  cost?: number
-  [key: string]: unknown
-}
-
-export interface BattleRecord {
-  id: number | string
-  battle_type?: string
-  result?: string
-  stars?: number
-  loot?: number
-  gold_looted?: number
-  created_at?: string
-  [key: string]: unknown
-}
-
-export interface Achievement {
-  id: number | string
-  title?: string
-  name?: string
-  description?: string
-  icon?: string
-  xp_reward?: number
-  gold_reward?: number
-  gems_reward?: number
-  unlocked?: boolean
-  claimed?: boolean
-  progress?: number
-  max_progress?: number
-  target?: number
-  [key: string]: unknown
-}
-
-export interface LeaderboardRow {
-  rank?: number
-  position?: number
-  user_id?: number | string
-  name?: string
-  username?: string
-  trophies?: number
-  level?: number
-  is_me?: boolean
-  [key: string]: unknown
-}
-
-export interface GameStats {
-  level?: number
-  xp?: number
-  battles_won?: number
-  battles_lost?: number
-  total_loot?: number
-  troops_trained?: number
-  buildings_upgraded?: number
-  [key: string]: unknown
-}
-
-export interface VillageResponse {
-  village: Village
-  buildings: Building[]
-  troops: Troop[]
-  unlocked_achievements: Array<number | string> | Achievement[]
-  stats: GameStats
-}
-
+/**
+ * One queued mutation. `entity` must be the snake_case table name
+ * (`credit_cards`, `fixed_deposits`, …) and `entity_id` is required by the server.
+ */
 export interface SyncOp {
   id: string
   entity: string
+  entity_id: string
   op: 'create' | 'update' | 'delete'
   payload: unknown
   client_ts: string
+}
+
+/* ------------------------------------------------------------------ *
+ * GET /api/analysis
+ * ------------------------------------------------------------------ */
+
+export interface NetWorthBreakdown {
+  banks: number
+  assets: number
+  fixed_deposits: number
+  investments: number
+  total: number
+}
+
+export interface YearlyIncomeByType {
+  salary: number
+  business: number
+  investment: number
+  other: number
+  total: number
+}
+
+export interface MonthlyExpenseByCategory {
+  month: string
+  category: string
+  amount: number
+}
+
+export interface InvestmentTypeRoi {
+  investment_type: string
+  invested: number
+  current_value: number
+  gain_loss: number
+  roi_pct: number
+}
+
+export interface RoiCalculation {
+  total_invested: number
+  total_current_value: number
+  total_gain_loss: number
+  roi_percentage: number
+  by_type: InvestmentTypeRoi[]
+}
+
+export interface CashFlowPoint {
+  month: string
+  income: number
+  expense: number
+  net: number
+}
+
+export interface TopItem {
+  label: string
+  amount: number
+  category: string | null
+}
+
+export interface FdMaturity {
+  id: string
+  name: string
+  principal: number
+  current_value: number
+  maturity_date: string
+  days_to_maturity: number
+  interest_rate: number
+}
+
+export interface CreditCardUtilization {
+  card_name: string
+  limit: number
+  balance: number
+  available: number
+  utilization_pct: number
+}
+
+export interface SavingsRate {
+  total_income: number
+  total_expense: number
+  savings: number
+  savings_rate_pct: number
+}
+
+export interface AnalysisResponse {
+  net_worth: NetWorthBreakdown
+  yearly_income_by_type: YearlyIncomeByType
+  monthly_expenses: MonthlyExpenseByCategory[]
+  roi: RoiCalculation
+  cash_flow: CashFlowPoint[]
+  top_5_expenses: TopItem[]
+  top_5_income_sources: TopItem[]
+  investment_performance: InvestmentTypeRoi[]
+  fd_maturity_timeline: FdMaturity[]
+  credit_card_utilization: CreditCardUtilization[]
+  savings_rate: SavingsRate
+}
+
+/* ------------------------------------------------------------------ *
+ * GET /api/overview
+ * ------------------------------------------------------------------ */
+
+export interface OverviewResponse {
+  net_worth: number
+  yearly_income: number
+  monthly_expense: number
+  total_gain: number
+  invested: number
+  roi: number
+}
+
+/* ------------------------------------------------------------------ *
+ * GET /api/{entity}/summary
+ * ------------------------------------------------------------------ */
+
+export interface BankSummary {
+  total_balance: number
+  count: number
+}
+
+export interface AssetSummary {
+  total_value: number
+  total_invested: number
+  total_gain_loss: number
+  count: number
+}
+
+export interface CreditCardSummary {
+  total_limit: number
+  total_balance: number
+  total_available: number
+  count: number
+}
+
+export interface FixedDepositSummary {
+  total_invested: number
+  total_value: number
+  total_interest: number
+  active_count: number
+}
+
+export interface InvestmentSummary {
+  total_invested: number
+  total_value: number
+  total_gain_loss: number
+  count: number
+}
+
+export interface IncomeTypeTotal {
+  income_type: string
+  total: number
+}
+
+export interface IncomeSummary {
+  yearly_income: number
+  monthly_income: number
+  received_this_year: number
+  by_type: IncomeTypeTotal[]
+}
+
+export interface ExpenseCategoryTotal {
+  category: string
+  total: number
+  count: number
+}
+
+export interface ExpenseMonthTotal {
+  month: string
+  total: number
+}
+
+export interface ExpenseSummary {
+  total_amount: number
+  fixed_total: number
+  variable_total: number
+  by_category: ExpenseCategoryTotal[]
+  by_month: ExpenseMonthTotal[]
+}
+
+export interface EntitySummaryMap {
+  banks: BankSummary
+  assets: AssetSummary
+  'credit-cards': CreditCardSummary
+  'fixed-deposits': FixedDepositSummary
+  investments: InvestmentSummary
+  incomes: IncomeSummary
+  expenses: ExpenseSummary
+}
+
+/** Result of `POST /api/sync/push`. */
+export interface SyncPushResponse {
+  ok?: boolean
+  results?: Array<{
+    entity: string
+    entity_id: string
+    status: string
+    server_ts: string
+  }>
+}
+
+/** Result of `GET /api/sync/pull`. */
+export interface SyncPullResponse {
+  changes?: Array<{
+    entity: string
+    entity_id: string
+    op: string
+    payload: string | null
+    server_ts: string | null
+  }>
+  server_ts?: string
 }

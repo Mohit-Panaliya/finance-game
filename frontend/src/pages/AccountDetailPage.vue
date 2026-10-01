@@ -1,0 +1,656 @@
+<script setup lang="ts">
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { IonContent, IonIcon, IonPage } from '@ionic/vue'
+import {
+  addOutline,
+  arrowBackOutline,
+  chevronDownOutline,
+  chevronForwardOutline,
+  chevronUpOutline,
+  createOutline,
+  searchOutline,
+  trashOutline,
+  walletOutline
+} from 'ionicons/icons'
+import { useFinanceStore } from '@/stores/financeStore'
+import { useSyncStore } from '@/stores/syncStore'
+import {
+  ENTITY_SNAKE,
+  detailFields,
+  entityConfig,
+  isEntityType,
+  rowSubtitle,
+  rowTitle,
+  rowValue
+} from '@/entityConfig'
+import type { FieldDef } from '@/entityConfig'
+import type { EntityType, FinanceRow } from '@/types'
+import { formatMoney, rowCurrency } from '@/utils/money'
+import { formatDate, formatDateTime, todayISO } from '@/utils/date'
+import { uuid } from '@/services/offlineQueue'
+import AppButton from '@/components/ui/AppButton.vue'
+import AppDatePicker from '@/components/ui/AppDatePicker.vue'
+import AppInput from '@/components/ui/AppInput.vue'
+import AppModal from '@/components/ui/AppModal.vue'
+import AppSelect from '@/components/ui/AppSelect.vue'
+import SyncChip from '@/components/ui/SyncChip.vue'
+
+const route = useRoute()
+const router = useRouter()
+const finance = useFinanceStore()
+const sync = useSyncStore()
+
+/** The column that carries "when" for each entity — used for list subtitles and the sheet header. */
+const DATE_COLUMN: Record<EntityType, string> = {
+  banks: 'created_at',
+  assets: 'purchase_date',
+  'fixed-deposits': 'start_date',
+  investments: 'purchase_date',
+  'credit-cards': 'created_at',
+  incomes: 'income_date',
+  expenses: 'expense_date'
+}
+
+const entity = computed<EntityType>(() => {
+  const raw = route.params.entity
+  const value = Array.isArray(raw) ? raw[0] : raw
+  return isEntityType(value) ? value : 'banks'
+})
+
+const isNewRoute = computed(() => route.name === 'account-new')
+const cfg = computed(() => entityConfig(entity.value))
+const list = computed(() => finance.lists[entity.value])
+const fields = computed<FieldDef[]>(() => detailFields(cfg.value))
+
+const search = ref('')
+const sortKey = ref('')
+const sortDir = ref<'asc' | 'desc'>('desc')
+const swipeOpen = ref<string | null>(null)
+
+const detail = ref<FinanceRow | null>(null)
+const formOpen = ref(false)
+const editingId = ref<string | null>(null)
+const pendingDelete = ref<FinanceRow | null>(null)
+const saving = ref(false)
+const formError = ref('')
+const draft = ref<Record<string, string | number | null>>({})
+
+const dateColumn = computed(() => DATE_COLUMN[entity.value])
+
+/* ---------------- draft helpers ---------------- */
+
+function seedDraft() {
+  const next: Record<string, string | number | null> = {}
+  for (const f of fields.value) {
+    if (f.kind === 'date') next[f.key] = todayISO()
+    else if (f.kind === 'bool') next[f.key] = f.key === 'is_active' || f.key === 'is_liquid' ? 'true' : 'false'
+    else if (f.kind === 'select') next[f.key] = f.options?.[0]?.value ?? ''
+    else next[f.key] = ''
+  }
+  draft.value = next
+}
+
+function loadDraft(row: FinanceRow) {
+  const next: Record<string, string | number | null> = {}
+  for (const f of fields.value) {
+    const raw = row[f.key]
+    if (f.kind === 'bool') next[f.key] = raw === true || raw === 'true' ? 'true' : 'false'
+    else if (f.kind === 'money' || f.kind === 'number')
+      next[f.key] = raw === undefined || raw === null ? '' : Number(raw)
+    else next[f.key] = raw === undefined || raw === null ? '' : String(raw)
+  }
+  draft.value = next
+}
+
+function setDraft(key: string, value: string | number | null) {
+  draft.value = { ...draft.value, [key]: value }
+}
+
+function optionsFor(field: FieldDef) {
+  return field.options ?? []
+}
+
+function draftValue(field: FieldDef): string | number | null {
+  return draft.value[field.key] ?? ''
+}
+
+/* ---------------- list ---------------- */
+
+const sortedRows = computed<FinanceRow[]>(() => {
+  const rows = [...list.value.items]
+  const term = search.value.trim().toLowerCase()
+  const out = term
+    ? rows.filter((r) => fields.value.some((f) => String(r[f.key] ?? '').toLowerCase().includes(term)))
+    : rows
+  const key = sortKey.value || cfg.value.displayKeys[1]
+  if (!key) return out
+  const numeric = fields.value.find((f) => f.key === key)?.kind === 'money' || fields.value.find((f) => f.key === key)?.kind === 'number'
+  out.sort((a, b) => {
+    const av = a[key]
+    const bv = b[key]
+    let cmp: number
+    if (numeric) cmp = (Number(av) || 0) - (Number(bv) || 0)
+    else cmp = String(av ?? '').localeCompare(String(bv ?? ''))
+    return sortDir.value === 'asc' ? cmp : -cmp
+  })
+  return out
+})
+
+const sortOptions = computed(() =>
+  fields.value
+    .filter((f) => ['money', 'number', 'text', 'date'].includes(f.kind))
+    .map((f) => ({ value: f.key, label: f.label }))
+)
+
+const sortSelectValue = computed(() => sortKey.value)
+
+function applySort(value: string | number) {
+  sortKey.value = String(value)
+  sortDir.value = 'desc'
+}
+
+function rowId(row: FinanceRow): string {
+  return String(row.id ?? '')
+}
+
+function subtitleFor(row: FinanceRow): string {
+  const sub = rowSubtitle(cfg.value, row)
+  if (sub) return sub
+  const dc = DATE_COLUMN[entity.value]
+  return dc ? formatDate(row[dc]) : ''
+}
+
+function toggleSwipe(row: FinanceRow) {
+  const id = rowId(row)
+  swipeOpen.value = swipeOpen.value === id ? null : id
+}
+
+function closeSwipe() {
+  swipeOpen.value = null
+}
+
+function showDetail(row: FinanceRow) {
+  closeSwipe()
+  detail.value = row
+}
+
+/* ---------------- detail sheet ---------------- */
+
+function fieldValue(row: FinanceRow, f: FieldDef): string {
+  const raw = row[f.key]
+  if (raw === undefined || raw === null || raw === '') return '—'
+  if (f.kind === 'bool') return raw === true || raw === 'true' ? 'Yes' : 'No'
+  if (f.kind === 'select') {
+    const hit = f.options?.find((o) => o.value === String(raw))
+    return hit ? hit.label : String(raw).replace(/_/g, ' ')
+  }
+  if (f.kind === 'money' || f.kind === 'number') {
+    const n = Number(raw)
+    return Number.isFinite(n) ? formatMoney(n, rowCurrency(row)) : '—'
+  }
+  if (f.kind === 'date') return formatDate(raw)
+  return String(raw)
+}
+
+/** Server-side columns that have no config entry (audit fields) are listed too. */
+const detailExtra = computed(() => {
+  const row = detail.value
+  if (!row) return []
+  const known = new Set(fields.value.map((f) => f.key))
+  return Object.keys(row)
+    .filter((k) => !known.has(k) && k !== 'user_id' && k !== 'id' && !k.startsWith('game_'))
+    .map((k) => ({ key: k, value: row[k] }))
+})
+
+const detailDate = computed(() => {
+  const row = detail.value
+  if (!row) return ''
+  return formatDate(row[DATE_COLUMN[entity.value]])
+})
+
+/* ---------------- create / edit / delete ---------------- */
+
+function startCreate() {
+  seedDraft()
+  editingId.value = null
+  detail.value = null
+  closeSwipe()
+  formError.value = ''
+  formOpen.value = true
+}
+
+function startEdit(row: FinanceRow) {
+  loadDraft(row)
+  editingId.value = rowId(row) || null
+  detail.value = null
+  closeSwipe()
+  formError.value = ''
+  formOpen.value = true
+}
+
+function coerce(field: FieldDef, raw: string | number | null): unknown {
+  if (raw === '' || raw === null || raw === undefined) return null
+  if (field.kind === 'money' || field.kind === 'number') {
+    const n = Number(raw)
+    return Number.isFinite(n) ? n : null
+  }
+  if (field.kind === 'bool') return String(raw) === 'true'
+  if (field.kind === 'date') return String(raw)
+  return typeof raw === 'string' ? raw.trim() : raw
+}
+
+async function save() {
+  formError.value = ''
+  const payload: Record<string, unknown> = {}
+  for (const f of fields.value) {
+    const value = coerce(f, draft.value[f.key] ?? null)
+    if (f.required && (value === null || value === '')) {
+      formError.value = `${f.label} is required`
+      return
+    }
+    if (value !== null) payload[f.key] = value
+  }
+
+  saving.value = true
+  const id = editingId.value
+  try {
+    if (id) {
+      await finance.update(entity.value, id, payload)
+    } else {
+      await finance.create(entity.value, payload)
+    }
+    formOpen.value = false
+    if (isNewRoute.value) await router.replace(`/accounts/${entity.value}`)
+  } catch {
+    // Offline (or the server rejected the write): queue it and show it locally.
+    formError.value = 'You appear to be offline. The change is queued and will sync automatically.'
+    if (id) {
+      finance.patchLocal(entity.value, id, payload)
+      await sync.queue(ENTITY_SNAKE[entity.value], 'update', { id, ...payload }, id)
+    } else {
+      const localId = uuid()
+      finance.stageLocal(entity.value, { ...payload, id: localId } as FinanceRow)
+      await sync.queue(ENTITY_SNAKE[entity.value], 'create', { id: localId, ...payload }, localId)
+    }
+    formOpen.value = false
+    if (isNewRoute.value) await router.replace(`/accounts/${entity.value}`)
+  } finally {
+    saving.value = false
+  }
+}
+
+function askDelete(row: FinanceRow) {
+  detail.value = null
+  closeSwipe()
+  pendingDelete.value = row
+}
+
+async function doDelete() {
+  const row = pendingDelete.value
+  pendingDelete.value = null
+  if (!row?.id) return
+  const id = rowId(row)
+  try {
+    await finance.remove(entity.value, id)
+  } catch {
+    finance.dropLocal(entity.value, id)
+    await sync.queue(ENTITY_SNAKE[entity.value], 'delete', { id }, id)
+  }
+}
+
+watch(entity, () => {
+  detail.value = null
+  formOpen.value = false
+  pendingDelete.value = null
+  closeSwipe()
+  void finance.fetchList(entity.value, search.value)
+  void finance.fetchSummary(entity.value)
+})
+
+onMounted(() => {
+  void finance.fetchList(entity.value, search.value)
+  void finance.fetchSummary(entity.value)
+  if (isNewRoute.value) startCreate()
+})
+</script>
+
+<template>
+  <ion-page>
+    <ion-content class="app-content">
+      <div class="page">
+        <header class="page-head">
+          <div class="head-left">
+            <button class="back-btn" type="button" aria-label="Back" @click="router.back()">
+              <ion-icon :icon="arrowBackOutline" />
+            </button>
+            <div>
+              <h1 class="page-title">{{ cfg.label }}</h1>
+              <p class="page-subtitle">
+                {{ sortedRows.length }} shown · {{ list.total }} total
+              </p>
+            </div>
+          </div>
+          <SyncChip :status="sync.status" :pending="sync.queueCount" @sync="finance.refresh()" />
+        </header>
+
+        <div class="toolbar">
+          <div class="search">
+            <ion-icon class="search-icon" :icon="searchOutline" />
+            <input
+              v-model="search"
+              class="search-input"
+              type="search"
+              :placeholder="`Search ${cfg.label.toLowerCase()}`"
+            />
+          </div>
+          <AppSelect
+            class="sort-select"
+            :options="[{ value: '', label: 'Default' }, ...sortOptions]"
+            :model-value="sortSelectValue"
+            @update:model-value="applySort"
+          />
+          <button
+            class="sort-dir"
+            type="button"
+            :aria-label="`Sort ${sortDir === 'asc' ? 'ascending' : 'descending'}`"
+            @click="sortDir = sortDir === 'asc' ? 'desc' : 'asc'"
+          >
+            <ion-icon :icon="sortDir === 'asc' ? chevronUpOutline : chevronDownOutline" />
+          </button>
+        </div>
+
+        <div v-if="list.error" class="form-error">{{ list.error }}</div>
+
+        <div v-if="list.loading && !list.items.length" class="loading-note">Loading {{ cfg.label.toLowerCase() }}…</div>
+
+        <div v-else-if="!sortedRows.length" class="empty">
+          <ion-icon class="empty-icon" :icon="walletOutline" />
+          <p class="empty-title">No {{ cfg.label.toLowerCase() }} yet</p>
+          <p class="empty-text">
+            {{
+              search
+                ? 'No records match your search.'
+                : `Add your first ${cfg.singular.toLowerCase()} to get started.`
+            }}
+          </p>
+        </div>
+
+        <div v-else class="row-list">
+          <div v-for="row in sortedRows" :key="rowId(row)" class="swipe-wrap">
+            <div class="swipe-actions">
+              <button class="swipe-btn swipe-btn-edit" type="button" @click="startEdit(row)">
+                <ion-icon :icon="createOutline" /> Edit
+              </button>
+              <button class="swipe-btn swipe-btn-del" type="button" @click="askDelete(row)">
+                <ion-icon :icon="trashOutline" /> Delete
+              </button>
+            </div>
+            <div
+              class="swipe-content"
+              :class="{ 'swipe-content-open': swipeOpen === rowId(row) }"
+              @click="toggleSwipe(row)"
+            >
+              <span class="row-icon"><ion-icon :icon="cfg.icon" /></span>
+              <span class="row-main">
+                <span class="row-title clamp-1">{{ rowTitle(cfg, row) }}</span>
+                <span class="row-sub clamp-1">{{ subtitleFor(row) }}</span>
+              </span>
+              <span class="row-value">{{ formatMoney(rowValue(cfg, row), rowCurrency(row), { compact: true }) }}</span>
+              <button class="row-open" type="button" aria-label="Open details" @click.stop="showDetail(row)">
+                <ion-icon :icon="chevronForwardOutline" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <AppButton variant="primary" size="md" block @click="startCreate">
+          <ion-icon :icon="addOutline" /> New {{ cfg.singular.toLowerCase() }}
+        </AppButton>
+      </div>
+    </ion-content>
+
+    <!-- Per-record detail: every configured field plus remaining server columns -->
+    <AppModal
+      :open="detail !== null"
+      :title="detail ? rowTitle(cfg, detail) : ''"
+      :subtitle="detail ? `${cfg.singular} · ${detailDate}` : ''"
+      @close="detail = null"
+    >
+      <div v-if="detail" class="meta-list">
+        <div v-for="f in fields" :key="f.key" class="meta-row">
+          <span class="meta-key">{{ f.label }}</span>
+          <span class="meta-val">{{ fieldValue(detail, f) }}</span>
+        </div>
+        <div v-for="extra in detailExtra" :key="extra.key" class="meta-row">
+          <span class="meta-key">{{ extra.key.replace(/_/g, ' ') }}</span>
+          <span class="meta-val">
+            {{ extra.key.endsWith('_at') ? formatDateTime(extra.value) : extra.key === 'tags' && Array.isArray(extra.value) ? extra.value.join(', ') : extra.value }}
+          </span>
+        </div>
+      </div>
+      <template #footer>
+        <AppButton variant="neutral" size="md" @click="detail && startEdit(detail)">Edit</AppButton>
+        <AppButton variant="danger" size="md" @click="detail && askDelete(detail)">Delete</AppButton>
+      </template>
+    </AppModal>
+
+    <!-- Create / edit form -->
+    <AppModal
+      :open="formOpen"
+      :title="editingId ? `Edit ${cfg.singular.toLowerCase()}` : `New ${cfg.singular.toLowerCase()}`"
+      :subtitle="cfg.label"
+      @close="formOpen = false"
+    >
+      <div class="form-grid">
+        <p v-if="formError" class="form-error">{{ formError }}</p>
+
+        <AppDatePicker
+          v-for="f in fields.filter((x) => x.kind === 'date')"
+          :key="f.key"
+          :model-value="draftValue(f) === '' ? null : String(draftValue(f))"
+          :label="f.label"
+          @update:model-value="(v) => setDraft(f.key, v)"
+        />
+
+        <AppSelect
+          v-for="f in fields.filter((x) => x.kind === 'select' || x.kind === 'bool')"
+          :key="f.key"
+          :options="optionsFor(f)"
+          :model-value="draftValue(f)"
+          :label="f.label"
+          @update:model-value="(v) => setDraft(f.key, v as string)"
+        />
+
+        <AppInput
+          v-for="f in fields.filter((x) => x.kind !== 'date' && x.kind !== 'select' && x.kind !== 'bool')"
+          :key="f.key"
+          :model-value="draftValue(f) as string | number"
+          :type="f.kind === 'money' || f.kind === 'number' ? 'number' : 'text'"
+          :label="f.label"
+          :suffix="f.suffix"
+          :hint="f.hint"
+          :placeholder="f.placeholder"
+          @update:model-value="(v) => setDraft(f.key, v)"
+        />
+      </div>
+      <template #footer>
+        <AppButton variant="neutral" size="md" @click="formOpen = false">Cancel</AppButton>
+        <AppButton variant="primary" size="md" :disabled="saving" @click="save">
+          {{ saving ? 'Saving…' : 'Save' }}
+        </AppButton>
+      </template>
+    </AppModal>
+
+    <!-- Delete confirmation -->
+    <AppModal
+      :open="pendingDelete !== null"
+      title="Delete record"
+      :subtitle="pendingDelete ? rowTitle(cfg, pendingDelete) : ''"
+      :sheet="false"
+      @close="pendingDelete = null"
+    >
+      <p class="confirm-text">
+        This removes the record permanently. If you are offline the change is queued and pushed on reconnect.
+      </p>
+      <template #footer>
+        <AppButton variant="neutral" size="md" @click="pendingDelete = null">Keep</AppButton>
+        <AppButton variant="danger" size="md" @click="doDelete">Delete</AppButton>
+      </template>
+    </AppModal>
+  </ion-page>
+</template>
+
+<style scoped>
+.head-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.back-btn {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text);
+  font-size: 18px;
+  cursor: pointer;
+}
+.toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 11px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.search-icon {
+  font-size: 16px;
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+.search-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+}
+.search-input::placeholder {
+  color: var(--text-faint);
+}
+.sort-select {
+  width: 128px;
+  flex-shrink: 0;
+}
+.sort-dir {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 17px;
+  cursor: pointer;
+}
+.loading-note {
+  padding: 22px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+.confirm-text {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.row-open {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-faint);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* swipe-to-reveal actions */
+.swipe-wrap {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border);
+}
+.swipe-wrap:last-child {
+  border-bottom: none;
+}
+.swipe-actions {
+  position: absolute;
+  inset: 0 0 0 auto;
+  display: flex;
+}
+.swipe-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 74px;
+  border: none;
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.swipe-btn ion-icon {
+  font-size: 19px;
+}
+.swipe-btn-edit {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.swipe-btn-del {
+  background: var(--danger);
+  color: var(--on-accent);
+}
+.swipe-content {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 13px;
+  background: var(--surface);
+  transition: transform 0.22s ease;
+  cursor: pointer;
+}
+.swipe-content-open {
+  transform: translateX(-148px);
+}
+</style>

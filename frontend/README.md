@@ -1,118 +1,117 @@
-# Finance Forge — Frontend PWA
+# Fintrack — Frontend PWA
 
-Clash-of-Clans-style personal finance game. Vue 3 + TypeScript + Ionic Vue + Vite + Pinia +
-Vue Router + vite-plugin-pwa. Every control is game UI — zero native date/select/dialog.
+Personal finance tracker. Vue 3 + TypeScript + Ionic Vue + Vite + Pinia + Vue Router +
+vite-plugin-pwa. Mobile-first, portrait, dark. Every form control is a custom component —
+**zero native `<select>`, `<input type="date">`, or `<dialog>` anywhere**.
 
-## Commands
+## Run
 
 ```bash
-npm install       # deps
-npm run dev       # vite dev server (proxies /api → 127.0.0.1:8000)
-npm run build     # production build → dist/ (PWA: sw.js + manifest)   [STATUS: ✓ passing]
-npm run typecheck # vue-tsc --noEmit                                    [STATUS: ✓ 0 errors]
-npm run preview   # preview dist
-npm run icons     # regenerate public/icons/*.png from scripts/gen-icons.mjs
+npm install
+npm run dev          # Vite dev server on :5173, proxies /api → localhost:8080
+npm run build        # type-check + production build into dist/
+npm run preview      # serve the built dist/
+npm run icons        # regenerate public/icons/*.png from scripts/gen-icons.mjs
 ```
 
-## File tree
+## Layout
 
 ```
-frontend/
-├── index.html                     # viewport-fit, theme #1a0f00, Lilita One/Baloo 2 fonts
-├── package.json                   # Vue3 / Ionic8 / Pinia / Vite5 / vite-plugin-pwa
-├── vite.config.ts                 # @ alias, PWA manifest+workbox, /api proxy
-├── tsconfig.json / tsconfig.node.json
-├── public/
-│   ├── icon.svg                   # SVG app icon (hex + emerald)
-│   └── icons/icon-{192,512}.png   # generated PNG icons (maskable included)
-├── scripts/gen-icons.mjs          # dependency-free PNG encoder (zlib + CRC32)
-└── src/
-    ├── main.ts                    # pinia + IonicVue(mode ios, no ripple) + router
-    ├── App.vue                    # ion-tabs shell, wooden tab bar (hidden on /login /register)
-    ├── types.ts                   # Building/Troop/Village/Achievement/SyncOp/…
-    ├── entityConfig.ts            # per-entity form fields, icons, value keys, formatters
-    ├── env.d.ts
-    ├── theme/game.css             # design system: palette, carved text, panels, ALL keyframes
-    ├── api/client.ts              # fetch wrapper, Bearer token, ApiError(offline flag)
-    ├── services/offlineQueue.ts   # IndexedDB sync queue + localStorage fallback + server ts
-    ├── composables/useCountUp.ts  # rAF count-up
-    ├── router/index.ts            # all routes + auth guard
-    ├── stores/
-    │   ├── authStore.ts           # login/register/me/logout, token persistence
-    │   ├── gameStore.ts           # village/buildings/troops/battle/achievements/leaderboard
-    │   ├── financeStore.ts        # per-entity CRUD + summaries + offline queueing
-    │   └── syncStore.ts           # status online|offline|pushing|synced, flush/pull
-    ├── components/game/           # ← custom components (see list below)
-    └── pages/                     # 11 Ionic pages (ion-content as scroll host only)
+public/
+├── icon.svg                 # app mark (used by the manifest as a scalable icon)
+└── icons/                   # 192/512 PNG icons, generated from the same artwork
+scripts/gen-icons.mjs        # dependency-free PNG writer for those icons
+src/
+├── main.ts                  # Ionic + Vue bootstrap, light palette, app.css
+├── App.vue                  # app shell: router outlet + fixed 5-tab bottom nav
+├── router/index.ts          # routes + token guard (public: /login, /register)
+├── theme/app.css            # design system: tokens, cards, rows, bars, charts, nav
+├── types.ts                 # Paged/FinanceRow/SyncOp/overview/analysis/summary types
+├── entityConfig.ts          # per-entity field maps, icons, accents, value keys
+├── api/client.ts            # fetch wrapper (BASE = /api), token helpers, ApiError
+├── services/offlineQueue.ts # IndexedDB queue (fintrack → sync_queue + meta)
+├── stores/
+│   ├── authStore.ts         # login / register / me / logout
+│   ├── financeStore.ts      # 7 entity lists + summaries + overview + analysis + CRUD
+│   └── syncStore.ts         # push queue, pull deltas, online/offline status
+├── composables/useCountUp.ts
+├── utils/money.ts           # currency formatting (compact / signed / percent)
+├── utils/date.ts            # timezone-safe date + month helpers
+├── components/ui/           # AppButton, AppInput, AppSelect, AppDatePicker,
+│                            #   AppModal, SyncChip
+└── pages/                   # Dashboard, Accounts, AccountDetail, Transactions,
+                             #   Analytics, Settings, Login, Register
 ```
 
-## Custom components (src/components/game/)
+## Custom form components (`src/components/ui/`)
 
-| Component | Replaces | Mechanism |
-|---|---|---|
-| **GameDatePicker** | `<input type="date">`, native pickers | 3-column roller (day/month/year), CSS `transform: translateY` + bouncy snap transition, drag/swipe/wheel/+/- nudges, gold ornate frame, dark parchment backdrop, chest Confirm/Cancel. Props `modelValue (YYYY-MM-DD)`, `min`/`max` year, `open`; emits `update:modelValue`, `update:open`, `confirm`, `cancel`. |
-| **GameSelect** | `<select>` | Closed = carved gem/wood button with rotating chevron; open = teleported bottom sheet, staggered stone-row entrance (`animation-delay` per index), selected row shows ✦ rune, hover gold glow. NO native select anywhere. |
-| **GameModal** | `<dialog>` / alert | Teleport-to-body overlay, backdrop blur + dark gradient, panel bounce `cubic-bezier(0.34,1.56,0.64,1)`, ornate banner header, spinning X close, `default`/`header`/`footer` slots, Esc + backdrop dismiss. |
-| **GameInput** | text/number inputs (never `type="date"`) | Carved stone field: inner shadow, gold rivets, focus = golden pulse ring animation. Native `<input>` fully skinned (16px font kills mobile zoom). |
-| **GameButton** | ion-button styling | 3D pressable (`translateY` on :active), layered `box-shadows` as depth, variants gold/green/red/blue/wood, sizes sm/md/lg, disabled (gray pressed), optional 6-spark sparkle animation. |
-| **ResourceBar** | — | HUD gold/elixir/gems/trophies, rAF count-up, flying-coin micro-anim on increase. |
-| **XpBar** | — | Hex level badge + shimmer progress + LEVEL UP burst (ParticleBurst) on level change. |
-| **FloatingNumber** | — | Absolute `+N` text, `float-up` keyframe rise/fade, emits `done` for parent cleanup. |
-| **ParticleBurst** | — | CSS particle explosion (confetti/sparks, radial angles via `--px/--py`), used by achievements + level-up + battle stars. |
-| **SyncChip** (bonus) | — | online/offline/pushing/synced pulse chip, tap = force sync. |
+| Component | Replaces | Notes |
+| --- | --- | --- |
+| **AppSelect** | `<select>` | Closed = flat bordered button; open = teleported bottom sheet with a scrollable option list, selected row marked with a check. No native select. |
+| **AppDatePicker** | `<input type="date">` | 3-column day/month/year wheel, `transform: translateY` positioning, +/- nudge buttons, Confirm/Cancel, backdrop dismiss + Esc. |
+| **AppModal** | `<dialog>` / `alert()` | Teleport-to-body overlay, scroll-locked body, Esc + backdrop dismiss, `default`/`footer` slots, `sheet` mode, `busy` lock for destructive confirmations. |
+| **AppInput** | text/number inputs | Fully skinned `<input>`, 16px font (no iOS zoom), optional label/hint/suffix, money and number variants. |
+| **AppButton** | `ion-button` styling | Variants `primary`/`success`/`neutral`/`danger`, sizes `sm`/`md`/`lg`, block mode, disabled state. |
+| **SyncChip** | — | Live sync status pill (online/offline/pushing/synced/error) with pending-change count; tap to sync now. |
 
-Native-control audit: `grep -rn 'type="date"|<select|<dialog|ion-datetime' src` → **0 matches**.
+## Routes
 
-## Screens
+| Path | Screen |
+| --- | --- |
+| `/dashboard` | Net worth hero, month income/spend/saved, per-group totals, recent activity. |
+| `/accounts` | One card per group (banks, assets, deposits, investments, cards) + allocation bar. |
+| `/accounts/:entity` | List for one entity: search, sort, swipe-to-reveal Edit/Delete, per-record detail sheet, create/edit form. |
+| `/accounts/:entity/new` | Same page with the create form already open. |
+| `/transactions` | Unified income + expense timeline with type/category chips, month buckets, tallies. |
+| `/analytics` | Net worth, savings rate, income mix, cash-flow chart, top expenses/sources, monthly spend, ROI, deposit maturities, card utilisation. Entity-type filter chips. |
+| `/settings` | Account, sync controls, data inventory, about, sign out. |
+| `/login`, `/register` | Auth (public). |
 
-- `/login`, `/register` — fortress gate, torch `flame` keyframes, bouncy form panel
-- `/` **Village** — 2.5D building tiles (thick borders, drop shadows, idle `bob`, collect
-  bubble `pulse-glow`), tap → GameModal action sheet (collect/upgrade/details), floating gold,
-  fixed ResourceBar+XpBar HUD. Mapping: bank=⛏️ Gold Mine, asset=🏰 Castle, FD=🗄️ Vault,
-  investment=🔮 Wizard Tower, income=🧪 Elixir Collector, expense=⚔️ Barracks,
-  credit-card=🧱 Wall.
-- `/battle` — squad picker, GameSelect battle type, animated raid (troops `walk-right`,
-  buildings `shake`→`explode`, star `pop-star` fills, loot count-up), result chest with
-  3-star animation, battle log with stars. Offline → simulated raid + queued to sync.
-- `/records` — summary (yearly income shimmer count-up, monthly fixed, net worth,
-  ROI donut via SVG `stroke-dashoffset`), 7 chest cards → `/records/:entity` lists with
-  ion-item-sliding swipe actions (EDIT/SLAY), FAB → GameModal form (GameSelect +
-  GameDatePicker for select/date fields), `/records/:entity/new` opens form directly.
-- `/army` — barracks: troop catalog, count stepper, elixir cost, training progress bar
-  (shimmer), roster cards with ATK/HP bars + level pips.
-- `/achievements` — trophy room: locked=stone grey, unlocked=gold glow, progress rings
-  (SVG), CLAIM → ParticleBurst.
-- `/leaderboard` — podium 2-1-3 bounce-in, ranked list, own row gold-highlighted.
-- `/settings` — profile, realm sync panel (status/queue/last-sync + SYNC NOW/PULL),
-  about, leave fortress (logout).
+`/dashboard`, `/accounts`, `/transactions`, `/analytics`, `/settings` make up the bottom nav.
+The router redirects `/` → `/dashboard` and guards everything except `/login` + `/register`,
+honouring a `?redirect=` query.
 
-## Offline + PWA
+## Data layer
 
-- `vite-plugin-pwa` generateSW: precaches all assets (54 entries), `clientsClaim`,
-  runtime cache `/api/*` GETs **stale-while-revalidate** (`api-get-cache`), Google Fonts
-  CacheFirst, SPA `navigateFallback`.
-- Manifest: name "Finance Forge", `theme_color #1a0f00`, display standalone, 192/512
-  PNG + maskable + SVG icons.
-- `services/offlineQueue.ts`: raw IndexedDB (`finance-forge` → `sync_queue` + `meta`) with
-  localStorage ring-buffer fallback. Each op: `{id(uuid), entity, op, payload, client_ts}`.
-- `syncStore`: `online/offline/push` listeners → on `online` flush via
-  `POST /api/sync/push {ops}`; on load `GET /api/sync/pull?since=lastServerTs` then
-  emits `ff:synced` so stores refresh. Every store mutation catches offline errors and
-  queues the op (village collect/upgrade/train/battle, finance CRUD, achievement claim).
+- **Lists** — `GET /api/{entity}?page&perPage&search` returns
+  `{ data, total, page, perPage }`. `financeStore` reads `data`.
+- **Detail** — `GET /api/{entity}/:id` returns the raw record; the detail sheet renders
+  every configured field plus any remaining server columns.
+- **Summaries** — `GET /api/{entity}/summary`, stored per-entity so nothing collides.
+- **Overview** — `GET /api/overview` → `net_worth`, `yearly_income`, `monthly_expense`,
+  `total_gain`, `invested`, `roi`.
+- **Analysis** — `GET /api/analysis?entity_types=…` → net-worth breakdown, yearly income
+  by type, monthly expenses, ROI + per-type ROI, cash flow, top items, FD maturities,
+  credit-card utilisation, savings rate.
+- **CRUD** — `POST`/`PUT`/`DELETE /api/{entity}[/:id]`. A failed write is queued as a
+  `SyncOp` and replayed on reconnect.
+- Entities: `banks`, `assets`, `fixed-deposits`, `investments`, `credit-cards`, `incomes`,
+  `expenses`.
 
-## API (same-origin `/api`)
+## Offline sync
 
-auth `login|register|me` · CRUD `banks, assets, expenses, credit-cards, fixed-deposits,
-investments, incomes` (`?page&perPage&search`, `/:id`, `GET /summary`) · game `village,
-buildings/collect|upgrade, troops/train, battle, battles, achievements[/:id/claim],
-leaderboard, stats` · sync `push`, `pull?since=`.
+`services/offlineQueue.ts` keeps an IndexedDB queue (`fintrack` → `sync_queue` + `meta`)
+with a localStorage fallback. Every op carries `id`, `entity` (snake_case),
+`entity_id`, `op` (`create`/`update`/`delete`), `payload`, and `client_ts`.
 
-## Design system (theme/game.css)
+`syncStore` pushes the queue on `POST /api/sync/push` and pulls with
+`GET /api/sync/pull?since=<RFC3339>`; `server_ts` (an RFC3339 string) becomes the next
+watermark. It reacts to `online`/`offline` events and records the last successful sync time.
 
-Palette: `#2a1a0a` parchment-brown, `#f5c542` gold, `#4caf50` green, `#e74c3c` red,
-`#3498db` blue, `#9b59b6` purple, theme `#1a0f00`. All transitions
-`cubic-bezier(0.34,1.56,0.64,1)`. Keyframes: bob, pulse-glow, flame, shake, explode,
-coin-fly, shimmer, bounce-in, spin-wheel, sparkle, float-up, pop-star, walk-right,
-particle-fly, gate-sway, streak. 3–4px borders, multi-layer shadows, noise texture.
-Ionic: `mode: 'ios'` (no MD ripple), ripple elements display:none, ion-tab-bar restyled
-as wooden plank with gold icons.
+## PWA
+
+- Manifest: name "Fintrack", `theme_color #0f1115`, `display: standalone`,
+  `orientation: portrait`, 192/512 icons + maskable.
+- Workbox precaches the app shell; `/api/*` uses `StaleWhileRevalidate` under the
+  versioned `fintrack-api-v2` cache.
+
+## Design system (`theme/app.css`)
+
+Tokens: `--bg #0f1115`, `--surface` / `--surface-2` / `--surface-3`, `--border`, one blue
+accent `#4c8dff` plus semantic success / danger / warning, and radii + shadows.
+Shared classes: `page`, `page-head`, `page-title`, `card`, `card-hero`, `card-label`,
+`card-value`, `card-foot`, `section`, `section-head`, `section-title`, `row-list`,
+`row-item`, `row-icon`, `row-main`, `row-title`, `row-sub`, `row-value`, `row-extra`,
+`stat-grid`, `stat-tile`, `bar-track`, `bar`, `bar-fill`, `meta-row`, `chip`, `badge`,
+`empty`, `chart`, `ff-hide-scrollbar`. `main.ts` imports Ionic's light palette and
+`app.css` overrides the variables, so the app stays dark regardless of system theme.

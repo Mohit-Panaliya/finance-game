@@ -1,10 +1,10 @@
+pub mod analysis;
 pub mod auth;
 pub mod banks;
 pub mod assets;
 pub mod credit_cards;
 pub mod expenses;
 pub mod fixed_deposits;
-pub mod game;
 pub mod incomes;
 pub mod investments;
 pub mod sync;

@@ -49,7 +49,6 @@ pub struct Model {
     pub last_synced_at: Option<String>,
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
-    pub game_building_id: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
@@ -76,7 +75,6 @@ pub struct CreateCreditCardRequest {
     pub is_active: Option<bool>,
     pub sync_status: Option<String>,
     pub last_synced_at: Option<String>,
-    pub game_building_id: Option<String>,
 }
 
 impl CreateCreditCardRequest {
@@ -105,7 +103,6 @@ impl CreateCreditCardRequest {
             is_active: Set(self.is_active.unwrap_or(true)),
             sync_status: Set(self.sync_status.unwrap_or_else(|| "synced".to_string())),
             last_synced_at: Set(self.last_synced_at),
-            game_building_id: Set(self.game_building_id),
             created_at: Set(Some(now())),
             updated_at: Set(Some(now())),
             ..Default::default()
@@ -131,7 +128,6 @@ pub struct UpdateCreditCardRequest {
     pub is_active: Option<bool>,
     pub sync_status: Option<String>,
     pub last_synced_at: Option<String>,
-    pub game_building_id: Option<String>,
 }
 
 impl UpdateCreditCardRequest {
@@ -185,9 +181,6 @@ impl UpdateCreditCardRequest {
         if let Some(v) = self.last_synced_at {
             am.last_synced_at = Set(Some(v));
         }
-        if let Some(v) = self.game_building_id {
-            am.game_building_id = Set(Some(v));
-        }
         am.updated_at = Set(Some(now()));
         am
     }
@@ -215,7 +208,6 @@ pub struct CreditCardResponse {
     pub last_synced_at: Option<String>,
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
-    pub game_building_id: Option<String>,
     pub utilization_pct: Option<f64>,
     pub days_until_due: i64,
     pub estimated_monthly_interest: f64,
@@ -251,7 +243,6 @@ impl From<Model> for CreditCardResponse {
             last_synced_at: m.last_synced_at,
             created_at: m.created_at,
             updated_at: m.updated_at,
-            game_building_id: m.game_building_id,
             utilization_pct,
             days_until_due,
             estimated_monthly_interest,

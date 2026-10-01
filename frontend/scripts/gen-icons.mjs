@@ -39,25 +39,43 @@ function makePng(size) {
     const i = (y * size + x) * 4
     px[i] = r; px[i + 1] = g; px[i + 2] = b; px[i + 3] = a
   }
+  // Match public/icon.svg: dark rounded tile, blue wallet body, green dot.
+  const BG = [15, 17, 21]
+  const TILE = [23, 26, 32]
+  const ACCENT = [76, 141, 255]
+  const ACCENT_DARK = [64, 118, 214]
+  const SUCCESS = [52, 201, 138]
   const s = size / 512
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const rx = Math.round(x / s), ry = Math.round(y / s)
-      let r = 26, g = 15, b = 0
-      if (rx > 36 && rx < 476 && ry > 36 && ry < 476) {
-        r = 42; g = 26; b = 10
-        const edge = Math.min(rx - 36, 476 - rx, ry - 36, 476 - ry)
-        if (edge < 16) { r = 245; g = 197; b = 66 }
+      let r = BG[0], g = BG[1], b = BG[2]
+
+      // Outer tile with a large corner radius (96/512 of the canvas).
+      const tileInset = 36
+      const tileR = 96
+      if (inTile(rx, ry, tileInset, 512 - tileInset, tileR)) {
+        r = TILE[0]; g = TILE[1]; b = TILE[2]
+
+        // Wallet body: rounded rect 112,168 → 288x176, radius 26.
+        if (inRect(rx, ry, 112, 168, 288, 176, 26)) {
+          r = ACCENT[0]; g = ACCENT[1]; b = ACCENT[2]
+
+          // Top seam highlight (thin darker band).
+          if (ry >= 216 && ry <= 222) {
+            r = ACCENT_DARK[0]; g = ACCENT_DARK[1]; b = ACCENT_DARK[2]
+          }
+
+          // Card slot with a green dot.
+          if (inRect(rx, ry, 286, 228, 72, 56, 14)) {
+            r = TILE[0]; g = TILE[1]; b = TILE[2]
+            const dx = rx - 322, dy = ry - 256
+            if (dx * dx + dy * dy <= 12 * 12) {
+              r = SUCCESS[0]; g = SUCCESS[1]; b = SUCCESS[2]
+            }
+          }
+        }
       }
-      const dx = Math.abs(rx - 256), dy = Math.abs(ry - 256)
-      const inDiamond = dx / 104 + dy / 160 <= 1
-      if (inDiamond) { r = 245; g = 197; b = 66 }
-      const cd = dx / 104 + dy / 160
-      if (cd > 0.85 && cd <= 1.05) { r = 138; g = 90; b = 0 }
-      const inCore = dx / 56 + dy / 56 <= 1
-      if (inCore) { r = 42; g = 26; b = 10 }
-      const inLeaf = Math.abs(rx - 256) / 30 + Math.abs(ry - 256) / 44 <= 1
-      if (inLeaf && dx < 40 && dy < 50) { r = 76; g = 175; b = 80 }
       set(x, y, r, g, b)
     }
   }
@@ -76,6 +94,27 @@ function makePng(size) {
     chunk('IDAT', zlib.deflateSync(raw, { level: 9 })),
     chunk('IEND', Buffer.alloc(0))
   ])
+}
+
+/** Rounded-rectangle hit test with per-corner radius. */
+function inRect(x, y, rx, ry, w, h, radius) {
+  if (x < rx || y < ry || x >= rx + w || y >= ry + h) return false
+  const corners = [
+    [rx + radius, ry + radius],
+    [rx + w - radius - 1, ry + radius],
+    [rx + radius, ry + h - radius - 1],
+    [rx + w - radius - 1, ry + h - radius - 1]
+  ]
+  for (const [cx, cy] of corners) {
+    const dx = x < cx ? cx - x : x > cx ? x - cx : 0
+    const dy = y < cy ? cy - y : y > cy ? y - cy : 0
+    if (dx * dx + dy * dy > radius * radius) return false
+  }
+  return true
+}
+
+function inTile(x, y, inset, max, radius) {
+  return inRect(x, y, inset, inset, max - inset * 2, max - inset * 2, radius)
 }
 
 for (const size of [192, 512]) {
