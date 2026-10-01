@@ -5,13 +5,14 @@ use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use validator::Validate;
 
 use crate::models::{
-    assets, banks, credit_cards, expenses, fixed_deposits, incomes, investments, sync,
+    assets, banks, credit_cards, debts, expenses, fixed_deposits, incomes, investments,
+    sync,
 };
 
 /// Entities the sync whitelist accepts, in canonical snake_case form.
 /// Client payloads are normalised (`-` -> `_`) before matching, so a client
 /// may send either `credit_cards` or `credit-cards`.
-const SYNC_ENTITIES: [&str; 7] = [
+const SYNC_ENTITIES: [&str; 8] = [
     "banks",
     "assets",
     "expenses",
@@ -19,6 +20,7 @@ const SYNC_ENTITIES: [&str; 7] = [
     "fixed_deposits",
     "investments",
     "incomes",
+    "debts",
 ];
 
 fn normalise_entity(entity: &str) -> String {
@@ -372,6 +374,19 @@ pub async fn apply_push(
                 )
                 .await?
             }
+            "debts" => {
+                apply_op!(
+                    debts,
+                    debts::CreateDebtRequest,
+                    debts::UpdateDebtRequest,
+                    db,
+                    user_id,
+                    op.op.as_str(),
+                    id,
+                    &op.payload
+                ).await?
+            }
+
             "incomes" => {
                 apply_op!(
                     incomes,
@@ -471,6 +486,7 @@ pub async fn pull_changes(
     pull_table!("fixed_deposits", fixed_deposits);
     pull_table!("investments", investments);
     pull_table!("incomes", incomes);
+    pull_table!("debts", debts);
 
     let sync_rows = sync::Entity::find()
         .filter(sync::Column::UserId.eq(user_id))

@@ -17,6 +17,8 @@ export interface FieldDef {
   label: string
   kind: FieldKind
   options?: Array<{ value: string; label: string }>
+  /** Options resolved at render time from the user's own rows. */
+  dynamic?: 'accounts' | 'cards'
   placeholder?: string
   /** Non-Option field on the backend `Create*Request` → must be sent, or the POST 422s. */
   required?: boolean
@@ -355,7 +357,7 @@ export const ENTITY_CONFIGS: Record<EntityType, EntityConfig> = {
       { key: 'tax_withheld', label: 'Tax withheld', kind: 'money' },
       { key: 'currency', label: 'Currency', kind: 'select', options: CURRENCY_OPTIONS },
       { key: 'description', label: 'Notes', kind: 'text' },
-      { key: 'bank_id', label: 'Linked bank reference', kind: 'text' }
+      { key: 'bank_id', label: 'Credited to', kind: 'select', dynamic: 'accounts' }
     ]
   },
 
@@ -436,7 +438,9 @@ export const ENTITY_CONFIGS: Record<EntityType, EntityConfig> = {
       { key: 'currency', label: 'Currency', kind: 'select', options: CURRENCY_OPTIONS },
       { key: 'description', label: 'Notes', kind: 'text' },
       { key: 'location', label: 'Location', kind: 'text' },
-      { key: 'tags', label: 'Tags', kind: 'text', placeholder: 'Comma separated' }
+      { key: 'tags', label: 'Tags', kind: 'text', placeholder: 'Comma separated' },
+      { key: 'bank_id', label: 'Paid from', kind: 'select', dynamic: 'accounts' },
+      { key: 'credit_card_id', label: 'Paid by card', kind: 'select', dynamic: 'cards' }
     ]
   }
 }

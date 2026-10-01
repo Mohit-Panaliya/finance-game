@@ -3,7 +3,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { IonApp, IonIcon, IonRouterOutlet } from '@ionic/vue'
 import {
-  homeOutline,
+  homeOutline, peopleOutline,
   listOutline,
   settingsOutline,
   walletOutline,
@@ -30,6 +30,7 @@ const PRIMARY: NavEntry[] = [
   { path: '/accounts', icon: walletOutline, label: 'Accounts', hint: 'Banks, cards, deposits' },
   { path: '/transactions', icon: listOutline, label: 'Activity', hint: 'Income and expenses' },
   { path: '/analytics', icon: analyticsOutline, label: 'Insights', hint: 'Trends and allocation' },
+  { path: '/debts', icon: peopleOutline, label: 'Debts', hint: 'Who owes whom' },
   { path: '/settings', icon: settingsOutline, label: 'Settings', hint: 'Sync and account' }
 ]
 

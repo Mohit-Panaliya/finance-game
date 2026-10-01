@@ -2,8 +2,9 @@ use loco_rs::prelude::*;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use serde::{Deserialize, Serialize};
 
+use crate::models::debts::DebtSummary;
 use crate::models::{
-    assets, banks, credit_cards, expenses, fixed_deposits, incomes, investments,
+    assets, banks, credit_cards, debts, expenses, fixed_deposits, incomes, investments,
 };
 
 pub fn routes() -> Routes {
@@ -180,6 +181,31 @@ pub struct SavingsRate {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DayFlow {
+    pub date: String,
+    pub income: f64,
+    pub expense: f64,
+    pub net: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AccountFlow {
+    pub account_id: Option<String>,
+    pub account_name: String,
+    pub income: f64,
+    pub expense: f64,
+    pub net: f64,
+    pub count: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CategoryTotal {
+    pub category: String,
+    pub total: f64,
+    pub count: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AnalysisResponse {
     pub net_worth: NetWorthBreakdown,
     pub yearly_income_by_type: YearlyIncomeByType,
@@ -192,6 +218,10 @@ pub struct AnalysisResponse {
     pub fd_maturity_timeline: Vec<FDMaturity>,
     pub credit_card_utilization: Vec<CreditCardUtilization>,
     pub savings_rate: SavingsRate,
+    pub calendar: Vec<DayFlow>,
+    pub account_attribution: Vec<AccountFlow>,
+    pub expense_categories: Vec<CategoryTotal>,
+    pub debts: DebtSummary,
 }
 
 fn month_key(date: &str) -> String {
@@ -480,6 +510,112 @@ async fn analysis(
         savings_rate_pct,
     };
 
+    // ---- per-day cash flow, which is what the calendar heatmap renders ----
+    let mut by_day: std::collections::BTreeMap<String, (f64, f64)> =
+        std::collections::BTreeMap::new();
+    for inc in &incomes {
+        let d = inc.income_date.trim();
+        if d.len() >= 10 {
+            by_day.entry(d.to_string()).or_default().0 += inc.amount - inc.tax_withheld;
+        }
+    }
+    for exp in &expenses {
+        let d = exp.expense_date.trim();
+        if d.len() >= 10 {
+            by_day.entry(d.to_string()).or_default().1 += exp.amount;
+        }
+    }
+    let calendar: Vec<DayFlow> = by_day
+        .into_iter()
+        .map(|(date, (income, expense))| DayFlow {
+            date,
+            income,
+            expense,
+            net: income - expense,
+        })
+        .collect();
+
+    // ---- which account each rupee actually moved through ----
+    // `bank_id` is optional on both tables, so unlinked rows are bucketed under
+    // a single "Unlinked" entry rather than silently vanishing from the chart.
+    let mut bank_names: std::collections::HashMap<String, String> =
+        std::collections::HashMap::new();
+    for b in &banks {
+        bank_names.insert(b.id.clone(), b.name.clone());
+    }
+    let mut flow_acc: std::collections::BTreeMap<String, AccountFlow> =
+        std::collections::BTreeMap::new();
+    for inc in &incomes {
+        let name = inc
+            .bank_id
+            .as_deref()
+            .and_then(|id| bank_names.get(id).cloned())
+            .unwrap_or_else(|| "Unlinked".to_string());
+        let entry = flow_acc.entry(inc.bank_id.clone().unwrap_or_default()).or_insert(AccountFlow {
+            account_id: inc.bank_id.clone(),
+            account_name: name,
+            income: 0.0,
+            expense: 0.0,
+            net: 0.0,
+            count: 0,
+        });
+        entry.income += inc.amount - inc.tax_withheld;
+        entry.count += 1;
+    }
+    for exp in &expenses {
+        let name = exp
+            .bank_id
+            .as_deref()
+            .and_then(|id| bank_names.get(id).cloned())
+            .unwrap_or_else(|| "Unlinked".to_string());
+        let entry = flow_acc.entry(exp.bank_id.clone().unwrap_or_default()).or_insert(AccountFlow {
+            account_id: exp.bank_id.clone(),
+            account_name: name,
+            income: 0.0,
+            expense: 0.0,
+            net: 0.0,
+            count: 0,
+        });
+        entry.expense += exp.amount;
+        entry.count += 1;
+    }
+    let mut account_attribution: Vec<AccountFlow> = flow_acc.into_values().collect();
+    for a in &mut account_attribution {
+        a.net = a.income - a.expense;
+    }
+    account_attribution.sort_by(|a, b| {
+        (b.income.abs() + b.expense.abs())
+            .partial_cmp(&(a.income.abs() + a.expense.abs()))
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+
+    // ---- full category totals for the donut (top_5_expenses is only a cut) ----
+    let mut cat_totals: std::collections::HashMap<String, (f64, i64)> =
+        std::collections::HashMap::new();
+    for exp in &expenses {
+        let e = cat_totals.entry(exp.category.clone()).or_default();
+        e.0 += exp.amount;
+        e.1 += 1;
+    }
+    let mut expense_categories: Vec<CategoryTotal> = cat_totals
+        .into_iter()
+        .map(|(category, (total, count))| CategoryTotal {
+            category,
+            total,
+            count,
+        })
+        .collect();
+    expense_categories.sort_by(|a, b| {
+        b.total.partial_cmp(&a.total).unwrap_or(std::cmp::Ordering::Equal)
+    });
+
+    // ---- two-sided debt book ----
+    let debt_rows = debts::Entity::find()
+        .filter(debts::Column::UserId.eq(user_id))
+        .all(&*db)
+        .await?;
+    let debts_summary = DebtSummary::from_rows(&debt_rows, chrono::Utc::now().date_naive());
+
     let response = AnalysisResponse {
         net_worth,
         yearly_income_by_type,
@@ -492,6 +628,10 @@ async fn analysis(
         fd_maturity_timeline,
         credit_card_utilization,
         savings_rate,
+        calendar,
+        account_attribution,
+        expense_categories,
+        debts: debts_summary,
     };
 
     format::json(response)

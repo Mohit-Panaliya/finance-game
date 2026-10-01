@@ -15,8 +15,50 @@
     <meta name="apple-mobile-web-app-title" content="Fintrack" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <title>Fintrack</title>
+    <script>
+      /* Inline and blocking on purpose: the theme has to be on <html> before the
+         first paint, and a module or deferred script runs too late to stop the
+         flash. The defaults below must stay in sync with
+         src/composables/useTheme.ts. */
+      ;(function () {
+        var mode = 'system'
+        var accent = 'blue'
+        var density = 'comfortable'
+        try {
+          var raw = localStorage.getItem('fintrack:theme')
+          var parsed = raw ? JSON.parse(raw) : null
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            if (parsed.mode === 'light' || parsed.mode === 'dark' || parsed.mode === 'system') {
+              mode = parsed.mode
+            }
+            if (['blue', 'indigo', 'violet', 'sky', 'rose', 'amber'].indexOf(parsed.accent) !== -1) {
+              accent = parsed.accent
+            }
+            if (parsed.density === 'comfortable' || parsed.density === 'compact') {
+              density = parsed.density
+            }
+          }
+        } catch (e) {
+          /* corrupt or blocked storage: fall through to the defaults */
+        }
+        var systemDark =
+          typeof window.matchMedia === 'function'
+            ? window.matchMedia('(prefers-color-scheme: dark)').matches
+            : true
+        var dark = mode === 'dark' || (mode === 'system' && systemDark)
+        var bg = dark ? '#0f1115' : '#eef1f6'
+        var el = document.documentElement
+        el.setAttribute('data-theme', dark ? 'dark' : 'light')
+        el.setAttribute('data-accent', accent)
+        el.setAttribute('data-density', density)
+        el.style.setProperty('--boot-bg', bg)
+        var meta = document.querySelector('meta[name="theme-color"]')
+        if (meta) meta.setAttribute('content', bg)
+      })()
+    </script>
     <style>
-      html, body, #app { height: 100%; margin: 0; background: #0f1115; overscroll-behavior: none; }
+      :root { --boot-bg: #0f1115; }
+      html, body, #app { height: 100%; margin: 0; background: var(--boot-bg); overscroll-behavior: none; }
       body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
     </style>
   </head>

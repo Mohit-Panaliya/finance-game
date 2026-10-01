@@ -107,8 +107,55 @@ function setDraft(key: string, value: string | number | null) {
   draft.value = { ...draft.value, [key]: value }
 }
 
+/** Human name of a bank or card a row points at, or null when it no longer exists. */
+function labelFor(entity: 'banks' | 'credit-cards', id: string): string | null {
+  const hit = finance.rows(entity).find((r) => String(r.id) === id)
+  const name = hit ? String(hit.name ?? '').trim() : ''
+  return name || null
+}
+
+const accountOptions = computed(() => [
+  { value: '', label: 'Not linked' },
+  ...finance.rows('banks').map((b) => ({ value: String(b.id), label: String(b.name ?? '') }))
+])
+
+const cardOptions = computed(() => [
+  { value: '', label: 'Not linked' },
+  ...finance.rows('credit-cards').map((c) => ({ value: String(c.id), label: String(c.name ?? '') }))
+])
+
+/** Static lists come from the config; `dynamic` selects are filled from live rows. */
 function optionsFor(field: FieldDef) {
+  if (field.dynamic === 'accounts') return accountOptions.value
+  if (field.dynamic === 'cards') return cardOptions.value
   return field.options ?? []
+}
+
+/** Income and expense rows can point at the account they moved through. */
+const needsAccounts = computed(() => fields.value.some((f) => f.dynamic === 'accounts'))
+const needsCards = computed(() => fields.value.some((f) => f.dynamic === 'cards'))
+
+/** Fetches the link targets once, and only when the current form actually needs them. */
+async function ensureLinkLists(): Promise<void> {
+  if (needsAccounts.value && !finance.lists.banks.items.length) {
+    await finance.fetchList('banks')
+  }
+  if (needsCards.value && !finance.lists['credit-cards'].items.length) {
+    await finance.fetchList('credit-cards')
+  }
+}
+
+/** The account a row was booked against, so the link is visible in the list. */
+function linkedAccountLabel(row: FinanceRow): string {
+  if (row.bank_id) {
+    const name = labelFor('banks', String(row.bank_id))
+    if (name) return name
+  }
+  if (row.credit_card_id) {
+    const name = labelFor('credit-cards', String(row.credit_card_id))
+    if (name) return name
+  }
+  return ''
 }
 
 function draftValue(field: FieldDef): string | number | null {
@@ -155,10 +202,16 @@ function rowId(row: FinanceRow): string {
 }
 
 function subtitleFor(row: FinanceRow): string {
+  const parts: string[] = []
   const sub = rowSubtitle(cfg.value, row)
-  if (sub) return sub
-  const dc = DATE_COLUMN[entity.value]
-  return dc ? formatDate(row[dc]) : ''
+  if (sub) parts.push(sub)
+  const linked = linkedAccountLabel(row)
+  if (linked) parts.push(linked)
+  if (!parts.length) {
+    const dc = DATE_COLUMN[entity.value]
+    return dc ? formatDate(row[dc]) : ''
+  }
+  return parts.join(' · ')
 }
 
 function toggleSwipe(row: FinanceRow) {
@@ -183,7 +236,10 @@ function fieldValue(row: FinanceRow, f: FieldDef): string {
   if (f.kind === 'bool') return raw === true || raw === 'true' ? 'Yes' : 'No'
   if (f.kind === 'select') {
     const hit = f.options?.find((o) => o.value === String(raw))
-    return hit ? hit.label : String(raw).replace(/_/g, ' ')
+    if (hit) return hit.label
+    if (f.dynamic === 'accounts') return labelFor('banks', String(raw)) ?? 'Not linked'
+    if (f.dynamic === 'cards') return labelFor('credit-cards', String(raw)) ?? 'Not linked'
+    return String(raw).replace(/_/g, ' ')
   }
   if (f.kind === 'money' || f.kind === 'number') {
     const n = Number(raw)
@@ -306,11 +362,13 @@ watch(entity, () => {
   closeSwipe()
   void finance.fetchList(entity.value, search.value)
   void finance.fetchSummary(entity.value)
+  void ensureLinkLists()
 })
 
 onMounted(() => {
   void finance.fetchList(entity.value, search.value)
   void finance.fetchSummary(entity.value)
+  void ensureLinkLists()
   if (isNewRoute.value) startCreate()
 })
 </script>

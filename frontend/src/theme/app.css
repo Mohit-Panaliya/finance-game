@@ -1,9 +1,12 @@
 /* ============================================================
    Fintrack — design system
-   Mobile-first, portrait. Dark surface, one accent, no decorative art.
+   Mobile-first, portrait. Dark by default with a light theme, one accent
+   palette at a time, no decorative art.
    ============================================================ */
 
 :root {
+  color-scheme: dark;
+
   --bg: #0f1115;
   --surface: #171a20;
   --surface-2: #1f232b;
@@ -15,9 +18,17 @@
   --text-muted: #9aa4b4;
   --text-faint: #6b7484;
 
+  /* --accent fills, --accent-ink is the text-safe form, --accent-contrast
+     sits on top of --accent. --on-accent is the long-standing alias. */
   --accent: #4c8dff;
-  --accent-soft: rgba(76, 141, 255, 0.14);
-  --on-accent: #ffffff;
+  --accent-rgb: 76, 141, 255;
+  --accent-soft: rgba(var(--accent-rgb), 0.14);
+  --accent-ink: var(--accent);
+  --accent-contrast: #ffffff;
+  --accent-contrast-rgb: 255, 255, 255;
+  --accent-shade: #4178d9;
+  --accent-tint: #6ca2ff;
+  --on-accent: var(--accent-contrast);
 
   --success: #34c98a;
   --success-soft: rgba(52, 201, 138, 0.13);
@@ -25,6 +36,8 @@
   --danger-soft: rgba(240, 85, 95, 0.13);
   --warning: #e5a13a;
   --warning-soft: rgba(229, 161, 58, 0.13);
+  --info: #4aa8e0;
+  --info-soft: rgba(74, 168, 224, 0.13);
 
   --scrim: rgba(6, 8, 12, 0.66);
 
@@ -39,6 +52,322 @@
   --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 
   --nav-height: calc(58px + env(safe-area-inset-bottom));
+
+  /* Vertical rhythm. Comfortable == today's spacing; see [data-density]. */
+  --density-page-pad: 14px;
+  --density-gap: 14px;
+  --density-section-gap: 10px;
+  --density-card-pad: 14px;
+  --density-hero-pad: 16px;
+  --density-row-pad-y: 12px;
+  --density-row-pad-x: 13px;
+  --density-meta-pad: 9px 0;
+  --density-tile-pad: 12px;
+}
+
+/* ============================================================
+   Theming
+   ------------------------------------------------------------------
+   Four layers, each only redefining custom properties, so no
+   component ever needs to know which theme/palette/density is live:
+
+     1. :root                        dark tokens (unchanged look)
+     2. [data-theme='dark' | 'light'] the other theme, same token names
+     3. [data-accent='<palette>']     accent + the Ionic primary family
+     4. [data-density='compact']      vertical rhythm
+
+   Ionic paints ion-content, ion-modal, ion-select, ion-item, ion-toast,
+   ion-backdrop, ion-tab-bar and skeletons from its own --ion-* palette.
+   Expressing those in terms of our tokens is what stops native chrome
+   staying dark on a light page.
+   ============================================================ */
+
+:root {
+  --ion-background-color: var(--bg);
+  --ion-text-color: var(--text);
+  --ion-item-background: var(--surface);
+  --ion-item-divider-color: var(--border);
+  --ion-toolbar-background: var(--bg);
+  --ion-card-background: var(--surface);
+  --ion-select-interface-background: var(--surface);
+  --ion-overlay-background-color: var(--bg);
+  --ion-backdrop-color: var(--scrim);
+  --ion-placeholder-color: var(--text-faint);
+  --ion-tab-bar-background: var(--surface);
+  --ion-tab-bar-color: var(--text-muted);
+  --ion-focus-color: var(--accent);
+}
+
+/* `:root` already holds these, but repeating them means flipping back to dark
+   is exact even after `:root` is retuned. */
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg: #0f1115;
+  --surface: #171a20;
+  --surface-2: #1f232b;
+  --surface-3: #272c36;
+  --border: #2b313c;
+  --border-strong: #3a4250;
+
+  --text: #e7eaf0;
+  --text-muted: #9aa4b4;
+  --text-faint: #6b7484;
+
+  --accent: #4c8dff;
+  --accent-rgb: 76, 141, 255;
+  --accent-soft: rgba(var(--accent-rgb), 0.14);
+  --accent-ink: var(--accent);
+  --accent-contrast: #ffffff;
+  --accent-contrast-rgb: 255, 255, 255;
+  --accent-shade: #4178d9;
+  --accent-tint: #6ca2ff;
+  --on-accent: var(--accent-contrast);
+
+  --success: #34c98a;
+  --success-soft: rgba(52, 201, 138, 0.13);
+  --danger: #f0555f;
+  --danger-soft: rgba(240, 85, 95, 0.13);
+  --warning: #e5a13a;
+  --warning-soft: rgba(229, 161, 58, 0.13);
+  --info: #4aa8e0;
+  --info-soft: rgba(74, 168, 224, 0.13);
+
+  --scrim: rgba(6, 8, 12, 0.66);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.5);
+
+  --ion-text-color-rgb: 231, 234, 240;
+  --ion-background-color-rgb: 15, 17, 21;
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+
+  --bg: #eef1f6;
+  --surface: #ffffff;
+  --surface-2: #f4f6fa;
+  --surface-3: #e6ebf2;
+  --border: #ccd5e2;
+  --border-strong: #b0bccd;
+
+  --text: #131720;
+  --text-muted: #4f5a6b;
+  --text-faint: #6b7686;
+
+  --accent: #2f6fe0;
+  --accent-rgb: 47, 111, 224;
+  --accent-soft: rgba(var(--accent-rgb), 0.12);
+  --accent-ink: #1c50a8;
+  --accent-contrast: #ffffff;
+  --accent-contrast-rgb: 255, 255, 255;
+  --accent-shade: #285ebe;
+  --accent-tint: #5489e6;
+  --on-accent: var(--accent-contrast);
+
+  --success: #0b6442;
+  --success-soft: rgba(11, 100, 66, 0.1);
+  --danger: #ad1c24;
+  --danger-soft: rgba(173, 28, 36, 0.1);
+  --warning: #845005;
+  --warning-soft: rgba(132, 80, 5, 0.12);
+  --info: #0b6b8f;
+  --info-soft: rgba(11, 107, 143, 0.1);
+
+  --scrim: rgba(15, 20, 28, 0.42);
+
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.07);
+  --shadow-md: 0 4px 14px rgba(15, 23, 42, 0.1);
+  --shadow-lg: 0 18px 48px rgba(15, 23, 42, 0.18);
+
+  --ion-text-color-rgb: 19, 23, 32;
+  --ion-background-color-rgb: 238, 241, 246;
+}
+
+/* ---- accent palettes ----
+   `--accent` fills, `--accent-ink` is the text-safe form (on dark it is the
+   same colour, on light it is a darker shade of the same hue), and
+   `--accent-contrast` is the foreground that sits on the accent. */
+[data-accent='blue'] {
+  --accent: #4c8dff;
+  --accent-rgb: 76, 141, 255;
+  --accent-ink: var(--accent);
+  --accent-contrast: #ffffff;
+  --accent-contrast-rgb: 255, 255, 255;
+  --accent-shade: #4178d9;
+  --accent-tint: #6ca2ff;
+  --ion-color-primary: var(--accent);
+  --ion-color-primary-rgb: var(--accent-rgb);
+  --ion-color-primary-contrast: var(--accent-contrast);
+  --ion-color-primary-contrast-rgb: var(--accent-contrast-rgb);
+  --ion-color-primary-shade: var(--accent-shade);
+  --ion-color-primary-tint: var(--accent-tint);
+  --ion-focus-color: var(--accent);
+}
+
+[data-accent='indigo'] {
+  --accent: #7b6cf6;
+  --accent-rgb: 123, 108, 246;
+  --accent-ink: var(--accent);
+  --accent-contrast: #151024;
+  --accent-contrast-rgb: 21, 16, 36;
+  --accent-shade: #695cd1;
+  --accent-tint: #9386f8;
+  --ion-color-primary: var(--accent);
+  --ion-color-primary-rgb: var(--accent-rgb);
+  --ion-color-primary-contrast: var(--accent-contrast);
+  --ion-color-primary-contrast-rgb: var(--accent-contrast-rgb);
+  --ion-color-primary-shade: var(--accent-shade);
+  --ion-color-primary-tint: var(--accent-tint);
+  --ion-focus-color: var(--accent);
+}
+
+[data-accent='violet'] {
+  --accent: #a56bf0;
+  --accent-rgb: 165, 107, 240;
+  --accent-ink: var(--accent);
+  --accent-contrast: #1b0f26;
+  --accent-contrast-rgb: 27, 15, 38;
+  --accent-shade: #8c5bcc;
+  --accent-tint: #b586f3;
+  --ion-color-primary: var(--accent);
+  --ion-color-primary-rgb: var(--accent-rgb);
+  --ion-color-primary-contrast: var(--accent-contrast);
+  --ion-color-primary-contrast-rgb: var(--accent-contrast-rgb);
+  --ion-color-primary-shade: var(--accent-shade);
+  --ion-color-primary-tint: var(--accent-tint);
+  --ion-focus-color: var(--accent);
+}
+
+[data-accent='sky'] {
+  --accent: #2fb6e0;
+  --accent-rgb: 47, 182, 224;
+  --accent-ink: var(--accent);
+  --accent-contrast: #05202a;
+  --accent-contrast-rgb: 5, 32, 42;
+  --accent-shade: #289bbe;
+  --accent-tint: #54c3e6;
+  --ion-color-primary: var(--accent);
+  --ion-color-primary-rgb: var(--accent-rgb);
+  --ion-color-primary-contrast: var(--accent-contrast);
+  --ion-color-primary-contrast-rgb: var(--accent-contrast-rgb);
+  --ion-color-primary-shade: var(--accent-shade);
+  --ion-color-primary-tint: var(--accent-tint);
+  --ion-focus-color: var(--accent);
+}
+
+[data-accent='rose'] {
+  --accent: #f05f86;
+  --accent-rgb: 240, 95, 134;
+  --accent-ink: var(--accent);
+  --accent-contrast: #2b0a16;
+  --accent-contrast-rgb: 43, 10, 22;
+  --accent-shade: #cc5172;
+  --accent-tint: #f37c9c;
+  --ion-color-primary: var(--accent);
+  --ion-color-primary-rgb: var(--accent-rgb);
+  --ion-color-primary-contrast: var(--accent-contrast);
+  --ion-color-primary-contrast-rgb: var(--accent-contrast-rgb);
+  --ion-color-primary-shade: var(--accent-shade);
+  --ion-color-primary-tint: var(--accent-tint);
+  --ion-focus-color: var(--accent);
+}
+
+[data-accent='amber'] {
+  --accent: #e5a13a;
+  --accent-rgb: 229, 161, 58;
+  --accent-ink: var(--accent);
+  --accent-contrast: #241705;
+  --accent-contrast-rgb: 36, 23, 5;
+  --accent-shade: #c38931;
+  --accent-tint: #eab25d;
+  --ion-color-primary: var(--accent);
+  --ion-color-primary-rgb: var(--accent-rgb);
+  --ion-color-primary-contrast: var(--accent-contrast);
+  --ion-color-primary-contrast-rgb: var(--accent-contrast-rgb);
+  --ion-color-primary-shade: var(--accent-shade);
+  --ion-color-primary-tint: var(--accent-tint);
+  --ion-focus-color: var(--accent);
+}
+
+/* Light-theme variants. Same hue, darkened so the accent stays readable as
+   text on a white surface; specificity (0,2,0) puts these above both the
+   theme block and the palette block above. */
+[data-theme='light'] [data-accent='blue'] {
+  --accent: #2f6fe0;
+  --accent-rgb: 47, 111, 224;
+  --accent-ink: #1c50a8;
+  --accent-contrast: #ffffff;
+  --accent-contrast-rgb: 255, 255, 255;
+  --accent-shade: #285ebe;
+  --accent-tint: #5489e6;
+}
+
+[data-theme='light'] [data-accent='indigo'] {
+  --accent: #4f3fd6;
+  --accent-rgb: 79, 63, 214;
+  --accent-ink: #3a2ba8;
+  --accent-contrast: #ffffff;
+  --accent-contrast-rgb: 255, 255, 255;
+  --accent-shade: #4336b6;
+  --accent-tint: #6f62dd;
+}
+
+[data-theme='light'] [data-accent='violet'] {
+  --accent: #7427c7;
+  --accent-rgb: 116, 39, 199;
+  --accent-ink: #5a1b9a;
+  --accent-contrast: #ffffff;
+  --accent-contrast-rgb: 255, 255, 255;
+  --accent-shade: #6321a9;
+  --accent-tint: #8d4ed1;
+}
+
+[data-theme='light'] [data-accent='sky'] {
+  --accent: #0b6f96;
+  --accent-rgb: 11, 111, 150;
+  --accent-ink: #07536f;
+  --accent-contrast: #ffffff;
+  --accent-contrast-rgb: 255, 255, 255;
+  --accent-shade: #095e80;
+  --accent-tint: #3789a9;
+}
+
+[data-theme='light'] [data-accent='rose'] {
+  --accent: #c02558;
+  --accent-rgb: 192, 37, 88;
+  --accent-ink: #9c1743;
+  --accent-contrast: #ffffff;
+  --accent-contrast-rgb: 255, 255, 255;
+  --accent-shade: #a31f4b;
+  --accent-tint: #cb4c76;
+}
+
+[data-theme='light'] [data-accent='amber'] {
+  --accent: #9a5b06;
+  --accent-rgb: 154, 91, 6;
+  --accent-ink: #7a4605;
+  --accent-contrast: #ffffff;
+  --accent-contrast-rgb: 255, 255, 255;
+  --accent-shade: #834d05;
+  --accent-tint: #ac7933;
+}
+
+/* ---- density ----
+   Comfortable == the values the layout shipped with, so leaving the attribute
+   off (or on) is pixel-identical to before. */
+[data-density='compact'] {
+  --density-page-pad: 10px;
+  --density-gap: 9px;
+  --density-section-gap: 7px;
+  --density-card-pad: 10px;
+  --density-hero-pad: 12px;
+  --density-row-pad-y: 8px;
+  --density-row-pad-x: 11px;
+  --density-meta-pad: 6px 0;
+  --density-tile-pad: 9px;
 }
 
 * {
@@ -99,6 +428,14 @@ ion-toast {
   --border-radius: var(--radius-sm);
 }
 
+ion-skeleton {
+  --background: var(--surface-3);
+}
+
+ion-tab-bar {
+  box-shadow: 0 -1px 0 var(--border);
+}
+
 /* ---- shell ---- */
 
 .app-shell {
@@ -112,10 +449,10 @@ ion-toast {
 .page {
   max-width: 720px;
   margin: 0 auto;
-  padding: 14px 14px 8px;
+  padding: var(--density-page-pad) var(--density-page-pad) calc(var(--density-page-pad) - 6px);
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--density-gap);
 }
 
 .page-head {
@@ -141,7 +478,7 @@ ion-toast {
 .section {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--density-section-gap);
 }
 
 .section-head {
@@ -172,7 +509,7 @@ ion-toast {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 14px;
+  padding: var(--density-card-pad);
 }
 
 .card-tight {
@@ -183,7 +520,7 @@ ion-toast {
   background: linear-gradient(160deg, var(--surface-2) 0%, var(--surface) 70%);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);
-  padding: 16px;
+  padding: var(--density-hero-pad);
   box-shadow: var(--shadow-md);
 }
 
@@ -229,7 +566,7 @@ ion-toast {
   align-items: center;
   gap: 12px;
   width: 100%;
-  padding: 12px 13px;
+  padding: var(--density-row-pad-y) var(--density-row-pad-x);
   background: transparent;
   border: none;
   border-bottom: 1px solid var(--border);
@@ -309,7 +646,7 @@ ion-toast {
   align-items: baseline;
   justify-content: space-between;
   gap: 14px;
-  padding: 9px 0;
+  padding: var(--density-meta-pad);
   border-bottom: 1px solid var(--border);
 }
 .meta-row:last-child {
@@ -350,7 +687,7 @@ ion-toast {
 .badge-accent {
   border-color: var(--accent-soft);
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .badge-success {
   border-color: var(--success-soft);
@@ -395,7 +732,7 @@ ion-toast {
 .chip-active {
   background: var(--accent-soft);
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
 /* ---- progress bars ---- */
@@ -558,7 +895,7 @@ ion-toast {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 12px;
+  padding: var(--density-tile-pad);
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -579,7 +916,7 @@ ion-toast {
 }
 
 .text-accent {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 .text-success {
   color: var(--success);
@@ -645,7 +982,7 @@ ion-item {
 }
 
 ion-back-button {
-  --color: var(--accent);
+  --color: var(--accent-ink);
   font-weight: 600;
 }
 
@@ -692,8 +1029,8 @@ ion-back-button {
 
 .platform-desktop .page {
   max-width: 1180px;
-  padding: 22px 28px 28px;
-  gap: 18px;
+  padding: calc(var(--density-page-pad) + 8px) 28px calc(var(--density-page-pad) + 14px);
+  gap: calc(var(--density-gap) + 4px);
 }
 
 .platform-desktop .page-title {
@@ -707,7 +1044,7 @@ ion-back-button {
 }
 
 .platform-desktop .stat-tile {
-  padding: 14px 15px;
+  padding: calc(var(--density-tile-pad) + 2px) calc(var(--density-tile-pad) + 3px);
 }
 
 .platform-desktop .form-row-2 {
@@ -725,7 +1062,7 @@ ion-back-button {
 .platform-desktop .row-item {
   border-bottom: 1px solid var(--border);
   border-radius: 0;
-  padding: 13px 16px;
+  padding: calc(var(--density-row-pad-y) + 1px) calc(var(--density-row-pad-x) + 3px);
   cursor: pointer;
   transition: background 0.12s ease;
 }
@@ -763,11 +1100,11 @@ ion-back-button {
 
 /* ---- cards ---- */
 .platform-desktop .card {
-  padding: 18px;
+  padding: calc(var(--density-card-pad) + 4px);
 }
 
 .platform-desktop .card-hero {
-  padding: 22px;
+  padding: calc(var(--density-hero-pad) + 6px);
 }
 
 /* ---- desktop-only detail ----

@@ -3,6 +3,7 @@ pub mod banks;
 pub mod assets;
 pub mod expenses;
 pub mod credit_cards;
+pub mod debts;
 pub mod fixed_deposits;
 pub mod investments;
 pub mod incomes;

@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { IonContent, IonIcon, IonPage } from '@ionic/vue'
 import {
+  checkmarkCircleOutline,
   cloudDownloadOutline,
   cloudUploadOutline,
   informationCircleOutline,
@@ -15,6 +16,7 @@ import { useSyncStore } from '@/stores/syncStore'
 import { getQueue } from '@/services/offlineQueue'
 import { formatMoney, formatNumber } from '@/utils/money'
 import { formatDateTime } from '@/utils/date'
+import { ACCENT_PALETTES, DENSITIES, THEME_MODES, useTheme } from '@/composables/useTheme'
 import { ENTITY_LIST, entityConfig, summaryHead } from '@/entityConfig'
 import AppButton from '@/components/ui/AppButton.vue'
 import SyncChip from '@/components/ui/SyncChip.vue'
@@ -23,6 +25,22 @@ const auth = useAuthStore()
 const finance = useFinanceStore()
 const sync = useSyncStore()
 const router = useRouter()
+const theme = useTheme()
+
+const accentLabel = computed(
+  () => ACCENT_PALETTES.find((p) => p.name === theme.accent)?.label ?? theme.accent
+)
+
+const appearanceNote = computed(() =>
+  theme.mode === 'system'
+    ? `Following your device (${theme.systemTheme})`
+    : `Set to ${theme.resolvedTheme}`
+)
+
+function resetAppearance() {
+  theme.reset()
+  notify('Appearance reset to defaults')
+}
 
 /** Transient status line. @ionic/vue v8 exposes no useIonToast, so this is plain state. */
 const notice = ref('')
@@ -122,7 +140,10 @@ async function queueSize() {
       <div class="page">
       <p v-if="notice" class="notice" :class="`notice-${noticeTone}`" role="status">{{ notice }}</p>
         <header class="page-head">
-          <h1 class="page-title">Settings</h1>
+          <div class="page-head-text">
+            <h1 class="page-title">Settings</h1>
+            <p class="page-subtitle">Sync, appearance and account</p>
+          </div>
           <SyncChip :status="sync.status" :pending="sync.queueCount" @sync="syncNow" />
         </header>
 
@@ -130,6 +151,90 @@ async function queueSize() {
           <p class="card-label">Signed in as</p>
           <p class="card-value card-value-sm">{{ displayName }}</p>
           <p class="card-foot">{{ email }}</p>
+        </section>
+
+        <section class="section">
+          <div class="section-head">
+            <h2 class="section-title">Appearance</h2>
+            <span class="section-note">{{ appearanceNote }}</span>
+          </div>
+
+          <div class="card">
+            <p class="card-label">Theme</p>
+            <div class="chips" role="group" aria-label="Theme mode">
+              <button
+                v-for="m in THEME_MODES"
+                :key="m.value"
+                type="button"
+                class="chip theme-mode"
+                :class="[`theme-mode-${m.value}`, { 'chip-active': theme.mode === m.value }]"
+                :aria-pressed="theme.mode === m.value"
+                @click="theme.setMode(m.value)"
+              >
+                {{ m.label }}
+              </button>
+            </div>
+
+            <p class="card-label spaced">Accent</p>
+            <div class="swatch-grid" role="group" aria-label="Accent palette">
+              <button
+                v-for="p in ACCENT_PALETTES"
+                :key="p.name"
+                type="button"
+                class="accent-swatch"
+                :class="{ 'accent-swatch-active': theme.accent === p.name }"
+                :data-palette="p.name"
+                :aria-pressed="theme.accent === p.name"
+                @click="theme.setAccent(p.name)"
+              >
+                <span class="swatch-dot" :style="{ background: p.swatch }" />
+                <span class="swatch-label">{{ p.label }}</span>
+                <ion-icon
+                  v-if="theme.accent === p.name"
+                  class="swatch-check"
+                  :icon="checkmarkCircleOutline"
+                />
+              </button>
+            </div>
+
+            <p class="card-label spaced">Density</p>
+            <div class="chips" role="group" aria-label="Layout density">
+              <button
+                v-for="d in DENSITIES"
+                :key="d.value"
+                type="button"
+                class="chip density-option"
+                :class="[`density-${d.value}`, { 'chip-active': theme.density === d.value }]"
+                :aria-pressed="theme.density === d.value"
+                @click="theme.setDensity(d.value)"
+              >
+                {{ d.label }}
+              </button>
+            </div>
+          </div>
+
+          <div class="card meta-list">
+            <div class="meta-row">
+              <span class="meta-key">Showing</span>
+              <span class="meta-val">{{ theme.resolvedTheme }}</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-key">Device preference</span>
+              <span class="meta-val">{{ theme.systemTheme }}</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-key">Accent palette</span>
+              <span class="meta-val">{{ accentLabel }}</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-key">Density</span>
+              <span class="meta-val">{{ theme.density }}</span>
+            </div>
+          </div>
+
+          <AppButton variant="neutral" size="md" @click="resetAppearance">
+            <ion-icon :icon="refreshOutline" /> Reset to defaults
+          </AppButton>
         </section>
 
         <section class="section">
@@ -253,9 +358,61 @@ async function queueSize() {
   border-radius: var(--radius-sm);
   cursor: pointer;
 }
+.spaced {
+  margin-top: 16px;
+}
+.swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.accent-swatch {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 6px 9px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition:
+    background 0.14s ease,
+    border-color 0.14s ease;
+}
+.accent-swatch-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.swatch-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+}
+.swatch-label {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.accent-swatch-active .swatch-label {
+  color: var(--accent-ink);
+}
+.swatch-check {
+  position: absolute;
+  top: 4px;
+  right: 5px;
+  font-size: 15px;
+  color: var(--accent-ink);
+}
 @media (max-width: 380px) {
   .action-grid {
     grid-template-columns: 1fr;
+  }
+  .swatch-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 </style>

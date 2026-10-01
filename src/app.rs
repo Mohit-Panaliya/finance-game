@@ -129,6 +129,7 @@ impl Hooks for App {
             .add_route(controllers::assets::routes())
             .add_route(controllers::expenses::routes())
             .add_route(controllers::credit_cards::routes())
+        .add_route(controllers::debts::routes())
             .add_route(controllers::fixed_deposits::routes())
             .add_route(controllers::investments::routes())
             .add_route(controllers::incomes::routes())

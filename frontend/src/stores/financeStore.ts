@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { api, ApiError } from '@/api/client'
 import { ENTITY_SNAKE } from '@/entityConfig'
-import type { AnalysisResponse, EntityType, FinanceRow, OverviewResponse, Paged } from '@/types'
+import type { AnalysisResponse, EntityType, FinanceRow, OverviewResponse, Paged, DebtRow, DebtSummary} from '@/types'
 
 export interface EntityListState {
   items: FinanceRow[]
@@ -34,7 +34,11 @@ export const useFinanceStore = defineStore('finance', {
     analysisError: '',
     overview: null as OverviewResponse | null,
     overviewLoading: false,
-    overviewError: ''
+    overviewError: '',
+    debts: [] as DebtRow[],
+    debtsLoading: false,
+    debtsError: '',
+    debtSummary: null as DebtSummary | null
   }),
 
   getters: {
@@ -198,6 +202,52 @@ export const useFinanceStore = defineStore('finance', {
       void this.fetchOverview()
     },
 
+    async fetchDebts(): Promise<void> {
+      this.debtsLoading = true
+      this.debtsError = ''
+      try {
+        const res = await api.get<Paged<DebtRow>>('/debts')
+        this.debts = Array.isArray(res?.data) ? res.data : []
+      } catch (e) {
+        this.debtsError = e instanceof ApiError ? e.message : 'Could not load debts'
+      } finally {
+        this.debtsLoading = false
+      }
+    },
+
+    async fetchDebtSummary(): Promise<void> {
+      try {
+        this.debtSummary = await api.get<DebtSummary>('/debts/summary')
+      } catch {
+        this.debtSummary = null
+      }
+    },
+
+    async createDebt(data: Record<string, unknown>): Promise<void> {
+      await api.post<DebtRow>('/debts', data)
+      await Promise.all([this.fetchDebts(), this.fetchDebtSummary()])
+      void this.fetchAnalysis()
+    },
+
+    async updateDebt(id: string, data: Record<string, unknown>): Promise<void> {
+      await api.put<DebtRow>(`/debts/${id}`, data)
+      await Promise.all([this.fetchDebts(), this.fetchDebtSummary()])
+      void this.fetchAnalysis()
+    },
+
+    /** Records a repayment. Omit `amount` to settle the row in full. */
+    async settleDebt(id: string, amount?: number): Promise<void> {
+      await api.post<DebtRow>(`/debts/${id}/settle`, amount === undefined ? {} : { amount })
+      await Promise.all([this.fetchDebts(), this.fetchDebtSummary()])
+      void this.fetchAnalysis()
+    },
+
+    async removeDebt(id: string): Promise<void> {
+      await api.del(`/debts/${id}`)
+      await Promise.all([this.fetchDebts(), this.fetchDebtSummary()])
+      void this.fetchAnalysis()
+    },
+
     async refresh(): Promise<void> {
       await this.fetchAll()
       await Promise.allSettled([this.fetchOverview(), this.fetchAnalysis()])
@@ -217,6 +267,8 @@ export const useFinanceStore = defineStore('finance', {
       this.summaries = {}
       this.analysis = null
       this.overview = null
+      this.debts = []
+      this.debtSummary = null
     }
   }
 })

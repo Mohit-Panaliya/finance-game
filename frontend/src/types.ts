@@ -135,6 +135,10 @@ export interface AnalysisResponse {
   fd_maturity_timeline: FdMaturity[]
   credit_card_utilization: CreditCardUtilization[]
   savings_rate: SavingsRate
+  calendar: DayFlow[]
+  account_attribution: AccountFlow[]
+  expense_categories: CategoryTotal[]
+  debts: DebtSummary
 }
 
 /* ------------------------------------------------------------------ *
@@ -249,4 +253,57 @@ export interface SyncPullResponse {
     server_ts: string | null
   }>
   server_ts?: string
+}
+/** One row of `GET /api/debts`. */
+export interface DebtRow extends FinanceRow {
+  direction: string
+  counterparty: string
+  amount: number
+  settled_amount: number
+  outstanding: number
+  currency: string
+  kind: string
+  account_id: string | null
+  occurred_date: string
+  due_date: string | null
+  note: string | null
+  settled_date: string | null
+  is_settled: boolean
+  days_to_due: number | null
+}
+
+/** Aggregate two-sided debt book. */
+export interface DebtSummary {
+  owed_to_me: number
+  i_owe: number
+  net: number
+  lent_count: number
+  borrowed_count: number
+  settled_count: number
+  overdue_count: number
+  total_count: number
+}
+
+/** One calendar cell: totals for a single `YYYY-MM-DD`. */
+export interface DayFlow {
+  date: string
+  income: number
+  expense: number
+  net: number
+}
+
+/** Which account a rupee moved through; unattributed rows share one bucket. */
+export interface AccountFlow {
+  account_id: string | null
+  account_name: string
+  income: number
+  expense: number
+  net: number
+  count: number
+}
+
+export interface CategoryTotal {
+  category: string
+  total: number
+  count: number
 }
