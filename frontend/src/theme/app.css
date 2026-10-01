@@ -670,3 +670,133 @@ ion-back-button {
 }
 .notice-success { border-color: var(--success); color: var(--success); }
 .notice-warning { border-color: var(--warning); color: var(--warning); }
+
+/* ==========================================================================
+   Desktop (Windows) layout
+   --------------------------------------------------------------------------
+   The base styles above are mobile-first: one column, 720px, bottom tab bar.
+   On a non-touch laptop we widen the canvas, reclaim the padding the tab bar
+   used to reserve, and reveal per-record metadata that is hidden on phones.
+   Everything here is additive, so Android keeps the original layout.
+   ========================================================================== */
+
+/* The sidebar overlays the scroll area, so content starts past it. */
+.platform-desktop ion-content::part(scroll) {
+  padding-left: 264px;
+}
+
+/* No bottom bar to clear, so reclaim that space. */
+.platform-desktop .app-content::part(scroll) {
+  padding-bottom: 28px;
+}
+
+.platform-desktop .page {
+  max-width: 1180px;
+  padding: 22px 28px 28px;
+  gap: 18px;
+}
+
+.platform-desktop .page-title {
+  font-size: 1.6rem;
+}
+
+/* More stat columns once there is room for them. */
+.platform-desktop .stat-grid {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+.platform-desktop .stat-tile {
+  padding: 14px 15px;
+}
+
+.platform-desktop .form-row-2 {
+  gap: 14px;
+}
+
+/* ---- list rows become table-like ---- */
+.platform-desktop .row-list {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.platform-desktop .row-item {
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  padding: 13px 16px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.platform-desktop .row-item:last-child {
+  border-bottom: none;
+}
+
+.platform-desktop .row-item:hover {
+  background: var(--surface-2);
+}
+
+.platform-desktop .row-value {
+  min-width: 148px;
+  text-align: right;
+}
+
+.platform-desktop .row-title {
+  font-size: 0.92rem;
+}
+
+.platform-desktop .row-sub {
+  font-size: 0.78rem;
+}
+
+.platform-desktop .side-link {
+  cursor: pointer;
+}
+
+.platform-desktop :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ---- cards ---- */
+.platform-desktop .card {
+  padding: 18px;
+}
+
+.platform-desktop .card-hero {
+  padding: 22px;
+}
+
+/* ---- desktop-only detail ----
+   Wrapped in `.detail-only` so record metadata (IDs, created/updated) can be
+   shown here and stay hidden on phones without duplicating templates. */
+.detail-only {
+  display: none;
+}
+
+.platform-desktop .detail-only {
+  display: block;
+}
+
+/* Side-by-side page region used on record lists with a summary card. */
+.platform-desktop .split-2 {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+/* Desktop-only record identity line under a transaction row. */
+.platform-desktop .row-meta {
+  align-self: center;
+  margin-left: 14px;
+  padding-left: 14px;
+  border-left: 1px solid var(--border);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.72rem;
+  color: var(--text-faint);
+  white-space: nowrap;
+}

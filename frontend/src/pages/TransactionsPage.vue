@@ -283,6 +283,9 @@ onMounted(() => {
                 </span>
                 <span class="row-extra">{{ formatDate(e.date) }}</span>
               </span>
+              <span class="detail-only row-sub row-meta">
+                {{ e.entity }} &middot; {{ e.id }}
+              </span>
             </button>
           </div>
         </section>

@@ -15,18 +15,29 @@ import './theme/app.css'
 
 import App from './App.vue'
 import router from './router'
+import { watchPlatform } from './composables/usePlatform'
 
 const app = createApp(App)
 const pinia = createPinia()
 
 app.use(pinia)
+// Android gets Material components, iOS keeps its native styling, and a
+// desktop browser is told to render Material so the web build matches Windows.
+const mode: 'ios' | 'md' = /android/i.test(navigator.userAgent)
+  ? 'md'
+  : /iphone|ipad|ipod/i.test(navigator.userAgent)
+    ? 'ios'
+    : 'md'
+
 app.use(IonicVue, {
-  mode: 'ios',
+  mode,
   swipeBackEnabled: false,
   hardwareBackButton: true,
   backButtonText: ''
 })
 app.use(router)
+
+watchPlatform()
 
 router.isReady().then(() => {
   app.mount('#app')
