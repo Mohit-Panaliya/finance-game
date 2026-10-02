@@ -1,8 +1,6 @@
 use chrono::Utc;
 use loco_rs::prelude::*;
-use sea_orm::{
-    ColumnTrait, Condition, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, Set,
-};
+use sea_orm::{ColumnTrait, Condition, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, Set};
 
 use crate::models::expenses::{
     self, CreateExpenseRequest, ExpenseCategoryTotal, ExpenseMonthTotal, ExpenseSummary,
@@ -17,7 +15,6 @@ pub fn routes() -> Routes {
         .add("/{id}", get(show).put(update).delete(remove))
 }
 
-
 #[debug_handler]
 async fn list(
     auth: auth::JWT,
@@ -30,12 +27,10 @@ async fn list(
         .unwrap();
     let search = params.get("search").and_then(|v| v.as_str()).unwrap_or("");
     let page = params.get("page").and_then(|v| v.as_u64()).unwrap_or(1);
-    let per_page = params
-        .get("perPage")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(50);
+    let per_page = params.get("perPage").and_then(|v| v.as_u64()).unwrap_or(50);
 
-    let mut query = expenses::Entity::find().filter(expenses::Column::UserId.eq(super::uid(&ctx, &auth).await?));
+    let mut query = expenses::Entity::find()
+        .filter(expenses::Column::UserId.eq(super::uid(&ctx, &auth).await?));
     if !search.is_empty() {
         query = query.filter(
             Condition::any()
@@ -103,11 +98,7 @@ async fn create(
         is_recurring: Set(params.is_recurring.unwrap_or(false)),
         recurrence: Set(params.recurrence),
         recurrence_end_date: Set(params.recurrence_end_date),
-        payment_method: Set(
-            params
-                .payment_method
-                .unwrap_or_else(|| "cash".to_string()),
-        ),
+        payment_method: Set(params.payment_method.unwrap_or_else(|| "cash".to_string())),
         bank_id: Set(params.bank_id),
         credit_card_id: Set(params.credit_card_id),
         tags: Set(params.tags),
@@ -258,9 +249,7 @@ async fn summary(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Respo
             variable_total += r.amount;
         }
 
-        let cat = by_category
-            .iter_mut()
-            .find(|c| c.category == r.category);
+        let cat = by_category.iter_mut().find(|c| c.category == r.category);
         match cat {
             Some(c) => {
                 c.total += r.amount;

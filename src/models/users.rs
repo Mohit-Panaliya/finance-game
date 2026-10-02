@@ -79,7 +79,9 @@ impl From<Model> for UserResponse {
 
 impl Model {
     pub async fn find_by_email<C: ConnectionTrait>(db: &C, email: &str) -> ModelResult<Self> {
-        Entity::find().filter(Column::Email.eq(email)).one(db)
+        Entity::find()
+            .filter(Column::Email.eq(email))
+            .one(db)
             .await?
             .ok_or(ModelError::EntityNotFound)
     }
@@ -89,13 +91,17 @@ impl Model {
     }
 
     pub async fn find_by_pid<C: ConnectionTrait>(db: &C, pid: &str) -> ModelResult<Self> {
-        Entity::find().filter(Column::Pid.eq(pid)).one(db)
+        Entity::find()
+            .filter(Column::Pid.eq(pid))
+            .one(db)
             .await?
             .ok_or(ModelError::EntityNotFound)
     }
 
     pub async fn find_by_api_key<C: ConnectionTrait>(db: &C, api_key: &str) -> ModelResult<Self> {
-        Entity::find().filter(Column::ApiKey.eq(api_key)).one(db)
+        Entity::find()
+            .filter(Column::ApiKey.eq(api_key))
+            .one(db)
             .await?
             .ok_or(ModelError::EntityNotFound)
     }
@@ -109,7 +115,9 @@ impl Model {
         db: &C,
         params: &RegisterParams,
     ) -> ModelResult<Self> {
-        if Entity::find().filter(Column::Email.eq(&params.email)).one(db)
+        if Entity::find()
+            .filter(Column::Email.eq(&params.email))
+            .one(db)
             .await?
             .is_some()
         {

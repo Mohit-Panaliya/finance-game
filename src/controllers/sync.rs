@@ -10,7 +10,6 @@ pub fn routes() -> Routes {
         .add("/pull", get(pull))
 }
 
-
 #[derive(Deserialize)]
 struct PushRequest {
     ops: Vec<SyncOp>,
@@ -43,9 +42,11 @@ async fn pull(
         .get_ref::<sea_orm_turso::TursoConnection>()
         .ok_or_else(|| Error::string("database unavailable"))?;
     // `since` may arrive as an RFC3339 string or as a numeric epoch-ms value
-    let since = params
-        .get("since")
-        .and_then(|v| v.as_str().map(str::to_string).or_else(|| v.as_i64().map(|n| n.to_string())));
+    let since = params.get("since").and_then(|v| {
+        v.as_str()
+            .map(str::to_string)
+            .or_else(|| v.as_i64().map(|n| n.to_string()))
+    });
     let payload = pull_changes(&db, super::uid(&ctx, &auth).await?, since.as_deref())
         .await
         .map_err(|e| Error::string(&e.to_string()))?;

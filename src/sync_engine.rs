@@ -1,12 +1,11 @@
 use chrono::Utc;
+use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use validator::Validate;
 
 use crate::models::{
-    assets, banks, credit_cards, debts, expenses, fixed_deposits, incomes, investments,
-    sync,
+    assets, banks, credit_cards, debts, expenses, fixed_deposits, incomes, investments, sync,
 };
 
 /// Entities the sync whitelist accepts, in canonical snake_case form.
@@ -384,7 +383,8 @@ pub async fn apply_push(
                     op.op.as_str(),
                     id,
                     &op.payload
-                ).await?
+                )
+                .await?
             }
 
             "incomes" => {
@@ -464,8 +464,8 @@ pub async fn pull_changes(
             mod imp {
                 pub use crate::models::$entity;
             }
-            let mut query = imp::$entity::Entity::find()
-                .filter(imp::$entity::Column::UserId.eq(user_id));
+            let mut query =
+                imp::$entity::Entity::find().filter(imp::$entity::Column::UserId.eq(user_id));
             if let Some(ts) = since_ts.clone() {
                 query = query.filter(imp::$entity::Column::UpdatedAt.gt(Some(ts)));
             }

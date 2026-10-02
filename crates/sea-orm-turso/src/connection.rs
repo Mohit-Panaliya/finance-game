@@ -1,11 +1,10 @@
-use std::collections::HashMap;
-use std::sync::Arc;
 use async_trait::async_trait;
 use sea_orm::{
-    ConnectionTrait, DbBackend, Statement, ExecResult, QueryResult,
-    TransactionTrait, IsolationLevel, AccessMode, TransactionError, TransactionOptions,
-    ProxyExecResult, ProxyRow,
+    AccessMode, ConnectionTrait, DbBackend, ExecResult, IsolationLevel, ProxyExecResult, ProxyRow,
+    QueryResult, Statement, TransactionError, TransactionOptions, TransactionTrait,
 };
+use std::collections::HashMap;
+use std::sync::Arc;
 use tokio::sync::Mutex;
 use turso::{Builder, Connection, Database};
 
@@ -31,7 +30,11 @@ impl ColumnType {
             ColumnType::Boolean
         } else if upper.contains("INT") {
             ColumnType::Integer
-        } else if upper.contains("REAL") || upper.contains("FLOAT") || upper.contains("DOUBLE") || upper.contains("NUMERIC") {
+        } else if upper.contains("REAL")
+            || upper.contains("FLOAT")
+            || upper.contains("DOUBLE")
+            || upper.contains("NUMERIC")
+        {
             ColumnType::Real
         } else if upper.contains("TEXT") || upper.contains("CLOB") || upper.contains("CHAR") {
             ColumnType::Text
@@ -92,7 +95,8 @@ impl TursoConnection {
             .await
             .map_err(|e| TursoError::Connection(e.to_string()))?;
 
-        let conn = db.connect()
+        let conn = db
+            .connect()
             .map_err(|e| TursoError::Connection(e.to_string()))?;
 
         Ok(Self {
@@ -166,11 +170,13 @@ impl TursoConnection {
             .await
             .map_err(|e| TursoError::Connection(format!("persist failed: {}", e)))?;
 
-        let tmp_conn = tmp_db.connect()
+        let tmp_conn = tmp_db
+            .connect()
             .map_err(|e| TursoError::Connection(format!("persist failed: {}", e)))?;
 
         // Run cacheflush on the temp connection to ensure all dirty pages are written
-        tmp_conn.cacheflush()
+        tmp_conn
+            .cacheflush()
             .map_err(|e| TursoError::Query(format!("persist cacheflush failed: {}", e)))?;
 
         // Dropping tmp_db triggers WAL sync to disk
@@ -188,18 +194,26 @@ impl TursoConnection {
         }
 
         let conn = self.conn.lock().await;
-        let mut prepared = conn.prepare(&format!("PRAGMA table_info({})", table_name))
+        let mut prepared = conn
+            .prepare(&format!("PRAGMA table_info({})", table_name))
             .await
             .map_err(|e| TursoError::Query(e.to_string()))?;
-        let mut rows = prepared.query(())
+        let mut rows = prepared
+            .query(())
             .await
             .map_err(|e| TursoError::Query(e.to_string()))?;
 
         let mut columns = HashMap::new();
-        while let Some(row) = rows.next().await.map_err(|e| TursoError::Query(e.to_string()))? {
-            let name = row.get_value(1)
+        while let Some(row) = rows
+            .next()
+            .await
+            .map_err(|e| TursoError::Query(e.to_string()))?
+        {
+            let name = row
+                .get_value(1)
                 .map_err(|e| TursoError::Query(e.to_string()))?;
-            let type_str = row.get_value(2)
+            let type_str = row
+                .get_value(2)
                 .map_err(|e| TursoError::Query(e.to_string()))?;
 
             if let turso::Value::Text(col_name) = name {
@@ -232,7 +246,8 @@ impl TursoConnection {
             if let Some(pos) = upper.find(keyword) {
                 let rest = &sql[pos + keyword.len()..].trim_start();
                 // Extract the table name (before any space, comma, or WHERE)
-                let name: String = rest.chars()
+                let name: String = rest
+                    .chars()
                     .take_while(|c| c.is_alphanumeric() || *c == '_' || *c == '"')
                     .collect();
                 let name = name.trim_matches('"').to_string();
@@ -256,22 +271,26 @@ impl TursoConnection {
         let conn = self.conn.lock().await;
 
         // Use prepared statement to get column names
-        let mut prepared = conn.prepare(&sql)
+        let mut prepared = conn
+            .prepare(&sql)
             .await
             .map_err(|e| TursoError::Query(e.to_string()))?;
 
-        let column_names: Vec<String> = prepared.columns()
+        let column_names: Vec<String> = prepared
+            .columns()
             .iter()
             .map(|c| c.name().to_string())
             .collect();
 
         // Execute query
         let mut rows = if params.is_empty() {
-            prepared.query(())
+            prepared
+                .query(())
                 .await
                 .map_err(|e| TursoError::Query(e.to_string()))?
         } else {
-            prepared.query(params)
+            prepared
+                .query(params)
                 .await
                 .map_err(|e| TursoError::Query(e.to_string()))?
         };
@@ -279,7 +298,11 @@ impl TursoConnection {
         // Collect results
         let schema_cache = self.schema_cache.lock().await;
         let mut results = Vec::new();
-        while let Some(row) = rows.next().await.map_err(|e| TursoError::Query(e.to_string()))? {
+        while let Some(row) = rows
+            .next()
+            .await
+            .map_err(|e| TursoError::Query(e.to_string()))?
+        {
             let proxy_row = row_to_proxy_row(&row, &column_names, &schema_cache)
                 .map_err(TursoError::Conversion)?;
             results.push(proxy_row);
@@ -319,14 +342,18 @@ impl ConnectionTrait for TursoConnection {
         let _ = self.cacheflush().await;
         let _ = self.persist().await;
 
-        Ok(ExecResult::from(ProxyExecResult::new(last_insert_id, rows_affected)))
+        Ok(ExecResult::from(ProxyExecResult::new(
+            last_insert_id,
+            rows_affected,
+        )))
     }
 
     async fn execute_unprepared(&self, sql: &str) -> Result<ExecResult, sea_orm::DbErr> {
         let (last_insert_id, rows_affected) = {
             let conn = self.conn.lock().await;
 
-            let rows_affected = conn.execute(sql, ())
+            let rows_affected = conn
+                .execute(sql, ())
                 .await
                 .map_err(|e| sea_orm::DbErr::Custom(e.to_string()))?;
 
@@ -338,18 +365,25 @@ impl ConnectionTrait for TursoConnection {
         let _ = self.cacheflush().await;
         let _ = self.persist().await;
 
-        Ok(ExecResult::from(ProxyExecResult::new(last_insert_id, rows_affected)))
+        Ok(ExecResult::from(ProxyExecResult::new(
+            last_insert_id,
+            rows_affected,
+        )))
     }
 
     async fn query_one_raw(&self, stmt: Statement) -> Result<Option<QueryResult>, sea_orm::DbErr> {
-        let mut results = self.execute_statement(&stmt).await
+        let mut results = self
+            .execute_statement(&stmt)
+            .await
             .map_err(|e| sea_orm::DbErr::Custom(e.to_string()))?;
 
         Ok(results.pop().map(|r| r.into()))
     }
 
     async fn query_all_raw(&self, stmt: Statement) -> Result<Vec<QueryResult>, sea_orm::DbErr> {
-        let results = self.execute_statement(&stmt).await
+        let results = self
+            .execute_statement(&stmt)
+            .await
             .map_err(|e| sea_orm::DbErr::Custom(e.to_string()))?;
 
         Ok(results.into_iter().map(|r| r.into()).collect())
@@ -439,13 +473,18 @@ impl TransactionTrait for TursoConnection {
 
     async fn transaction<F, T, E>(&self, callback: F) -> Result<T, TransactionError<E>>
     where
-        F: for<'c> FnOnce(&'c Self::Transaction) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<T, E>> + Send + 'c>>
-            + Send,
+        F: for<'c> FnOnce(
+                &'c Self::Transaction,
+            ) -> std::pin::Pin<
+                Box<dyn std::future::Future<Output = Result<T, E>> + Send + 'c>,
+            > + Send,
         T: Send,
         E: std::fmt::Display + std::fmt::Debug + Send,
     {
         let txn = self.begin().await.map_err(TransactionError::Connection)?;
-        let result = callback(&txn).await.map_err(TransactionError::Transaction)?;
+        let result = callback(&txn)
+            .await
+            .map_err(TransactionError::Transaction)?;
         Ok(result)
     }
 
@@ -456,13 +495,18 @@ impl TransactionTrait for TursoConnection {
         _access_mode: Option<AccessMode>,
     ) -> Result<T, TransactionError<E>>
     where
-        F: for<'c> FnOnce(&'c Self::Transaction) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<T, E>> + Send + 'c>>
-            + Send,
+        F: for<'c> FnOnce(
+                &'c Self::Transaction,
+            ) -> std::pin::Pin<
+                Box<dyn std::future::Future<Output = Result<T, E>> + Send + 'c>,
+            > + Send,
         T: Send,
         E: std::fmt::Display + std::fmt::Debug + Send,
     {
         let txn = self.begin().await.map_err(TransactionError::Connection)?;
-        let result = callback(&txn).await.map_err(TransactionError::Transaction)?;
+        let result = callback(&txn)
+            .await
+            .map_err(TransactionError::Transaction)?;
         Ok(result)
     }
 }
@@ -494,12 +538,17 @@ impl TransactionTrait for TursoTransaction {
 
     async fn transaction<F, T, E>(&self, callback: F) -> Result<T, TransactionError<E>>
     where
-        F: for<'c> FnOnce(&'c Self::Transaction) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<T, E>> + Send + 'c>>
-            + Send,
+        F: for<'c> FnOnce(
+                &'c Self::Transaction,
+            ) -> std::pin::Pin<
+                Box<dyn std::future::Future<Output = Result<T, E>> + Send + 'c>,
+            > + Send,
         T: Send,
         E: std::fmt::Display + std::fmt::Debug + Send,
     {
-        let result = callback(self).await.map_err(TransactionError::Transaction)?;
+        let result = callback(self)
+            .await
+            .map_err(TransactionError::Transaction)?;
         Ok(result)
     }
 
@@ -510,12 +559,17 @@ impl TransactionTrait for TursoTransaction {
         _access_mode: Option<AccessMode>,
     ) -> Result<T, TransactionError<E>>
     where
-        F: for<'c> FnOnce(&'c Self::Transaction) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<T, E>> + Send + 'c>>
-            + Send,
+        F: for<'c> FnOnce(
+                &'c Self::Transaction,
+            ) -> std::pin::Pin<
+                Box<dyn std::future::Future<Output = Result<T, E>> + Send + 'c>,
+            > + Send,
         T: Send,
         E: std::fmt::Display + std::fmt::Debug + Send,
     {
-        let result = callback(self).await.map_err(TransactionError::Transaction)?;
+        let result = callback(self)
+            .await
+            .map_err(TransactionError::Transaction)?;
         Ok(result)
     }
 }

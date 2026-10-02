@@ -90,33 +90,37 @@ pub async fn connect_memory() -> Result<TursoConnection, TursoError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sea_orm::{DbBackend, ConnectionTrait, Statement};
+    use sea_orm::{ConnectionTrait, DbBackend, Statement};
 
     #[tokio::test]
     async fn test_connect_memory() {
         let db = connect_memory().await.unwrap();
-        
+
         // Test basic execute
-        let result = db.execute_raw(Statement::from_string(
-            DbBackend::Sqlite,
-            "CREATE TABLE IF NOT EXISTS test (id INTEGER PRIMARY KEY, name TEXT)".to_string(),
-        )).await;
-        
+        let result = db
+            .execute_raw(Statement::from_string(
+                DbBackend::Sqlite,
+                "CREATE TABLE IF NOT EXISTS test (id INTEGER PRIMARY KEY, name TEXT)".to_string(),
+            ))
+            .await;
+
         assert!(result.is_ok());
     }
 
     #[tokio::test]
     async fn test_connect_file() {
         let db = connect("test_turso.db").await.unwrap();
-        
+
         // Test basic execute
-        let result = db.execute_raw(Statement::from_string(
-            DbBackend::Sqlite,
-            "CREATE TABLE IF NOT EXISTS test (id INTEGER PRIMARY KEY, name TEXT)".to_string(),
-        )).await;
-        
+        let result = db
+            .execute_raw(Statement::from_string(
+                DbBackend::Sqlite,
+                "CREATE TABLE IF NOT EXISTS test (id INTEGER PRIMARY KEY, name TEXT)".to_string(),
+            ))
+            .await;
+
         assert!(result.is_ok());
-        
+
         // Cleanup
         let _ = std::fs::remove_file("test_turso.db");
     }

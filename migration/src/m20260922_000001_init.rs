@@ -34,8 +34,9 @@ impl MigrationTrait for Migration {
         .await?;
 
         // ---- banks ----
-        m.get_connection().execute_unprepared(
-            r#"CREATE TABLE IF NOT EXISTS banks (
+        m.get_connection()
+            .execute_unprepared(
+                r#"CREATE TABLE IF NOT EXISTS banks (
                 id TEXT PRIMARY KEY,
                 user_id BIGINT NOT NULL,
                 name TEXT NOT NULL,
@@ -52,12 +53,13 @@ impl MigrationTrait for Migration {
                 updated_at TEXT,
                 game_building_id TEXT
             )"#,
-        )
-        .await?;
+            )
+            .await?;
 
         // ---- assets ----
-        m.get_connection().execute_unprepared(
-            r#"CREATE TABLE IF NOT EXISTS assets (
+        m.get_connection()
+            .execute_unprepared(
+                r#"CREATE TABLE IF NOT EXISTS assets (
                 id TEXT PRIMARY KEY,
                 user_id BIGINT NOT NULL,
                 name TEXT NOT NULL,
@@ -80,12 +82,13 @@ impl MigrationTrait for Migration {
                 updated_at TEXT,
                 game_building_id TEXT
             )"#,
-        )
-        .await?;
+            )
+            .await?;
 
         // ---- expenses ----
-        m.get_connection().execute_unprepared(
-            r#"CREATE TABLE IF NOT EXISTS expenses (
+        m.get_connection()
+            .execute_unprepared(
+                r#"CREATE TABLE IF NOT EXISTS expenses (
                 id TEXT PRIMARY KEY,
                 user_id BIGINT NOT NULL,
                 title TEXT NOT NULL,
@@ -112,12 +115,13 @@ impl MigrationTrait for Migration {
                 updated_at TEXT,
                 game_troop_id TEXT
             )"#,
-        )
-        .await?;
+            )
+            .await?;
 
         // ---- credit_cards ----
-        m.get_connection().execute_unprepared(
-            r#"CREATE TABLE IF NOT EXISTS credit_cards (
+        m.get_connection()
+            .execute_unprepared(
+                r#"CREATE TABLE IF NOT EXISTS credit_cards (
                 id TEXT PRIMARY KEY,
                 user_id BIGINT NOT NULL,
                 name TEXT NOT NULL,
@@ -140,12 +144,13 @@ impl MigrationTrait for Migration {
                 updated_at TEXT,
                 game_building_id TEXT
             )"#,
-        )
-        .await?;
+            )
+            .await?;
 
         // ---- fixed_deposits ----
-        m.get_connection().execute_unprepared(
-            r#"CREATE TABLE IF NOT EXISTS fixed_deposits (
+        m.get_connection()
+            .execute_unprepared(
+                r#"CREATE TABLE IF NOT EXISTS fixed_deposits (
                 id TEXT PRIMARY KEY,
                 user_id BIGINT NOT NULL,
                 bank_id TEXT,
@@ -171,12 +176,13 @@ impl MigrationTrait for Migration {
                 updated_at TEXT,
                 game_building_id TEXT
             )"#,
-        )
-        .await?;
+            )
+            .await?;
 
         // ---- investments ----
-        m.get_connection().execute_unprepared(
-            r#"CREATE TABLE IF NOT EXISTS investments (
+        m.get_connection()
+            .execute_unprepared(
+                r#"CREATE TABLE IF NOT EXISTS investments (
                 id TEXT PRIMARY KEY,
                 user_id BIGINT NOT NULL,
                 name TEXT NOT NULL,
@@ -207,12 +213,13 @@ impl MigrationTrait for Migration {
                 updated_at TEXT,
                 game_building_id TEXT
             )"#,
-        )
-        .await?;
+            )
+            .await?;
 
         // ---- incomes ----
-        m.get_connection().execute_unprepared(
-            r#"CREATE TABLE IF NOT EXISTS incomes (
+        m.get_connection()
+            .execute_unprepared(
+                r#"CREATE TABLE IF NOT EXISTS incomes (
                 id TEXT PRIMARY KEY,
                 user_id BIGINT NOT NULL,
                 title TEXT NOT NULL,
@@ -236,12 +243,13 @@ impl MigrationTrait for Migration {
                 updated_at TEXT,
                 game_building_id TEXT
             )"#,
-        )
-        .await?;
+            )
+            .await?;
 
         // ---- villages (game) ----
-        m.get_connection().execute_unprepared(
-            r#"CREATE TABLE IF NOT EXISTS villages (
+        m.get_connection()
+            .execute_unprepared(
+                r#"CREATE TABLE IF NOT EXISTS villages (
                 id TEXT PRIMARY KEY,
                 user_id BIGINT NOT NULL,
                 name TEXT NOT NULL DEFAULT 'My Fortress',
@@ -257,12 +265,13 @@ impl MigrationTrait for Migration {
                 created_at TEXT,
                 updated_at TEXT
             )"#,
-        )
-        .await?;
+            )
+            .await?;
 
         // ---- buildings (banks/assets/fds/investments as buildings) ----
-        m.get_connection().execute_unprepared(
-            r#"CREATE TABLE IF NOT EXISTS buildings (
+        m.get_connection()
+            .execute_unprepared(
+                r#"CREATE TABLE IF NOT EXISTS buildings (
                 id TEXT PRIMARY KEY,
                 village_id TEXT NOT NULL,
                 user_id BIGINT NOT NULL,
@@ -284,12 +293,13 @@ impl MigrationTrait for Migration {
                 created_at TEXT,
                 updated_at TEXT
             )"#,
-        )
-        .await?;
+            )
+            .await?;
 
         // ---- troops (expenses = raid troops; savings = defenders) ----
-        m.get_connection().execute_unprepared(
-            r#"CREATE TABLE IF NOT EXISTS troops (
+        m.get_connection()
+            .execute_unprepared(
+                r#"CREATE TABLE IF NOT EXISTS troops (
                 id TEXT PRIMARY KEY,
                 user_id BIGINT NOT NULL,
                 troop_type TEXT NOT NULL,
@@ -305,12 +315,13 @@ impl MigrationTrait for Migration {
                 created_at TEXT,
                 updated_at TEXT
             )"#,
-        )
-        .await?;
+            )
+            .await?;
 
         // ---- achievements ----
-        m.get_connection().execute_unprepared(
-            r#"CREATE TABLE IF NOT EXISTS achievements (
+        m.get_connection()
+            .execute_unprepared(
+                r#"CREATE TABLE IF NOT EXISTS achievements (
                 id TEXT PRIMARY KEY,
                 code TEXT NOT NULL,
                 title TEXT NOT NULL,
@@ -323,11 +334,12 @@ impl MigrationTrait for Migration {
                 tier TEXT NOT NULL DEFAULT 'bronze',
                 sort_order BIGINT NOT NULL DEFAULT 0
             )"#,
-        )
-        .await?;
+            )
+            .await?;
 
-        m.get_connection().execute_unprepared(
-            r#"CREATE TABLE IF NOT EXISTS user_achievements (
+        m.get_connection()
+            .execute_unprepared(
+                r#"CREATE TABLE IF NOT EXISTS user_achievements (
                 id TEXT PRIMARY KEY,
                 user_id BIGINT NOT NULL,
                 achievement_id TEXT NOT NULL,
@@ -335,12 +347,13 @@ impl MigrationTrait for Migration {
                 progress BIGINT NOT NULL DEFAULT 0,
                 is_claimed INTEGER NOT NULL DEFAULT 0
             )"#,
-        )
-        .await?;
+            )
+            .await?;
 
         // ---- battles (income vs expense raids) ----
-        m.get_connection().execute_unprepared(
-            r#"CREATE TABLE IF NOT EXISTS battles (
+        m.get_connection()
+            .execute_unprepared(
+                r#"CREATE TABLE IF NOT EXISTS battles (
                 id TEXT PRIMARY KEY,
                 user_id BIGINT NOT NULL,
                 battle_type TEXT NOT NULL,
@@ -356,12 +369,13 @@ impl MigrationTrait for Migration {
                 created_at TEXT,
                 updated_at TEXT
             )"#,
-        )
-        .await?;
+            )
+            .await?;
 
         // ---- sync_log (offline delta sync) ----
-        m.get_connection().execute_unprepared(
-            r#"CREATE TABLE IF NOT EXISTS sync_log (
+        m.get_connection()
+            .execute_unprepared(
+                r#"CREATE TABLE IF NOT EXISTS sync_log (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id BIGINT NOT NULL,
                 entity TEXT NOT NULL,
@@ -372,8 +386,8 @@ impl MigrationTrait for Migration {
                 server_ts TEXT,
                 status TEXT NOT NULL DEFAULT 'applied'
             )"#,
-        )
-        .await?;
+            )
+            .await?;
 
         m.get_connection().execute_unprepared(
             r#"CREATE INDEX IF NOT EXISTS idx_banks_user ON banks(user_id);

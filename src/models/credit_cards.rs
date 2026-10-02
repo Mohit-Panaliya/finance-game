@@ -19,7 +19,13 @@ fn days_until_day(day_of_month: i64) -> i64 {
     } else {
         let next_month = target
             .with_month(target.month() % 12 + 1)
-            .and_then(|d| if target.month() == 12 { d.with_year(target.year() + 1) } else { Some(d) })
+            .and_then(|d| {
+                if target.month() == 12 {
+                    d.with_year(target.year() + 1)
+                } else {
+                    Some(d)
+                }
+            })
             .unwrap_or(target);
         (next_month - today).num_days()
     }

@@ -1,8 +1,6 @@
 use chrono::Utc;
 use loco_rs::prelude::*;
-use sea_orm::{
-    ColumnTrait, Condition, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, Set,
-};
+use sea_orm::{ColumnTrait, Condition, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, Set};
 
 use crate::models::investments::{
     self, CreateInvestmentRequest, InvestmentSummary, UpdateInvestmentRequest,
@@ -16,7 +14,6 @@ pub fn routes() -> Routes {
         .add("/{id}", get(show).put(update).delete(remove))
 }
 
-
 #[debug_handler]
 async fn list(
     auth: auth::JWT,
@@ -29,13 +26,10 @@ async fn list(
         .unwrap();
     let search = params.get("search").and_then(|v| v.as_str()).unwrap_or("");
     let page = params.get("page").and_then(|v| v.as_u64()).unwrap_or(1);
-    let per_page = params
-        .get("perPage")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(50);
+    let per_page = params.get("perPage").and_then(|v| v.as_u64()).unwrap_or(50);
 
-    let mut query =
-        investments::Entity::find().filter(investments::Column::UserId.eq(super::uid(&ctx, &auth).await?));
+    let mut query = investments::Entity::find()
+        .filter(investments::Column::UserId.eq(super::uid(&ctx, &auth).await?));
     if !search.is_empty() {
         query = query.filter(
             Condition::any()

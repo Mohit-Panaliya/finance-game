@@ -1,13 +1,28 @@
-use std::collections::BTreeMap;
+use crate::connection::ColumnType;
 use sea_orm::{ProxyRow, Value as SeaValue};
+use std::collections::BTreeMap;
 use turso::{Row, Value as TursoValue};
-use crate::connection::{ColumnType};
 
 const BOOL_COLUMN_NAMES: &[&str] = &[
-    "completed", "active", "enabled", "verified", "approved",
-    "is_", "has_", "can_", "should_", "was_", "did_",
-    "deleted", "archived", "published", "visible", "hidden",
-    "disabled", "is_active", "is_primary",
+    "completed",
+    "active",
+    "enabled",
+    "verified",
+    "approved",
+    "is_",
+    "has_",
+    "can_",
+    "should_",
+    "was_",
+    "did_",
+    "deleted",
+    "archived",
+    "published",
+    "visible",
+    "hidden",
+    "disabled",
+    "is_active",
+    "is_primary",
     // SQLite has no BOOLEAN type, so bool columns are declared INTEGER and are
     // otherwise decoded as BigInt. investments.tax_saving is the one bool column
     // that does not follow an is_/has_ naming convention, and its model field is
@@ -18,7 +33,9 @@ const BOOL_COLUMN_NAMES: &[&str] = &[
 
 fn is_likely_boolean(col_name: &str) -> bool {
     let lower = col_name.to_lowercase();
-    BOOL_COLUMN_NAMES.iter().any(|p| lower == *p || lower.starts_with(p))
+    BOOL_COLUMN_NAMES
+        .iter()
+        .any(|p| lower == *p || lower.starts_with(p))
 }
 
 /// Convert a Turso Row to a SeaORM ProxyRow
@@ -37,12 +54,14 @@ pub fn row_to_proxy_row(
             format!("col_{}", i)
         };
 
-        let val = row.get_value(i)
+        let val = row
+            .get_value(i)
             .map_err(|e| format!("Failed to get column {}: {}", col_name, e))?;
 
-        let is_bool = schema_cache.values().any(|cols| {
-            matches!(cols.get(&col_name), Some(ColumnType::Boolean))
-        }) || is_likely_boolean(&col_name);
+        let is_bool = schema_cache
+            .values()
+            .any(|cols| matches!(cols.get(&col_name), Some(ColumnType::Boolean)))
+            || is_likely_boolean(&col_name);
 
         let sea_val = turso_value_to_sea_value_typed(val, is_bool)?;
         values.insert(col_name, sea_val);
@@ -103,9 +122,15 @@ fn try_parse_time(s: &str) -> Option<chrono::NaiveTime> {
 /// Convert a SeaORM Statement to SQL string and parameters for Turso
 pub fn statement_to_sql(stmt: &sea_orm::Statement) -> (String, Vec<TursoValue>) {
     let sql = stmt.sql.clone();
-    let params = stmt.values.as_ref().map(|v| {
-        v.0.iter().map(|v| sea_value_to_turso_value(v.clone())).collect()
-    }).unwrap_or_default();
+    let params = stmt
+        .values
+        .as_ref()
+        .map(|v| {
+            v.0.iter()
+                .map(|v| sea_value_to_turso_value(v.clone()))
+                .collect()
+        })
+        .unwrap_or_default();
 
     (sql, params)
 }
@@ -139,7 +164,9 @@ pub fn sea_value_to_turso_value(val: SeaValue) -> TursoValue {
         SeaValue::String(None) => TursoValue::Null,
         SeaValue::Bytes(Some(b)) => TursoValue::Blob((*b).to_vec()),
         SeaValue::Bytes(None) => TursoValue::Null,
-        SeaValue::ChronoDateTime(Some(dt)) => TursoValue::Text(dt.format("%Y-%m-%d %H:%M:%S").to_string()),
+        SeaValue::ChronoDateTime(Some(dt)) => {
+            TursoValue::Text(dt.format("%Y-%m-%d %H:%M:%S").to_string())
+        }
         SeaValue::ChronoDateTime(None) => TursoValue::Null,
         SeaValue::ChronoDateTimeWithTimeZone(Some(dt)) => TursoValue::Text(dt.to_rfc3339()),
         SeaValue::ChronoDateTimeWithTimeZone(None) => TursoValue::Null,
@@ -165,10 +192,22 @@ mod tests {
 
     #[test]
     fn test_sea_value_to_turso_value() {
-        assert!(matches!(sea_value_to_turso_value(SeaValue::Bool(Some(true))), TursoValue::Integer(1)));
-        assert!(matches!(sea_value_to_turso_value(SeaValue::Bool(None)), TursoValue::Null));
-        assert!(matches!(sea_value_to_turso_value(SeaValue::BigInt(Some(42))), TursoValue::Integer(42)));
-        assert!(matches!(sea_value_to_turso_value(SeaValue::Double(Some(3.14))), TursoValue::Real(3.14)));
+        assert!(matches!(
+            sea_value_to_turso_value(SeaValue::Bool(Some(true))),
+            TursoValue::Integer(1)
+        ));
+        assert!(matches!(
+            sea_value_to_turso_value(SeaValue::Bool(None)),
+            TursoValue::Null
+        ));
+        assert!(matches!(
+            sea_value_to_turso_value(SeaValue::BigInt(Some(42))),
+            TursoValue::Integer(42)
+        ));
+        assert!(matches!(
+            sea_value_to_turso_value(SeaValue::Double(Some(3.14))),
+            TursoValue::Real(3.14)
+        ));
     }
 
     #[test]
@@ -196,19 +235,26 @@ mod tests {
     fn test_turso_text_to_datetime() {
         // Every timestamp column in this project is modelled as Option<String>,
         // so timestamps must stay Text on read or they hydrate as NULL.
-        let val = turso_value_to_sea_value_typed(TursoValue::Text("2026-09-13T10:30:00+00:00".into()), false).unwrap();
+        let val = turso_value_to_sea_value_typed(
+            TursoValue::Text("2026-09-13T10:30:00+00:00".into()),
+            false,
+        )
+        .unwrap();
         assert!(matches!(val, SeaValue::String(Some(_))));
     }
 
     #[test]
     fn test_turso_text_to_naive_datetime() {
-        let val = turso_value_to_sea_value_typed(TursoValue::Text("2026-09-13 10:30:00".into()), false).unwrap();
+        let val =
+            turso_value_to_sea_value_typed(TursoValue::Text("2026-09-13 10:30:00".into()), false)
+                .unwrap();
         assert!(matches!(val, SeaValue::String(Some(_))));
     }
 
     #[test]
     fn test_turso_text_fallback_string() {
-        let val = turso_value_to_sea_value_typed(TursoValue::Text("hello world".into()), false).unwrap();
+        let val =
+            turso_value_to_sea_value_typed(TursoValue::Text("hello world".into()), false).unwrap();
         assert!(matches!(val, SeaValue::String(Some(_))));
     }
 }

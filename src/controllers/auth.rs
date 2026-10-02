@@ -16,19 +16,14 @@ pub fn routes() -> Routes {
 }
 
 fn set_auth_cookie(resp: &mut Response, token: &str, max_age: u64) {
-    let cookie = format!(
-        "token={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age={max_age}"
-    );
+    let cookie = format!("token={token}; Path=/; HttpOnly; SameSite=Lax; Max-Age={max_age}");
     if let Ok(val) = HeaderValue::from_str(&cookie) {
         resp.headers_mut().insert("set-cookie", val);
     }
 }
 
 #[debug_handler]
-async fn login(
-    State(ctx): State<AppContext>,
-    Json(params): Json<LoginParams>,
-) -> Result<Response> {
+async fn login(State(ctx): State<AppContext>, Json(params): Json<LoginParams>) -> Result<Response> {
     let Ok(user) = users::Model::find_by_username(&ctx.db, &params.username).await else {
         return unauthorized("Invalid credentials!");
     };
@@ -38,10 +33,7 @@ async fn login(
     let jwt_config = ctx.config.get_jwt_config()?;
     let token = user.generate_jwt(&jwt_config.secret, jwt_config.expiration)?;
 
-    let mut resp = format::json(LoginResponse::new(
-        users::UserResponse::from(user),
-        &token,
-    ))?;
+    let mut resp = format::json(LoginResponse::new(users::UserResponse::from(user), &token))?;
     set_auth_cookie(
         &mut resp,
         &token,

@@ -62,7 +62,11 @@ async fn overview_stats(
     let total_expense: f64 = expenses.iter().map(|e| e.amount).sum();
     let net_worth = invested;
     let total_gain = total_income - total_expense;
-    let roi = if invested > 0.0 { (total_gain / invested) * 100.0 } else { 0.0 };
+    let roi = if invested > 0.0 {
+        (total_gain / invested) * 100.0
+    } else {
+        0.0
+    };
     let monthly_expense = total_expense / 12.0;
 
     Ok(OverviewStats {
@@ -77,7 +81,10 @@ async fn overview_stats(
 
 #[debug_handler]
 async fn stats(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Response> {
-    let db = ctx.shared_store.get_ref::<sea_orm_turso::TursoConnection>().unwrap();
+    let db = ctx
+        .shared_store
+        .get_ref::<sea_orm_turso::TursoConnection>()
+        .unwrap();
     let user_id = super::uid(&ctx, &auth).await?;
     let s = overview_stats(&*db, user_id).await?;
     format::json(s)
@@ -276,7 +283,10 @@ async fn analysis(
     State(ctx): State<AppContext>,
     Query(params): Query<AnalysisRequest>,
 ) -> Result<Response> {
-    let db = ctx.shared_store.get_ref::<sea_orm_turso::TursoConnection>().unwrap();
+    let db = ctx
+        .shared_store
+        .get_ref::<sea_orm_turso::TursoConnection>()
+        .unwrap();
     let user_id = super::uid(&ctx, &auth).await?;
 
     let start = params.start_date.as_deref();
@@ -289,20 +299,42 @@ async fn analysis(
                 .filter(|x| !x.is_empty())
                 .map(str::to_string)
                 .collect();
-            if v.is_empty() { None } else { Some(v) }
+            if v.is_empty() {
+                None
+            } else {
+                Some(v)
+            }
         }
         None => None,
     };
 
     // Fetch all data in parallel
-    let (banks_list, assets_list, fds_list, investments_list, incomes_list, expenses_list, credit_cards_list) = tokio::join!(
-        banks::Entity::find().filter(banks::Column::UserId.eq(user_id)).all(&*db),
-        assets::Entity::find().filter(assets::Column::UserId.eq(user_id)).all(&*db),
-        fixed_deposits::Entity::find().filter(fixed_deposits::Column::UserId.eq(user_id)).all(&*db),
-        investments::Entity::find().filter(investments::Column::UserId.eq(user_id)).all(&*db),
+    let (
+        banks_list,
+        assets_list,
+        fds_list,
+        investments_list,
+        incomes_list,
+        expenses_list,
+        credit_cards_list,
+    ) = tokio::join!(
+        banks::Entity::find()
+            .filter(banks::Column::UserId.eq(user_id))
+            .all(&*db),
+        assets::Entity::find()
+            .filter(assets::Column::UserId.eq(user_id))
+            .all(&*db),
+        fixed_deposits::Entity::find()
+            .filter(fixed_deposits::Column::UserId.eq(user_id))
+            .all(&*db),
+        investments::Entity::find()
+            .filter(investments::Column::UserId.eq(user_id))
+            .all(&*db),
         fetch_incomes(&*db, user_id, start, end),
         fetch_expenses(&*db, user_id, start, end, cats.as_ref()),
-        credit_cards::Entity::find().filter(credit_cards::Column::UserId.eq(user_id)).all(&*db),
+        credit_cards::Entity::find()
+            .filter(credit_cards::Column::UserId.eq(user_id))
+            .all(&*db),
     );
 
     let banks = banks_list?;
@@ -335,7 +367,9 @@ async fn analysis(
         let annualized = if inc.is_recurring {
             match inc.recurrence.as_deref() {
                 Some("weekly") => inc.amount * inc.frequency_multiplier as f64 * 52.0,
-                Some("biweekly") | Some("fortnightly") => inc.amount * inc.frequency_multiplier as f64 * 26.0,
+                Some("biweekly") | Some("fortnightly") => {
+                    inc.amount * inc.frequency_multiplier as f64 * 26.0
+                }
                 Some("monthly") => inc.amount * inc.frequency_multiplier as f64 * 12.0,
                 Some("quarterly") => inc.amount * inc.frequency_multiplier as f64 * 4.0,
                 Some("yearly") | Some("annually") => inc.amount * inc.frequency_multiplier as f64,
@@ -360,17 +394,26 @@ async fn analysis(
     };
 
     // Monthly expense by category
-    let mut monthly_expense_map: std::collections::HashMap<String, std::collections::HashMap<String, f64>> = std::collections::HashMap::new();
+    let mut monthly_expense_map: std::collections::HashMap<
+        String,
+        std::collections::HashMap<String, f64>,
+    > = std::collections::HashMap::new();
     for exp in &expenses {
         let month = month_key(&exp.expense_date);
-        if month.is_empty() { continue; }
+        if month.is_empty() {
+            continue;
+        }
         let entry = monthly_expense_map.entry(month).or_default();
         *entry.entry(exp.category.clone()).or_default() += exp.amount;
     }
     let mut monthly_expenses: Vec<MonthlyExpenseByCategory> = Vec::new();
     for (month, cats) in monthly_expense_map {
         for (category, amount) in cats {
-            monthly_expenses.push(MonthlyExpenseByCategory { month: month.clone(), category, amount });
+            monthly_expenses.push(MonthlyExpenseByCategory {
+                month: month.clone(),
+                category,
+                amount,
+            });
         }
     }
     monthly_expenses.sort_by(|a, b| a.month.cmp(&b.month).then(a.category.cmp(&b.category)));
@@ -379,9 +422,14 @@ async fn analysis(
     let total_invested: f64 = investments.iter().map(|i| i.invested_amount).sum();
     let total_current_value: f64 = investments.iter().map(|i| i.current_value).sum();
     let total_gain_loss = total_current_value - total_invested;
-    let roi_percentage = if total_invested > 0.0 { (total_gain_loss / total_invested) * 100.0 } else { 0.0 };
+    let roi_percentage = if total_invested > 0.0 {
+        (total_gain_loss / total_invested) * 100.0
+    } else {
+        0.0
+    };
 
-    let mut by_type_map: std::collections::HashMap<String, (f64, f64)> = std::collections::HashMap::new();
+    let mut by_type_map: std::collections::HashMap<String, (f64, f64)> =
+        std::collections::HashMap::new();
     for inv in &investments {
         let entry = by_type_map.entry(inv.investment_type.clone()).or_default();
         entry.0 += inv.invested_amount;
@@ -391,8 +439,18 @@ async fn analysis(
         .into_iter()
         .map(|(investment_type, (invested, current_value))| {
             let gain_loss = current_value - invested;
-            let roi_pct = if invested > 0.0 { (gain_loss / invested) * 100.0 } else { 0.0 };
-            InvestmentTypeROI { investment_type, invested, current_value, gain_loss, roi_pct }
+            let roi_pct = if invested > 0.0 {
+                (gain_loss / invested) * 100.0
+            } else {
+                0.0
+            };
+            InvestmentTypeROI {
+                investment_type,
+                invested,
+                current_value,
+                gain_loss,
+                roi_pct,
+            }
         })
         .collect();
 
@@ -405,8 +463,10 @@ async fn analysis(
     };
 
     // Cash flow monthly trend
-    let mut income_by_month: std::collections::HashMap<String, f64> = std::collections::HashMap::new();
-    let mut expense_by_month: std::collections::HashMap<String, f64> = std::collections::HashMap::new();
+    let mut income_by_month: std::collections::HashMap<String, f64> =
+        std::collections::HashMap::new();
+    let mut expense_by_month: std::collections::HashMap<String, f64> =
+        std::collections::HashMap::new();
     for inc in &incomes {
         let month = month_key(&inc.income_date);
         if !month.is_empty() {
@@ -428,32 +488,48 @@ async fn analysis(
         .map(|month| {
             let income = income_by_month.get(&month).copied().unwrap_or(0.0);
             let expense = expense_by_month.get(&month).copied().unwrap_or(0.0);
-            CashFlowPoint { month, income, expense, net: income - expense }
+            CashFlowPoint {
+                month,
+                income,
+                expense,
+                net: income - expense,
+            }
         })
         .collect();
     cash_flow.sort_by(|a, b| a.month.cmp(&b.month));
 
     // Top 5 expenses
-    let mut expense_by_title: std::collections::HashMap<String, (f64, String)> = std::collections::HashMap::new();
+    let mut expense_by_title: std::collections::HashMap<String, (f64, String)> =
+        std::collections::HashMap::new();
     for exp in &expenses {
-        let e = expense_by_title.entry(exp.title.clone()).or_default(); e.0 += exp.amount;
+        let e = expense_by_title.entry(exp.title.clone()).or_default();
+        e.0 += exp.amount;
         expense_by_title.get_mut(&exp.title).unwrap().1 = exp.category.clone();
     }
     let mut top_expenses: Vec<_> = expense_by_title
         .into_iter()
-        .map(|(label, (amount, category))| TopItem { label, amount, category: Some(category) })
+        .map(|(label, (amount, category))| TopItem {
+            label,
+            amount,
+            category: Some(category),
+        })
         .collect();
     top_expenses.sort_by(|a, b| b.amount.partial_cmp(&a.amount).unwrap());
     let top_5_expenses = top_expenses.into_iter().take(5).collect();
 
     // Top 5 income sources
-    let mut income_by_source: std::collections::HashMap<String, f64> = std::collections::HashMap::new();
+    let mut income_by_source: std::collections::HashMap<String, f64> =
+        std::collections::HashMap::new();
     for inc in &incomes {
         *income_by_source.entry(inc.source.clone()).or_default() += inc.amount - inc.tax_withheld;
     }
     let mut top_income: Vec<_> = income_by_source
         .into_iter()
-        .map(|(label, amount)| TopItem { label, amount, category: None })
+        .map(|(label, amount)| TopItem {
+            label,
+            amount,
+            category: None,
+        })
         .collect();
     top_income.sort_by(|a, b| b.amount.partial_cmp(&a.amount).unwrap());
     let top_5_income_sources = top_income.into_iter().take(5).collect();
@@ -487,7 +563,9 @@ async fn analysis(
         .map(|c| {
             let utilization_pct = if c.credit_limit > 0.0 {
                 (c.current_balance / c.credit_limit) * 100.0
-            } else { 0.0 };
+            } else {
+                0.0
+            };
             CreditCardUtilization {
                 card_name: c.name,
                 limit: c.credit_limit,
@@ -502,7 +580,11 @@ async fn analysis(
     let total_income: f64 = incomes.iter().map(|i| i.amount - i.tax_withheld).sum();
     let total_expense: f64 = expenses.iter().map(|e| e.amount).sum();
     let savings = total_income - total_expense;
-    let savings_rate_pct = if total_income > 0.0 { (savings / total_income) * 100.0 } else { 0.0 };
+    let savings_rate_pct = if total_income > 0.0 {
+        (savings / total_income) * 100.0
+    } else {
+        0.0
+    };
     let savings_rate = SavingsRate {
         total_income,
         total_expense,
@@ -551,14 +633,16 @@ async fn analysis(
             .as_deref()
             .and_then(|id| bank_names.get(id).cloned())
             .unwrap_or_else(|| "Unlinked".to_string());
-        let entry = flow_acc.entry(inc.bank_id.clone().unwrap_or_default()).or_insert(AccountFlow {
-            account_id: inc.bank_id.clone(),
-            account_name: name,
-            income: 0.0,
-            expense: 0.0,
-            net: 0.0,
-            count: 0,
-        });
+        let entry = flow_acc
+            .entry(inc.bank_id.clone().unwrap_or_default())
+            .or_insert(AccountFlow {
+                account_id: inc.bank_id.clone(),
+                account_name: name,
+                income: 0.0,
+                expense: 0.0,
+                net: 0.0,
+                count: 0,
+            });
         entry.income += inc.amount - inc.tax_withheld;
         entry.count += 1;
     }
@@ -568,14 +652,16 @@ async fn analysis(
             .as_deref()
             .and_then(|id| bank_names.get(id).cloned())
             .unwrap_or_else(|| "Unlinked".to_string());
-        let entry = flow_acc.entry(exp.bank_id.clone().unwrap_or_default()).or_insert(AccountFlow {
-            account_id: exp.bank_id.clone(),
-            account_name: name,
-            income: 0.0,
-            expense: 0.0,
-            net: 0.0,
-            count: 0,
-        });
+        let entry = flow_acc
+            .entry(exp.bank_id.clone().unwrap_or_default())
+            .or_insert(AccountFlow {
+                account_id: exp.bank_id.clone(),
+                account_name: name,
+                income: 0.0,
+                expense: 0.0,
+                net: 0.0,
+                count: 0,
+            });
         entry.expense += exp.amount;
         entry.count += 1;
     }
@@ -606,7 +692,9 @@ async fn analysis(
         })
         .collect();
     expense_categories.sort_by(|a, b| {
-        b.total.partial_cmp(&a.total).unwrap_or(std::cmp::Ordering::Equal)
+        b.total
+            .partial_cmp(&a.total)
+            .unwrap_or(std::cmp::Ordering::Equal)
     });
 
     // ---- two-sided debt book ----

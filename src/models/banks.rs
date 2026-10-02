@@ -1,7 +1,7 @@
 use sea_orm::entity::prelude::*;
-use serde::{Deserialize, Serialize};
 use sea_orm::ActiveValue::Set;
 use sea_orm::IntoActiveModel;
+use serde::{Deserialize, Serialize};
 use validator::Validate;
 
 fn now() -> String {

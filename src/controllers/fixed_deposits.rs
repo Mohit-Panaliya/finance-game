@@ -1,8 +1,6 @@
 use chrono::Utc;
 use loco_rs::prelude::*;
-use sea_orm::{
-    ColumnTrait, Condition, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, Set,
-};
+use sea_orm::{ColumnTrait, Condition, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, Set};
 
 use crate::models::fixed_deposits::{
     self, CreateFixedDepositRequest, FixedDepositSummary, UpdateFixedDepositRequest,
@@ -16,7 +14,6 @@ pub fn routes() -> Routes {
         .add("/{id}", get(show).put(update).delete(remove))
 }
 
-
 #[debug_handler]
 async fn list(
     auth: auth::JWT,
@@ -29,13 +26,10 @@ async fn list(
         .unwrap();
     let search = params.get("search").and_then(|v| v.as_str()).unwrap_or("");
     let page = params.get("page").and_then(|v| v.as_u64()).unwrap_or(1);
-    let per_page = params
-        .get("perPage")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(50);
+    let per_page = params.get("perPage").and_then(|v| v.as_u64()).unwrap_or(50);
 
-    let mut query =
-        fixed_deposits::Entity::find().filter(fixed_deposits::Column::UserId.eq(super::uid(&ctx, &auth).await?));
+    let mut query = fixed_deposits::Entity::find()
+        .filter(fixed_deposits::Column::UserId.eq(super::uid(&ctx, &auth).await?));
     if !search.is_empty() {
         query = query.filter(
             Condition::any()
@@ -105,11 +99,9 @@ async fn create(
         tenure_months: Set(tenure),
         start_date: Set(params.start_date),
         maturity_date: Set(params.maturity_date),
-        compounding_frequency: Set(
-            params
-                .compounding_frequency
-                .unwrap_or_else(|| "quarterly".to_string()),
-        ),
+        compounding_frequency: Set(params
+            .compounding_frequency
+            .unwrap_or_else(|| "quarterly".to_string())),
         current_value: Set(current_value),
         interest_earned: Set(current_value - principal),
         tax_deducted: Set(params.tax_deducted.unwrap_or(0.0)),

@@ -1,12 +1,8 @@
 use chrono::Utc;
 use loco_rs::prelude::*;
-use sea_orm::{
-    ColumnTrait, Condition, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, Set,
-};
+use sea_orm::{ColumnTrait, Condition, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, Set};
 
-use crate::models::incomes::{
-    self, CreateIncomeRequest, IncomeSummary, UpdateIncomeRequest,
-};
+use crate::models::incomes::{self, CreateIncomeRequest, IncomeSummary, UpdateIncomeRequest};
 
 pub fn routes() -> Routes {
     Routes::new()
@@ -15,7 +11,6 @@ pub fn routes() -> Routes {
         .add("/", get(list).post(create))
         .add("/{id}", get(show).put(update).delete(remove))
 }
-
 
 fn annualize(recurrence: &str, amount: f64) -> f64 {
     match recurrence {
@@ -41,12 +36,10 @@ async fn list(
         .unwrap();
     let search = params.get("search").and_then(|v| v.as_str()).unwrap_or("");
     let page = params.get("page").and_then(|v| v.as_u64()).unwrap_or(1);
-    let per_page = params
-        .get("perPage")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(50);
+    let per_page = params.get("perPage").and_then(|v| v.as_u64()).unwrap_or(50);
 
-    let mut query = incomes::Entity::find().filter(incomes::Column::UserId.eq(super::uid(&ctx, &auth).await?));
+    let mut query =
+        incomes::Entity::find().filter(incomes::Column::UserId.eq(super::uid(&ctx, &auth).await?));
     if !search.is_empty() {
         query = query.filter(
             Condition::any()
@@ -114,17 +107,15 @@ async fn create(
         income_date: Set(params.income_date),
         is_recurring: Set(params.is_recurring.unwrap_or(false)),
         recurrence: Set(params.recurrence.clone()),
-        frequency_multiplier: Set(
-            params
-                .frequency_multiplier
-                .unwrap_or_else(|| match params.recurrence.as_deref() {
-                    Some("weekly") => 52,
-                    Some("biweekly") => 26,
-                    Some("monthly") => 12,
-                    Some("quarterly") => 4,
-                    _ => 1,
-                }),
-        ),
+        frequency_multiplier: Set(params.frequency_multiplier.unwrap_or_else(|| {
+            match params.recurrence.as_deref() {
+                Some("weekly") => 52,
+                Some("biweekly") => 26,
+                Some("monthly") => 12,
+                Some("quarterly") => 4,
+                _ => 1,
+            }
+        })),
         is_gross: Set(params.is_gross.unwrap_or(true)),
         tax_withheld: Set(params.tax_withheld.unwrap_or(0.0)),
         bank_id: Set(params.bank_id),
@@ -254,7 +245,8 @@ async fn summary(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Respo
     let mut yearly = 0.0;
     let mut monthly = 0.0;
     let mut received_this_year = 0.0;
-    let mut by_type_map: std::collections::BTreeMap<String, f64> = std::collections::BTreeMap::new();
+    let mut by_type_map: std::collections::BTreeMap<String, f64> =
+        std::collections::BTreeMap::new();
 
     for r in &rows {
         *by_type_map.entry(r.income_type.clone()).or_insert(0.0) += r.amount;

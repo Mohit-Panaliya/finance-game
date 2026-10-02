@@ -1,7 +1,7 @@
 pub mod analysis;
+pub mod assets;
 pub mod auth;
 pub mod banks;
-pub mod assets;
 pub mod credit_cards;
 pub mod debts;
 pub mod expenses;
@@ -15,10 +15,7 @@ use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 
 use crate::models::users;
 
-pub async fn uid(
-    ctx: &AppContext,
-    auth_jwt: &loco_rs::prelude::auth::JWT,
-) -> Result<i64> {
+pub async fn uid(ctx: &AppContext, auth_jwt: &loco_rs::prelude::auth::JWT) -> Result<i64> {
     if let Ok(id) = auth_jwt.claims.pid.parse::<i64>() {
         return Ok(id);
     }
