@@ -1,12 +1,21 @@
 use chrono::Utc;
 use loco_rs::prelude::*;
-use sea_orm::{
-    ColumnTrait, Condition, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, Set,
-};
+use sea_orm::{ColumnTrait, Condition, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, Set};
 
-use crate::models::debts::{
-    self, CreateDebtRequest, DebtResponse, DebtSummary, UpdateDebtRequest,
-};
+use crate::models::debts::{self, CreateDebtRequest, DebtResponse, DebtSummary, UpdateDebtRequest};
+
+/// Reads a boolean query flag. Query strings arrive as JSON strings, so `as_bool()`
+/// would always miss and the flag would silently keep its default.
+fn query_flag(value: Option<&serde_json::Value>, default: bool) -> bool {
+    match value {
+        Some(serde_json::Value::String(s)) => {
+            matches!(s.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes")
+        }
+        Some(serde_json::Value::Bool(b)) => *b,
+        Some(serde_json::Value::Number(n)) => n.as_i64().unwrap_or(1) != 0,
+        _ => default,
+    }
+}
 
 pub fn routes() -> Routes {
     Routes::new()
@@ -37,17 +46,12 @@ async fn list(
         .and_then(|v| v.as_str())
         .unwrap_or("")
         .to_string();
-    let include_settled = params
-        .get("includeSettled")
-        .and_then(|v| v.as_bool())
-        .unwrap_or(true);
+    let include_settled = query_flag(params.get("includeSettled"), true);
     let page = params.get("page").and_then(|v| v.as_u64()).unwrap_or(1);
-    let per_page = params
-        .get("perPage")
-        .and_then(|v| v.as_u64())
-        .unwrap_or(50);
+    let per_page = params.get("perPage").and_then(|v| v.as_u64()).unwrap_or(50);
 
-    let mut query = debts::Entity::find().filter(debts::Column::UserId.eq(super::uid(&ctx, &auth).await?));
+    let mut query =
+        debts::Entity::find().filter(debts::Column::UserId.eq(super::uid(&ctx, &auth).await?));
     if !search.is_empty() {
         query = query.filter(
             Condition::any()
@@ -60,6 +64,10 @@ async fn list(
         query = query.filter(debts::Column::Direction.eq(direction.clone()));
     }
 
+    if !include_settled {
+        query = query.filter(debts::Column::SettledAmount.eq(0.0));
+    }
+
     let total = query.clone().count(&*db).await?;
     let rows = query
         .order_by_desc(debts::Column::OccurredDate)
@@ -67,12 +75,7 @@ async fn list(
         .fetch_page(page.saturating_sub(1))
         .await?;
 
-    let items: Vec<DebtResponse> = rows
-        .iter()
-        .filter(|r| include_settled || !r.is_settled())
-        .cloned()
-        .map(DebtResponse::from)
-        .collect();
+    let items: Vec<DebtResponse> = rows.iter().cloned().map(DebtResponse::from).collect();
 
     format::json(serde_json::json!({
         "data": items,
@@ -123,7 +126,9 @@ async fn create(
         currency: Set(params.currency.unwrap_or_else(|| "INR".to_string())),
         kind: Set(params.kind.unwrap_or_else(|| "loan".to_string())),
         account_id: Set(params.account_id),
-        occurred_date: Set(params.occurred_date.unwrap_or_else(|| Utc::now().format("%Y-%m-%d").to_string())),
+        occurred_date: Set(params
+            .occurred_date
+            .unwrap_or_else(|| Utc::now().format("%Y-%m-%d").to_string())),
         due_date: Set(params.due_date),
         note: Set(params.note),
         settled_date: Set(params.settled_date),
@@ -236,11 +241,10 @@ async fn settle(
 
     let mut active = existing.into_active_model();
     active.settled_amount = Set(already_settled + amount);
-    active.settled_date = Set(Some(
-        params
-            .settled_date
-            .unwrap_or_else(|| Utc::now().format("%Y-%m-%d").to_string()),
-    ));
+    active.settled_date =
+        Set(Some(params.settled_date.unwrap_or_else(|| {
+            Utc::now().format("%Y-%m-%d").to_string()
+        })));
     active.sync_status = Set("pending".to_string());
     active.updated_at = Set(Some(Utc::now().to_rfc3339()));
 

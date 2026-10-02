@@ -172,8 +172,14 @@ printf '%s' "$DL" | jq_has "d['total'] == 2 and len(d['data']) == 2" >/dev/null 
   && ok "GET /api/debts lists both debts" || bad "GET /api/debts lists both debts" "${DL:0:200}"
 body "$BASE/api/debts?direction=lent" "${AUTH[@]}" | jq_has "len(d['data']) == 1 and d['data'][0]['counterparty'] == 'Rohan'" >/dev/null \
   && ok "direction filter narrows to lent" || bad "direction filter narrows to lent"
-body "$BASE/api/debts?includeSettled=false" "${AUTH[@]}" >/dev/null \
-  && ok "includeSettled filter is accepted" || bad "includeSettled filter is accepted"
+OPEN_ID="$(post debts '{"direction":"lent","counterparty":"Filtered Out","amount":300,"occurred_date":"2026-09-05","currency":"INR"}' | py "import json,sys;print(json.load(sys.stdin).get('id',''))" 2>/dev/null)"
+body -X POST "$BASE/api/debts/$OPEN_ID/settle" "${AUTH[@]}" "${JSON[@]}" -d '{}' >/dev/null
+body "$BASE/api/debts?includeSettled=false" "${AUTH[@]}" | jq_has "not any(r['id'] == '$OPEN_ID' for r in d['data'])" >/dev/null \
+  && ok "includeSettled=false hides settled debts" || bad "includeSettled=false hides settled debts"
+body "$BASE/api/debts?includeSettled=false" "${AUTH[@]}" | jq_has "d['total'] == len(d['data'])" >/dev/null \
+  && ok "total matches the filtered page" || bad "total matches the filtered page"
+body "$BASE/api/debts" "${AUTH[@]}" | jq_has "any(r['id'] == '$OPEN_ID' for r in d['data'])" >/dev/null \
+  && ok "settled debt is still listed by default" || bad "settled debt is still listed by default"
 
 DS="$(body "$BASE/api/debts/summary" "${AUTH[@]}")"
 printf '%s' "$DS" | jq_has "d['owed_to_me'] == 5000 and d['i_owe'] == 2000 and d['net'] == 3000" >/dev/null \

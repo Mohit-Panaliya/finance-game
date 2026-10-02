@@ -1,7 +1,7 @@
 use sea_orm::entity::prelude::*;
-use serde::{Deserialize, Serialize};
 use sea_orm::ActiveValue::Set;
 use sea_orm::IntoActiveModel;
+use serde::{Deserialize, Serialize};
 use validator::Validate;
 
 fn now() -> String {
@@ -94,10 +94,9 @@ impl CreateFixedDepositRequest {
             tenure_months: Set(self.tenure_months),
             start_date: Set(self.start_date),
             maturity_date: Set(self.maturity_date),
-            compounding_frequency: Set(
-                self.compounding_frequency
-                    .unwrap_or_else(|| "quarterly".to_string()),
-            ),
+            compounding_frequency: Set(self
+                .compounding_frequency
+                .unwrap_or_else(|| "quarterly".to_string())),
             current_value: Set(self.current_value.unwrap_or(0.0)),
             interest_earned: Set(self.interest_earned.unwrap_or(0.0)),
             tax_deducted: Set(self.tax_deducted.unwrap_or(0.0)),
@@ -239,8 +238,12 @@ impl From<Model> for FixedDepositResponse {
             .map(|d| (d - today).num_days())
             .unwrap_or(0);
         let years = m.tenure_months as f64 / 12.0;
-        let projected_maturity_value =
-            compound_value(m.principal_amount, m.interest_rate, years, &m.compounding_frequency);
+        let projected_maturity_value = compound_value(
+            m.principal_amount,
+            m.interest_rate,
+            years,
+            &m.compounding_frequency,
+        );
         Self {
             id: m.id,
             user_id: m.user_id,

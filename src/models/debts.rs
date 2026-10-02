@@ -94,9 +94,9 @@ impl CreateDebtRequest {
             currency: Set(self.currency.unwrap_or_else(|| "INR".to_string())),
             kind: Set(self.kind.unwrap_or_else(|| "loan".to_string())),
             account_id: Set(self.account_id),
-            occurred_date: Set(self.occurred_date.unwrap_or_else(|| {
-                chrono::Utc::now().format("%Y-%m-%d").to_string()
-            })),
+            occurred_date: Set(self
+                .occurred_date
+                .unwrap_or_else(|| chrono::Utc::now().format("%Y-%m-%d").to_string())),
             due_date: Set(self.due_date),
             note: Set(self.note),
             settled_date: Set(self.settled_date),
