@@ -51,3 +51,9 @@ path = "src/bin/main.rs"
 [dev-dependencies]
 loco-rs = { workspace = true, features = ["testing"] }
 serial_test = { version = "3.1.1" }
+
+# sqlx_sqlite driver of sea-orm 2.0.4 wraps Date/Time values in Box::new,
+# incompatible with sea-query 1.0 un-boxed Value variants (5x E0308).
+# Vendored patched fork removes the Box wrappers.
+[patch.crates-io]
+sea-orm = { path = "vendor/sea-orm" }
