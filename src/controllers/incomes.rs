@@ -2,6 +2,7 @@ use chrono::Utc;
 use loco_rs::prelude::*;
 use sea_orm::{ColumnTrait, Condition, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, Set};
 
+use crate::ledger;
 use crate::models::incomes::{self, CreateIncomeRequest, IncomeSummary, UpdateIncomeRequest};
 
 pub fn routes() -> Routes {
@@ -95,9 +96,14 @@ async fn create(
         .get_ref::<sea_orm_turso::TursoConnection>()
         .unwrap();
     let now = Utc::now().to_rfc3339();
+    let uid = super::uid(&ctx, &auth).await?;
+    // Read before the model consumes them, so the ledger can be moved after the row
+    // is written.
+    let created_amount = params.amount;
+    let active_bank = params.bank_id.clone();
     let active = incomes::ActiveModel {
         id: Set(uuid::Uuid::new_v4().to_string()),
-        user_id: Set(super::uid(&ctx, &auth).await?),
+        user_id: Set(uid),
         title: Set(params.title),
         description: Set(params.description),
         amount: Set(params.amount),
@@ -130,6 +136,10 @@ async fn create(
         .insert(&*db)
         .await
         .map_err(|e| Error::string(&e.to_string()))?;
+    // Credit the bank this income was booked into, so the account reflects it.
+    ledger::on_income_created(&*db, uid, active_bank.as_ref(), created_amount)
+        .await
+        .map_err(|e| Error::string(&e.to_string()))?;
     format::json(item)
 }
 
@@ -144,13 +154,25 @@ async fn update(
         .shared_store
         .get_ref::<sea_orm_turso::TursoConnection>()
         .unwrap();
+    let uid = super::uid(&ctx, &auth).await?;
     let existing = incomes::Entity::find_by_id(&id)
-        .filter(incomes::Column::UserId.eq(super::uid(&ctx, &auth).await?))
+        .filter(incomes::Column::UserId.eq(uid))
         .one(&*db)
         .await?;
     let Some(existing) = existing else {
         return not_found();
     };
+    // The previous ledger state, so the edit can be reconciled rather than applied
+    // again from scratch.
+    let old_bank = existing.bank_id.clone();
+    let old_amount = existing.amount;
+
+    // The effective values after this edit, resolved before `params` is consumed
+    // below. Taken from the request rather than from the ActiveModel, because a
+    // field this request does not mention is not `Set` on it. An absent field
+    // keeps the current account; an empty id unlinks.
+    let active_bank = params.bank_id.clone().or_else(|| old_bank.clone());
+    let created_amount = params.amount.unwrap_or(old_amount);
     let mut active = existing.into_active_model();
     if let Some(v) = params.title {
         active.title = Set(v);
@@ -203,6 +225,17 @@ async fn update(
         .update(&*db)
         .await
         .map_err(|e| Error::string(&e.to_string()))?;
+    // Reconcile: credit the new state and undo the old one.
+    ledger::on_income_updated(
+        &*db,
+        uid,
+        old_bank.as_ref(),
+        old_amount,
+        active_bank.as_ref(),
+        created_amount,
+    )
+    .await
+    .map_err(|e| Error::string(&e.to_string()))?;
     format::json(item)
 }
 
@@ -216,8 +249,9 @@ async fn remove(
         .shared_store
         .get_ref::<sea_orm_turso::TursoConnection>()
         .unwrap();
+    let uid = super::uid(&ctx, &auth).await?;
     let existing = incomes::Entity::find_by_id(&id)
-        .filter(incomes::Column::UserId.eq(super::uid(&ctx, &auth).await?))
+        .filter(incomes::Column::UserId.eq(uid))
         .one(&*db)
         .await?;
     if existing.is_none() {
@@ -227,6 +261,12 @@ async fn remove(
         .exec(&*db)
         .await
         .map_err(|e| Error::string(&e.to_string()))?;
+    // Hand the credited amount back to the bank it came from.
+    if let Some(row) = existing {
+        ledger::on_income_deleted(&*db, uid, row.bank_id.as_ref(), row.amount)
+            .await
+            .map_err(|e| Error::string(&e.to_string()))?;
+    }
     format::json(serde_json::json!({ "ok": true }))
 }
 

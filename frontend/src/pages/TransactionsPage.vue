@@ -2,7 +2,13 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { IonContent, IonIcon, IonPage } from '@ionic/vue'
-import { addOutline, pricetagOutline, statsChartOutline } from 'ionicons/icons'
+import {
+  addOutline,
+  createOutline,
+  pricetagOutline,
+  statsChartOutline,
+  trashOutline
+} from 'ionicons/icons'
 import { useFinanceStore } from '@/stores/financeStore'
 import { useSyncStore } from '@/stores/syncStore'
 import type { EntityType, FinanceRow } from '@/types'
@@ -10,6 +16,7 @@ import { formatMoney, formatSigned, rowCurrency } from '@/utils/money'
 import { formatDate, formatMonth, monthKey } from '@/utils/date'
 import AppButton from '@/components/ui/AppButton.vue'
 import SyncChip from '@/components/ui/SyncChip.vue'
+import AppModal from '@/components/ui/AppModal.vue'
 
 type Kind = EntityType | 'all'
 type RangeKey = 'this-month' | 'last-month' | '3m' | 'ytd' | 'all'
@@ -19,6 +26,8 @@ const finance = useFinanceStore()
 const sync = useSyncStore()
 
 const kind = ref<Kind>('all')
+/** Id of the Activity row currently swiped open, so only one opens at a time. */
+const openRow = ref<string | null>(null)
 const range = ref<RangeKey>('this-month')
 const category = ref('all')
 
@@ -31,6 +40,8 @@ interface Entry {
   currency: string
   date: string
   income: boolean
+  /** The underlying list row, kept so edit/delete can address the real id. */
+  row: FinanceRow
 }
 
 function monthShift(delta: number): string {
@@ -89,7 +100,8 @@ const allEntries = computed<Entry[]>(() => {
     amount: Number(r.amount) || 0,
     currency: rowCurrency(r),
     date: String(r.income_date ?? ''),
-    income: true
+    income: true,
+    row: r
   }))
   const expense: Entry[] = finance.rows('expenses').map((r: FinanceRow) => ({
     id: `e-${String(r.id ?? '')}`,
@@ -101,7 +113,8 @@ const allEntries = computed<Entry[]>(() => {
     amount: Number(r.amount) || 0,
     currency: rowCurrency(r),
     date: String(r.expense_date ?? ''),
-    income: false
+    income: false,
+    row: r
   }))
   return [...income, ...expense]
 })
@@ -158,6 +171,45 @@ const grouped = computed<Bucket[]>(() => {
       expense: entries.filter((e) => !e.income).reduce((acc, e) => acc + e.amount, 0)
     }))
 })
+
+/** Activity namespaces row ids as `i-` / `e-`; the REST API does not. */
+function recordId(e: Entry): string {
+  return e.id.replace(/^[ie]-/, '')
+}
+
+function editEntry(e: Entry) {
+  router.push(`/accounts/${e.entity}/${recordId(e)}`)
+}
+
+const pendingDelete = ref<Entry | null>(null)
+const deleting = ref(false)
+const deleteError = ref('')
+
+function askDelete(e: Entry) {
+  deleteError.value = ''
+  pendingDelete.value = e
+}
+
+function cancelDelete() {
+  if (deleting.value) return
+  pendingDelete.value = null
+}
+
+async function confirmDelete() {
+  const entry = pendingDelete.value
+  if (!entry || deleting.value) return
+  deleting.value = true
+  deleteError.value = ''
+  try {
+    await finance.remove(entry.entity, recordId(entry))
+    openRow.value = null
+    pendingDelete.value = null
+  } catch (err) {
+    deleteError.value = err instanceof Error ? err.message : String(err)
+  } finally {
+    deleting.value = false
+  }
+}
 
 function addIncome() {
   router.push('/accounts/incomes/new')
@@ -263,30 +315,35 @@ onMounted(() => {
             </span>
           </div>
           <div class="row-list">
-            <button
-              v-for="e in bucket.entries"
-              :key="e.id"
-              class="row-item"
-              type="button"
-              @click="router.push(`/accounts/${e.entity}/${e.id.replace(/^[ie]-/, '')}`)"
-            >
-              <span class="row-icon" :class="e.income ? 'text-success' : 'text-danger'">
-                <ion-icon :icon="e.income ? statsChartOutline : pricetagOutline" />
-              </span>
-              <span class="row-main">
-                <span class="row-title clamp-1">{{ e.title }}</span>
-                <span class="row-sub clamp-1">{{ e.subtitle || '—' }}</span>
-              </span>
-              <span class="row-value">
-                <span :class="e.income ? 'text-success' : 'text-danger'">
-                  {{ e.income ? '+' : '−' }}{{ formatMoney(e.amount, e.currency, { compact: true }) }}
+            <div v-for="e in bucket.entries" :key="e.id" class="swipe-wrap">
+              <div class="swipe-actions">
+                <button class="swipe-btn swipe-btn-edit" type="button" @click="editEntry(e)">
+                  <ion-icon :icon="createOutline" /> Edit
+                </button>
+                <button class="swipe-btn swipe-btn-del" type="button" @click="askDelete(e)">
+                  <ion-icon :icon="trashOutline" /> Delete
+                </button>
+              </div>
+              <div
+                class="swipe-content"
+                :class="{ 'swipe-content-open': openRow === e.id }"
+                @click="openRow = openRow === e.id ? null : e.id"
+              >
+                <span class="row-icon" :class="e.income ? 'text-success' : 'text-danger'">
+                  <ion-icon :icon="e.income ? statsChartOutline : pricetagOutline" />
                 </span>
-                <span class="row-extra">{{ formatDate(e.date) }}</span>
-              </span>
-              <span class="detail-only row-sub row-meta">
-                {{ e.entity }} &middot; {{ e.id }}
-              </span>
-            </button>
+                <span class="row-main">
+                  <span class="row-title clamp-1">{{ e.title }}</span>
+                  <span class="row-sub clamp-1">{{ e.subtitle || '—' }}</span>
+                </span>
+                <span class="row-value">
+                  <span :class="e.income ? 'text-success' : 'text-danger'">
+                    {{ e.income ? '+' : '−' }}{{ formatMoney(e.amount, e.currency, { compact: true }) }}
+                  </span>
+                  <span class="row-extra">{{ formatDate(e.date) }}</span>
+                </span>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -300,6 +357,28 @@ onMounted(() => {
         </div>
       </div>
     </ion-content>
+
+    <AppModal
+      :open="pendingDelete !== null"
+      title="Delete entry"
+      :subtitle="pendingDelete ? pendingDelete.title : ''"
+      :sheet="false"
+      @close="cancelDelete"
+    >
+      <p class="confirm-text">
+        This removes the entry permanently. If a bank account or card is linked, its balance is
+        adjusted back by the amount. If you are offline the change is queued and pushed on reconnect.
+      </p>
+      <p v-if="deleteError" class="form-error">{{ deleteError }}</p>
+      <template #footer>
+        <AppButton variant="neutral" size="md" :disabled="deleting" @click="cancelDelete">
+          Cancel
+        </AppButton>
+        <AppButton variant="danger" size="md" :disabled="deleting" @click="confirmDelete">
+          {{ deleting ? 'Deleting…' : 'Delete' }}
+        </AppButton>
+      </template>
+    </AppModal>
   </ion-page>
 </template>
 
@@ -318,6 +397,63 @@ onMounted(() => {
   font-size: 1.02rem;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
+}
+.swipe-wrap {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border);
+}
+.swipe-wrap:last-child {
+  border-bottom: none;
+}
+.swipe-actions {
+  position: absolute;
+  inset: 0 0 0 auto;
+  display: flex;
+}
+.swipe-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 74px;
+  border: none;
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.swipe-btn ion-icon {
+  font-size: 19px;
+}
+.swipe-btn-edit {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.swipe-btn-del {
+  background: var(--danger);
+  color: var(--on-accent);
+}
+.swipe-content {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 13px;
+  background: var(--surface);
+  transition: transform 0.22s ease;
+  cursor: pointer;
+}
+.swipe-content-open {
+  transform: translateX(-148px);
+}
+.confirm-text {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.5;
 }
 .fab-row {
   display: flex;

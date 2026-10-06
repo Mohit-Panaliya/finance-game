@@ -1,4 +1,5 @@
 pub mod analysis;
+pub mod asset_ledger;
 pub mod assets;
 pub mod auth;
 pub mod banks;

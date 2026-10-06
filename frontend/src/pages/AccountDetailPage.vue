@@ -52,6 +52,8 @@ const DATE_COLUMN: Record<EntityType, string> = {
   expenses: 'expense_date'
 }
 
+const rawId = route.params.id as string | undefined
+
 const entity = computed<EntityType>(() => {
   const raw = route.params.entity
   const value = Array.isArray(raw) ? raw[0] : raw
@@ -71,6 +73,34 @@ const swipeOpen = ref<string | null>(null)
 const detail = ref<FinanceRow | null>(null)
 const formOpen = ref(false)
 const editingId = ref<string | null>(null)
+// /accounts/:entity/:id opens straight into the edit form. Entries arriving from the
+// Activity page are namespaced as `i-<id>` / `e-<id>`.
+const routeEditId = (() => {
+  if (!rawId) return null
+  const prefix = rawId.slice(0, 2)
+  return prefix === 'i-' || prefix === 'e-' ? rawId.slice(2) : rawId
+})()
+
+if (routeEditId) {
+  editingId.value = routeEditId
+  formOpen.value = true
+}
+
+// The form opens immediately, but its draft cannot be filled until the list for this
+// entity has loaded, so seed it from a watcher. Setting editingId alone would show an
+// empty form, and saving that would blank the record.
+let routeDraftPending = routeEditId !== null
+watch(
+  () => list.value.items,
+  (rows) => {
+    if (!routeDraftPending || routeEditId === null) return
+    const row = rows.find((r) => rowId(r) === routeEditId)
+    if (!row) return
+    loadDraft(row)
+    routeDraftPending = false
+  },
+  { immediate: true },
+)
 const pendingDelete = ref<FinanceRow | null>(null)
 const saving = ref(false)
 const formError = ref('')

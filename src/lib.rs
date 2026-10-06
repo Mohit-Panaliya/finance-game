@@ -1,7 +1,10 @@
 pub mod app;
 pub mod controllers;
+pub mod depreciation;
+pub mod depreciation_service;
 pub mod embedded;
 pub mod initializers;
+pub mod ledger;
 pub mod models;
 pub mod sync_engine;
 pub mod views;

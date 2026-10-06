@@ -2,6 +2,7 @@ use chrono::Utc;
 use loco_rs::prelude::*;
 use sea_orm::{ColumnTrait, Condition, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, Set};
 
+use crate::ledger;
 use crate::models::expenses::{
     self, CreateExpenseRequest, ExpenseCategoryTotal, ExpenseMonthTotal, ExpenseSummary,
     UpdateExpenseRequest,
@@ -85,9 +86,15 @@ async fn create(
         .get_ref::<sea_orm_turso::TursoConnection>()
         .unwrap();
     let now = Utc::now().to_rfc3339();
+    let uid = super::uid(&ctx, &auth).await?;
+    // Read before the model consumes them, so the ledger can be moved after the row
+    // is written.
+    let created_amount = params.amount;
+    let active_bank = params.bank_id.clone();
+    let active_card = params.credit_card_id.clone();
     let active = expenses::ActiveModel {
         id: Set(uuid::Uuid::new_v4().to_string()),
-        user_id: Set(super::uid(&ctx, &auth).await?),
+        user_id: Set(uid),
         title: Set(params.title),
         description: Set(params.description),
         amount: Set(params.amount),
@@ -115,6 +122,16 @@ async fn create(
         .insert(&*db)
         .await
         .map_err(|e| Error::string(&e.to_string()))?;
+    // Debit the linked bank, or charge the linked card.
+    ledger::on_expense_created(
+        &*db,
+        uid,
+        active_bank.as_ref(),
+        active_card.as_ref(),
+        created_amount,
+    )
+    .await
+    .map_err(|e| Error::string(&e.to_string()))?;
     format::json(item)
 }
 
@@ -129,13 +146,28 @@ async fn update(
         .shared_store
         .get_ref::<sea_orm_turso::TursoConnection>()
         .unwrap();
+    let uid = super::uid(&ctx, &auth).await?;
     let existing = expenses::Entity::find_by_id(&id)
-        .filter(expenses::Column::UserId.eq(super::uid(&ctx, &auth).await?))
+        .filter(expenses::Column::UserId.eq(uid))
         .one(&*db)
         .await?;
     let Some(existing) = existing else {
         return not_found();
     };
+    // The previous ledger state, so the edit can be reconciled rather than applied
+    // again from scratch.
+    let old_bank = existing.bank_id.clone();
+    let old_card = existing.credit_card_id.clone();
+    let old_amount = existing.amount;
+
+    // The effective values after this edit, resolved before `params` is consumed
+    // below. Taken from the request rather than from the ActiveModel, because a
+    // field this request does not mention is not `Set` on it and reading it back
+    // would report a still-linked account as unlinked. An absent field keeps the
+    // current value; an empty id unlinks, the convention the rest of the API uses.
+    let active_bank = params.bank_id.clone().or_else(|| old_bank.clone());
+    let active_card = params.credit_card_id.clone().or_else(|| old_card.clone());
+    let created_amount = params.amount.unwrap_or(old_amount);
     let mut active = existing.into_active_model();
     if let Some(v) = params.title {
         active.title = Set(v);
@@ -197,6 +229,19 @@ async fn update(
         .update(&*db)
         .await
         .map_err(|e| Error::string(&e.to_string()))?;
+    // Reconcile the old and new account/amount against the ledger.
+    ledger::on_expense_updated(
+        &*db,
+        uid,
+        old_bank.as_ref(),
+        old_card.as_ref(),
+        old_amount,
+        active_bank.as_ref(),
+        active_card.as_ref(),
+        created_amount,
+    )
+    .await
+    .map_err(|e| Error::string(&e.to_string()))?;
     format::json(item)
 }
 
@@ -210,8 +255,9 @@ async fn remove(
         .shared_store
         .get_ref::<sea_orm_turso::TursoConnection>()
         .unwrap();
+    let uid = super::uid(&ctx, &auth).await?;
     let existing = expenses::Entity::find_by_id(&id)
-        .filter(expenses::Column::UserId.eq(super::uid(&ctx, &auth).await?))
+        .filter(expenses::Column::UserId.eq(uid))
         .one(&*db)
         .await?;
     if existing.is_none() {
@@ -221,6 +267,18 @@ async fn remove(
         .exec(&*db)
         .await
         .map_err(|e| Error::string(&e.to_string()))?;
+    // Release the debit, or the card charge.
+    if let Some(row) = existing {
+        ledger::on_expense_deleted(
+            &*db,
+            uid,
+            row.bank_id.as_ref(),
+            row.credit_card_id.as_ref(),
+            row.amount,
+        )
+        .await
+        .map_err(|e| Error::string(&e.to_string()))?;
+    }
     format::json(serde_json::json!({ "ok": true }))
 }
 

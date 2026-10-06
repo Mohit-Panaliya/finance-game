@@ -249,6 +249,114 @@ expect_status 200 "GET /api/sync/pull includes debts" "${AUTH[@]}" "$BASE/api/sy
 body "$BASE/api/sync/pull" "${AUTH[@]}" | jq_has "'debts' in d['changes'] and any(c['counterparty'] == 'Offline Friend' and c['settled_amount'] == 0 for c in d['changes']['debts'])" >/dev/null \
   && ok "debts appear in the sync pull with their stored fields" || bad "debts appear in the sync pull"
 
+head_ "15. ledger: a booked entry moves the linked account"
+
+# A dedicated bank/card pair so the assertions cannot be perturbed by section 3.
+LEDGER_BANK="$(post banks '{"name":"Ledger Test Bank","bank_type":"Savings","account_number":"LED0001","ifsc_code":"LEDGER01","branch":"Test","current_balance":1000,"currency":"INR"}')"
+LEDGER_BANK_ID="$(printf '%s' "$LEDGER_BANK" | py "import json,sys;print(json.load(sys.stdin).get('id',''))" 2>/dev/null)"
+LEDGER_CARD="$(post credit-cards '{"name":"Ledger Test Card","bank_name":"Test Bank","card_type":"Credit","last_four_digits":"4242","credit_limit":50000,"current_balance":5000}')"
+LEDGER_CARD_ID="$(printf '%s' "$LEDGER_CARD" | py "import json,sys;print(json.load(sys.stdin).get('id',''))" 2>/dev/null)"
+
+# Reads a balance straight from the API so the assertion is on stored state.
+bal_of() { body "$BASE/api/banks/$1" "${AUTH[@]}" | py "import json,sys;print(json.load(sys.stdin).get('current_balance'))" 2>/dev/null; }
+card_bal_of() { body "$BASE/api/credit-cards/$1" "${AUTH[@]}" | py "import json,sys;print(json.load(sys.stdin).get('current_balance'))" 2>/dev/null; }
+expect_bal() {
+  local want="$1" got="$2" desc="$3"
+  if [ -z "$got" ]; then bad "$desc" "no balance returned"; return; fi
+  # Balances are REAL: ROUND() hands back 1250.0 rather than 1250, so compare
+  # numerically instead of as strings.
+  python3 -c "import sys; sys.exit(0 if abs(float(sys.argv[1]) - float(sys.argv[2])) < 0.005 else 1)" "$want" "$got" \
+    && ok "$desc ($got)" || bad "$desc" "want $want, got $got"
+}
+
+printf '%s' "$LEDGER_BANK" | jq_has 'd.get("current_balance") == 1000' >/dev/null \
+  && ok "ledger bank opens at its entered balance" || bad "ledger bank opens at 1000" "${LEDGER_BANK:0:160}"
+printf '%s' "$LEDGER_CARD" | jq_has 'd.get("current_balance") == 5000' >/dev/null \
+  && ok "ledger card opens at its entered balance" || bad "ledger card opens at 5000" "${LEDGER_CARD:0:160}"
+
+# income credits the bank
+LEDGER_INCOME="$(post incomes "{\"title\":\"Ledger Salary\",\"amount\":250,\"income_type\":\"Salary\",\"source\":\"Acme\",\"income_date\":\"2026-09-05\",\"currency\":\"INR\",\"bank_id\":\"$LEDGER_BANK_ID\"}")"
+LEDGER_INCOME_ID="$(printf '%s' "$LEDGER_INCOME" | py "import json,sys;print(json.load(sys.stdin).get('id',''))" 2>/dev/null)"
+expect_bal 1250 "$(bal_of "$LEDGER_BANK_ID")" "booking income credits the linked bank (+250)"
+
+# expense debits the bank
+LEDGER_EXP="$(post expenses "{\"title\":\"Ledger Rent\",\"amount\":400,\"expense_type\":\"Housing\",\"category\":\"housing\",\"expense_date\":\"2026-09-06\",\"currency\":\"INR\",\"bank_id\":\"$LEDGER_BANK_ID\"}")"
+LEDGER_EXP_ID="$(printf '%s' "$LEDGER_EXP" | py "import json,sys;print(json.load(sys.stdin).get('id',''))" 2>/dev/null)"
+expect_bal 850 "$(bal_of "$LEDGER_BANK_ID")" "booking an expense debits the linked bank (-400)"
+
+# editing the amount moves the bank by the difference, not the whole amount
+body -X PUT "$BASE/api/expenses/$LEDGER_EXP_ID" "${AUTH[@]}" "${JSON[@]}" \
+  -d '{"amount":600}' >/dev/null
+expect_bal 650 "$(bal_of "$LEDGER_BANK_ID")" "editing an expense applies only the difference (850 -> 650)"
+
+# unlinking reverses the original debit and leaves the balance untouched from here
+body -X PUT "$BASE/api/expenses/$LEDGER_EXP_ID" "${AUTH[@]}" "${JSON[@]}" \
+  -d '{"amount":600,"bank_id":""}' >/dev/null
+expect_bal 1250 "$(bal_of "$LEDGER_BANK_ID")" "unlinking an expense reverses the debit (+600)"
+
+# deleting reverses the entry
+body -X DELETE "$BASE/api/incomes/$LEDGER_INCOME_ID" -o /dev/null "${AUTH[@]}" 2>/dev/null || \
+  body -X DELETE "$BASE/api/incomes/$LEDGER_INCOME_ID" "${AUTH[@]}" >/dev/null
+expect_bal 1000 "$(bal_of "$LEDGER_BANK_ID")" "deleting income reverses the credit (-250)"
+
+# an unlinked entry must not touch any account
+post expenses '{"title":"Unlinked Cash","amount":777,"expense_type":"Other","category":"other","expense_date":"2026-09-07","currency":"INR"}' >/dev/null
+expect_bal 1000 "$(bal_of "$LEDGER_BANK_ID")" "an unlinked expense leaves balances alone"
+
+# a card is charged, not debited: its balance is the amount owed
+LEDGER_CARD_EXP="$(post expenses "{\"title\":\"Card Spend\",\"amount\":1200,\"expense_type\":\"Shopping\",\"category\":\"shopping\",\"expense_date\":\"2026-09-08\",\"currency\":\"INR\",\"credit_card_id\":\"$LEDGER_CARD_ID\"}")"
+LEDGER_CARD_EXP_ID="$(printf '%s' "$LEDGER_CARD_EXP" | py "import json,sys;print(json.load(sys.stdin).get('id',''))" 2>/dev/null)"
+expect_bal 6200 "$(card_bal_of "$LEDGER_CARD_ID")" "booking an expense on a card raises the amount owed (+1200)"
+expect_bal 1000 "$(bal_of "$LEDGER_BANK_ID")" "a card expense does not touch the bank"
+
+body -X DELETE "$BASE/api/expenses/$LEDGER_CARD_EXP_ID" "${AUTH[@]}" >/dev/null
+expect_bal 5000 "$(card_bal_of "$LEDGER_CARD_ID")" "deleting a card expense releases the charge (-1200)"
+
+# card wins when both ids are present, so one expense is never counted twice
+post expenses "{\"title\":\"Both Ids\",\"amount\":300,\"expense_type\":\"Other\",\"category\":\"other\",\"expense_date\":\"2026-09-09\",\"currency\":\"INR\",\"bank_id\":\"$LEDGER_BANK_ID\",\"credit_card_id\":\"$LEDGER_CARD_ID\"}" >/dev/null
+expect_bal 5300 "$(card_bal_of "$LEDGER_CARD_ID")" "a card id wins over a bank id (card charged)"
+expect_bal 1000 "$(bal_of "$LEDGER_BANK_ID")" "the bank is not also debited for the same expense"
+
+# the offline sync queue must move the ledger too, or a synced row would be a no-op
+SYNC_INCOME_ID="sync-income-$STAMP"
+body -X POST "$BASE/api/sync/push" "${AUTH[@]}" "${JSON[@]}" \
+  -d "{\"ops\":[{\"entity\":\"incomes\",\"op\":\"create\",\"entity_id\":\"$SYNC_INCOME_ID\",\"client_ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"payload\":{\"title\":\"Queued Salary\",\"amount\":90,\"income_type\":\"Salary\",\"source\":\"Acme\",\"income_date\":\"2026-09-10\",\"bank_id\":\"$LEDGER_BANK_ID\"}}]}" >/dev/null
+expect_bal 1090 "$(bal_of "$LEDGER_BANK_ID")" "a synced income credits the linked bank (+90)"
+
+# replaying the same queued op must not double-credit
+body -X POST "$BASE/api/sync/push" "${AUTH[@]}" "${JSON[@]}" \
+  -d "{\"ops\":[{\"entity\":\"incomes\",\"op\":\"create\",\"entity_id\":\"$SYNC_INCOME_ID\",\"client_ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"payload\":{\"title\":\"Queued Salary\",\"amount\":90,\"income_type\":\"Salary\",\"source\":\"Acme\",\"income_date\":\"2026-09-10\",\"bank_id\":\"$LEDGER_BANK_ID\"}}]}" >/dev/null
+expect_bal 1090 "$(bal_of "$LEDGER_BANK_ID")" "a replayed sync op does not credit twice"
+
+# another user's row pointing at this bank must not move it
+body -X POST "$BASE/api/sync/push" -H "Authorization: Bearer $OTHER_TOKEN" "${JSON[@]}" \
+  -d "{\"ops\":[{\"entity\":\"incomes\",\"op\":\"create\",\"entity_id\":\"other-$STAMP\",\"client_ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"payload\":{\"title\":\"Not Mine\",\"amount\":50000,\"income_type\":\"Salary\",\"source\":\"X\",\"income_date\":\"2026-09-11\",\"bank_id\":\"$LEDGER_BANK_ID\"}}]}" >/dev/null
+expect_bal 1090 "$(bal_of "$LEDGER_BANK_ID")" "another user's row cannot move this bank"
+
+# an explicit balance edit still wins: it is an override, not a ledger entry
+body -X PUT "$BASE/api/banks/$LEDGER_BANK_ID" "${AUTH[@]}" "${JSON[@]}" \
+  -d '{"current_balance":1090}' >/dev/null
+expect_bal 1090 "$(bal_of "$LEDGER_BANK_ID")" "an explicit balance edit is not overwritten"
+
+
+# Editing an income has to move the bank by the difference too, and unlinking it has
+# to hand the credit back. This is the income twin of the expense edit above.
+LEDGER_INCOME2=$(post incomes "{\"title\":\"Raise\",\"amount\":100,\"income_type\":\"Salary\",\"source\":\"Acme\",\"income_date\":\"2026-10-01\",\"currency\":\"INR\",\"bank_id\":\"$LEDGER_BANK_ID\"}")
+LEDGER_INCOME2_ID=$(printf '%s' "$LEDGER_INCOME2" | py "import json,sys;print(json.load(sys.stdin).get('id',''))" 2>/dev/null)
+expect_bal 1190 "$(bal_of "$LEDGER_BANK_ID")" "booking a second income credits the bank (+100)"
+
+body -X PUT "$BASE/api/incomes/$LEDGER_INCOME2_ID" "${AUTH[@]}" "${JSON[@]}" \
+  -d '{"amount":150}' >/dev/null
+expect_bal 1240 "$(bal_of "$LEDGER_BANK_ID")" "editing an income applies only the difference (1190 -> 1240)"
+
+body -X PUT "$BASE/api/incomes/$LEDGER_INCOME2_ID" "${AUTH[@]}" "${JSON[@]}" \
+  -d '{"bank_id":""}' >/dev/null
+expect_bal 1090 "$(bal_of "$LEDGER_BANK_ID")" "unlinking an income reverses the credit (-150)"
+
+body -X DELETE "$BASE/api/incomes/$LEDGER_INCOME2_ID" "${AUTH[@]}" -o /dev/null >/dev/null 2>&1 \
+  || body -X DELETE "$BASE/api/incomes/$LEDGER_INCOME2_ID" "${AUTH[@]}" >/dev/null
+expect_bal 1090 "$(bal_of "$LEDGER_BANK_ID")" "deleting an unlinked income leaves the bank alone"
+
 printf '\n%s%d passed%s, %s%d failed%s\n' "$c_g" "$PASS" "$c_0" \
   "$([ "$FAIL" -gt 0 ] && printf '%s' "$c_r" || printf '%s' "$c_d")" "$FAIL" "$c_0"
 [ "$FAIL" -eq 0 ]

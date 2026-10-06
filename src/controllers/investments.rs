@@ -84,15 +84,19 @@ async fn create(
         .shared_store
         .get_ref::<sea_orm_turso::TursoConnection>()
         .unwrap();
+    let user_id = super::uid(&ctx, &auth).await?;
     let now = Utc::now().to_rfc3339();
+    let bank_id = params.bank_id.clone();
+    let invested = params.invested_amount;
     let active = investments::ActiveModel {
         id: Set(uuid::Uuid::new_v4().to_string()),
-        user_id: Set(super::uid(&ctx, &auth).await?),
+        user_id: Set(user_id),
         name: Set(params.name),
         investment_type: Set(params.investment_type),
         instrument: Set(params.instrument),
         symbol: Set(params.symbol),
         invested_amount: Set(params.invested_amount),
+        bank_id: Set(params.bank_id.clone()),
         current_value: Set(params.current_value.unwrap_or(0.0)),
         units: Set(params.units),
         unit_price: Set(params.unit_price),
@@ -117,6 +121,11 @@ async fn create(
     };
     let item = active
         .insert(&*db)
+        .await
+        .map_err(|e| Error::string(&e.to_string()))?;
+
+    // Funding an investment is an outlay from the linked bank.
+    crate::ledger::on_purchase_created(&*db, user_id, bank_id.as_ref(), invested)
         .await
         .map_err(|e| Error::string(&e.to_string()))?;
     format::json(item)

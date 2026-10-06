@@ -1,0 +1,44 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "build",
+  "permission": "allow",
+  "subagent_depth": 3,
+  "compaction": {
+    "auto": true,
+    "prune": true,
+    "tail_turns": 20,
+    "preserve_recent_tokens": 50000,
+    "reserved": 24000
+  },
+  "agent": {
+    "build": {
+      "steps": 250,
+      "description": "Full implementation agent. Use for any code change in this repo."
+    },
+    "smoke": {
+      "description": "Runs the full verification ladder (fmt, check, unit tests, release build, frontend typecheck+build, scripts/smoke.sh) and reports pass/fail per step. Read-only: never edits code. Use after every batch of changes before reporting completion.",
+      "mode": "primary",
+      "steps": 120,
+      "tools": {
+        "edit": false,
+        "write": false,
+        "patch": false,
+        "bash": true,
+        "grep": true,
+        "read": true
+      }
+    },
+    "migration": {
+      "description": "Owns database migrations and the SeaORM model structs that mirror them. Use when a column or table is added, changed or removed.",
+      "steps": 150
+    },
+    "frontend": {
+      "description": "Owns frontend/src — Vue 3 + Ionic pages, components, theme tokens in src/theme/app.css, and vue-tsc/npm build.",
+      "steps": 200
+    },
+    "verify": {
+      "description": "Writes and extends scripts/smoke.sh assertions against a running server. Use after adding an endpoint.",
+      "steps": 150
+    }
+  }
+}

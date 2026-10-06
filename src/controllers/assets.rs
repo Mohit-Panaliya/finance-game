@@ -82,10 +82,14 @@ async fn create(
         .shared_store
         .get_ref::<sea_orm_turso::TursoConnection>()
         .unwrap();
+    let user_id = super::uid(&ctx, &auth).await?;
+    // Hoisted: the ActiveModel literal below moves `params.purchase_date`, and the
+    // depreciation start date defaults to it.
+    let purchase_date = params.purchase_date.clone();
     let now = Utc::now().to_rfc3339();
     let active = assets::ActiveModel {
         id: Set(uuid::Uuid::new_v4().to_string()),
-        user_id: Set(super::uid(&ctx, &auth).await?),
+        user_id: Set(user_id),
         name: Set(params.name),
         asset_type: Set(params.asset_type),
         category: Set(params.category),
@@ -98,6 +102,18 @@ async fn create(
         roi_percentage: Set(params.roi_percentage),
         annual_income: Set(params.annual_income.unwrap_or(0.0)),
         depreciation_rate: Set(params.depreciation_rate),
+        bank_id: Set(params.bank_id.clone()),
+        depreciation_method: Set(params
+            .depreciation_method
+            .clone()
+            .unwrap_or_else(|| "straight_line".to_string())),
+        useful_life_months: Set(params.useful_life_months),
+        salvage_value: Set(params.salvage_value.unwrap_or(0.0)),
+        // `params.purchase_date` is moved into the ActiveModel, so default from it here.
+        depreciation_start_date: Set(params
+            .depreciation_start_date
+            .clone()
+            .or_else(|| purchase_date.clone().into())),
         is_liquid: Set(params.is_liquid.unwrap_or(false)),
         risk_level: Set(params.risk_level.unwrap_or_else(|| "moderate".to_string())),
         sync_status: Set("pending".to_string()),
@@ -105,10 +121,18 @@ async fn create(
         created_at: Set(Some(now.clone())),
         updated_at: Set(Some(now)),
     };
+    let bank_id = params.bank_id.clone();
+    let cost = params.purchase_price.unwrap_or(0.0);
     let item = active
         .insert(&*db)
         .await
         .map_err(|e| Error::string(&e.to_string()))?;
+
+    // Buying an asset is an outlay: the money leaves the bank it was paid from.
+    crate::ledger::on_purchase_created(&*db, user_id, bank_id.as_ref(), cost)
+        .await
+        .map_err(|e| Error::string(&e.to_string()))?;
+
     format::json(item)
 }
 

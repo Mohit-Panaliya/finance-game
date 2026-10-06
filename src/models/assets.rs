@@ -25,6 +25,11 @@ pub struct Model {
     pub documents: Option<String>,
     pub roi_percentage: Option<f64>,
     pub annual_income: f64,
+    pub bank_id: Option<String>,
+    pub depreciation_method: String,
+    pub useful_life_months: Option<i64>,
+    pub salvage_value: f64,
+    pub depreciation_start_date: Option<String>,
     pub depreciation_rate: Option<f64>,
     pub is_liquid: bool,
     pub risk_level: String,
@@ -54,6 +59,12 @@ pub struct CreateAssetRequest {
     pub roi_percentage: Option<f64>,
     pub annual_income: Option<f64>,
     pub depreciation_rate: Option<f64>,
+    pub bank_id: Option<String>,
+    pub depreciation_method: Option<String>,
+    pub useful_life_months: Option<i64>,
+    pub salvage_value: Option<f64>,
+    pub depreciation_start_date: Option<String>,
+
     pub is_liquid: Option<bool>,
     pub risk_level: Option<String>,
     pub sync_status: Option<String>,
@@ -62,6 +73,8 @@ pub struct CreateAssetRequest {
 
 impl CreateAssetRequest {
     pub fn into_active(self, user_id: i64) -> ActiveModel {
+        // Hoisted: the struct literal moves `self.purchase_date`.
+        let purchase_date = self.purchase_date.clone();
         ActiveModel {
             id: Set(uuid::Uuid::new_v4().to_string()),
             user_id: Set(user_id),
@@ -77,6 +90,20 @@ impl CreateAssetRequest {
             roi_percentage: Set(self.roi_percentage),
             annual_income: Set(self.annual_income.unwrap_or(0.0)),
             depreciation_rate: Set(self.depreciation_rate),
+            bank_id: Set(self.bank_id),
+            depreciation_method: Set(self
+                .depreciation_method
+                .unwrap_or_else(|| "straight_line".to_string())),
+            useful_life_months: Set(self.useful_life_months),
+            salvage_value: Set(self
+                .salvage_value
+                .unwrap_or(0.0)
+                .min(self.purchase_price.unwrap_or(0.0).max(0.0))),
+            // `purchase_date` is moved into the struct below, so the default is
+            // resolved here, before that move.
+            depreciation_start_date: Set(self
+                .depreciation_start_date
+                .or_else(|| purchase_date.clone().into())),
             is_liquid: Set(self.is_liquid.unwrap_or(false)),
             risk_level: Set(self.risk_level.unwrap_or_else(|| "moderate".to_string())),
             sync_status: Set(self.sync_status.unwrap_or_else(|| "synced".to_string())),
@@ -102,6 +129,12 @@ pub struct UpdateAssetRequest {
     pub roi_percentage: Option<f64>,
     pub annual_income: Option<f64>,
     pub depreciation_rate: Option<f64>,
+    pub bank_id: Option<String>,
+    pub depreciation_method: Option<String>,
+    pub useful_life_months: Option<i64>,
+    pub salvage_value: Option<f64>,
+    pub depreciation_start_date: Option<String>,
+
     pub is_liquid: Option<bool>,
     pub risk_level: Option<String>,
     pub sync_status: Option<String>,
@@ -113,6 +146,24 @@ impl UpdateAssetRequest {
         let mut am = current.clone().into_active_model();
         if let Some(v) = self.name {
             am.name = Set(v);
+        }
+        if let Some(v) = self.bank_id {
+            am.bank_id = Set(Some(v));
+        }
+        if let Some(v) = self.depreciation_method {
+            am.depreciation_method = Set(v);
+        }
+        if let Some(v) = self.useful_life_months {
+            am.useful_life_months = Set(Some(v));
+        }
+        if let Some(v) = self.salvage_value {
+            // Salvage cannot exceed what was paid; clamping here keeps a bad edit
+            // from producing a schedule that never reaches its own target.
+            let cap = current.purchase_price.max(0.0);
+            am.salvage_value = Set(v.min(cap));
+        }
+        if let Some(v) = self.depreciation_start_date {
+            am.depreciation_start_date = Set(Some(v));
         }
         if let Some(v) = self.asset_type {
             am.asset_type = Set(v);

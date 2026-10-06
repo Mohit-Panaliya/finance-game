@@ -18,6 +18,7 @@ pub struct Model {
     pub investment_type: String,
     pub instrument: String,
     pub symbol: Option<String>,
+    pub bank_id: Option<String>,
     pub invested_amount: f64,
     pub current_value: f64,
     pub units: Option<f64>,
@@ -55,6 +56,8 @@ pub struct CreateInvestmentRequest {
     pub instrument: String,
     pub symbol: Option<String>,
     pub invested_amount: f64,
+    pub bank_id: Option<String>,
+
     pub current_value: Option<f64>,
     pub units: Option<f64>,
     pub unit_price: Option<f64>,
@@ -119,6 +122,8 @@ pub struct UpdateInvestmentRequest {
     pub instrument: Option<String>,
     pub symbol: Option<String>,
     pub invested_amount: Option<f64>,
+    pub bank_id: Option<String>,
+
     pub current_value: Option<f64>,
     pub units: Option<f64>,
     pub unit_price: Option<f64>,

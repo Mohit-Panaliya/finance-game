@@ -118,6 +118,137 @@ impl ApplyOutcome {
     }
 }
 
+/// The ledger-relevant fields of an income or expense row.
+///
+/// The sync engine writes rows through a generic macro, so without this the
+/// ledger would only ever see entries created through the REST controllers.
+#[derive(Debug, Clone, Default)]
+struct LedgerRow {
+    existed: bool,
+    bank_id: Option<String>,
+    card_id: Option<String>,
+    amount: f64,
+}
+
+impl LedgerRow {
+    fn of_expense(m: &expenses::Model) -> Self {
+        Self {
+            existed: true,
+            bank_id: m.bank_id.clone(),
+            card_id: m.credit_card_id.clone(),
+            amount: m.amount,
+        }
+    }
+
+    fn of_income(m: &incomes::Model) -> Self {
+        Self {
+            existed: true,
+            bank_id: m.bank_id.clone(),
+            card_id: None,
+            amount: m.amount,
+        }
+    }
+}
+
+/// Move the linked balances to match the row after a queued op.
+///
+/// `before` is the row as it was before the op (all defaults if it did not exist),
+/// and the current state is re-read afterwards, so create, update, upsert and
+/// delete all fall out of the same three cases.
+async fn reconcile_ledger(
+    db: &DbRef<'_>,
+    user_id: i64,
+    is_expense: bool,
+    entity_id: &str,
+    before: LedgerRow,
+) -> Result<(), sea_orm::DbErr> {
+    let after = if is_expense {
+        expenses::Entity::find_by_id(entity_id.to_string())
+            .filter(expenses::Column::UserId.eq(user_id))
+            .one(db)
+            .await?
+            .as_ref()
+            .map(LedgerRow::of_expense)
+    } else {
+        incomes::Entity::find_by_id(entity_id.to_string())
+            .filter(incomes::Column::UserId.eq(user_id))
+            .one(db)
+            .await?
+            .as_ref()
+            .map(LedgerRow::of_income)
+    }
+    .unwrap_or_default();
+
+    match (before.existed, after.existed) {
+        // The row is gone: undo whatever it had booked.
+        (_, false) => {
+            if before.amount != 0.0 {
+                if is_expense {
+                    crate::ledger::on_expense_deleted(
+                        db,
+                        user_id,
+                        before.bank_id.as_ref(),
+                        before.card_id.as_ref(),
+                        before.amount,
+                    )
+                    .await?;
+                } else {
+                    crate::ledger::on_income_deleted(
+                        db,
+                        user_id,
+                        before.bank_id.as_ref(),
+                        before.amount,
+                    )
+                    .await?;
+                }
+            }
+        }
+        // Newly created.
+        (false, true) => {
+            if is_expense {
+                crate::ledger::on_expense_created(
+                    db,
+                    user_id,
+                    after.bank_id.as_ref(),
+                    after.card_id.as_ref(),
+                    after.amount,
+                )
+                .await?;
+            } else {
+                crate::ledger::on_income_created(db, user_id, after.bank_id.as_ref(), after.amount)
+                    .await?;
+            }
+        }
+        // Updated, or a create that merged onto an existing id.
+        (true, true) => {
+            if is_expense {
+                crate::ledger::on_expense_updated(
+                    db,
+                    user_id,
+                    before.bank_id.as_ref(),
+                    before.card_id.as_ref(),
+                    before.amount,
+                    after.bank_id.as_ref(),
+                    after.card_id.as_ref(),
+                    after.amount,
+                )
+                .await?;
+            } else {
+                crate::ledger::on_income_updated(
+                    db,
+                    user_id,
+                    before.bank_id.as_ref(),
+                    before.amount,
+                    after.bank_id.as_ref(),
+                    after.amount,
+                )
+                .await?;
+            }
+        }
+    }
+    Ok(())
+}
+
 /// Apply one queued op for one entity.
 ///
 /// `create`  — insert with the client-supplied id; if that id already exists for
@@ -322,7 +453,14 @@ pub async fn apply_push(
                 .await?
             }
             "expenses" => {
-                apply_op!(
+                let before: LedgerRow = expenses::Entity::find_by_id(id.to_string())
+                    .filter(expenses::Column::UserId.eq(user_id))
+                    .one(db)
+                    .await?
+                    .as_ref()
+                    .map(LedgerRow::of_expense)
+                    .unwrap_or_default();
+                let outcome = apply_op!(
                     expenses,
                     expenses::CreateExpenseRequest,
                     expenses::UpdateExpenseRequest,
@@ -332,7 +470,11 @@ pub async fn apply_push(
                     id,
                     &op.payload
                 )
-                .await?
+                .await?;
+                if outcome == ApplyOutcome::Applied {
+                    reconcile_ledger(db, user_id, true, id, before).await?;
+                }
+                outcome
             }
             "credit_cards" => {
                 apply_op!(
@@ -388,7 +530,14 @@ pub async fn apply_push(
             }
 
             "incomes" => {
-                apply_op!(
+                let before: LedgerRow = incomes::Entity::find_by_id(id.to_string())
+                    .filter(incomes::Column::UserId.eq(user_id))
+                    .one(db)
+                    .await?
+                    .as_ref()
+                    .map(LedgerRow::of_income)
+                    .unwrap_or_default();
+                let outcome = apply_op!(
                     incomes,
                     incomes::CreateIncomeRequest,
                     incomes::UpdateIncomeRequest,
@@ -398,7 +547,11 @@ pub async fn apply_push(
                     id,
                     &op.payload
                 )
-                .await?
+                .await?;
+                if outcome == ApplyOutcome::Applied {
+                    reconcile_ledger(db, user_id, false, id, before).await?;
+                }
+                outcome
             }
             _ => ApplyOutcome::NotApplied,
         };
