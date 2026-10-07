@@ -139,6 +139,7 @@ impl Hooks for App {
             .add_route(controllers::incomes::routes())
             .add_route(controllers::analysis::routes())
             .add_route(controllers::sync::routes())
+            .add_route(controllers::notes::routes())
         // inject-routes-below (do not remove this comment)
     }
 

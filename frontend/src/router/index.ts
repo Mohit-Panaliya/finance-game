@@ -48,6 +48,20 @@ const routes: RouteRecordRaw[] = [
     meta: { tab: 'debts', title: 'Debts' }
   },
   {
+    path: '/notes',
+    name: 'notes',
+    component: () => import('@/pages/NotesPage.vue'),
+    meta: { tab: 'notes', title: 'Notes' }
+  },
+  {
+    path: '/buy-list',
+    name: 'buy-list',
+    component: () => import('@/pages/BuyListPage.vue'),
+    meta: { tab: 'buy-list', title: 'Buy List' }
+  },
+
+
+  {
     path: '/settings',
     name: 'settings',
     component: () => import('@/pages/SettingsPage.vue'),
@@ -64,6 +78,12 @@ const routes: RouteRecordRaw[] = [
     name: 'register',
     component: () => import('@/pages/RegisterPage.vue'),
     meta: { public: true, title: 'Create account' }
+  },
+  {
+    path: '/assets/:id/depreciation',
+    name: 'asset-depreciation',
+    component: () => import('@/pages/DepreciationPage.vue'),
+    meta: { tab: 'assets', title: 'Depreciation' }
   },
   { path: '/:pathMatch(.*)*', redirect: '/dashboard' }
 ]

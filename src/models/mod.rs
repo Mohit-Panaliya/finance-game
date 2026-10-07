@@ -10,3 +10,5 @@ pub mod incomes;
 pub mod investments;
 pub mod sync;
 pub mod users;
+
+pub mod notes;

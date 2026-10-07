@@ -357,6 +357,55 @@ body -X DELETE "$BASE/api/incomes/$LEDGER_INCOME2_ID" "${AUTH[@]}" -o /dev/null 
   || body -X DELETE "$BASE/api/incomes/$LEDGER_INCOME2_ID" "${AUTH[@]}" >/dev/null
 expect_bal 1090 "$(bal_of "$LEDGER_BANK_ID")" "deleting an unlinked income leaves the bank alone"
 
+head_ "notes, buy-list and depreciation (R-032 ws2-ws4)"
+
+# --- notes CRUD ---
+NOTE="$(post notes '{"title":"Smoke note","body_text":"buy milk","kind":"text","color":"YELLOW","pinned":1}')"
+NOTE_ID="$(printf '%s' "$NOTE" | py "import json,sys;print(json.load(sys.stdin).get('id',''))" 2>/dev/null)"
+[ -n "$NOTE_ID" ] && ok "create note returns an id" || bad "create note returns an id" "${NOTE:0:160}"
+
+body "$BASE/api/notes?pinned=true" "${AUTH[@]}" | jq_has "any(n.get('id')=='$NOTE_ID' for n in (d if isinstance(d,list) else d.get('data',[])))" | grep -q yes   && ok "pinned filter lists the note" || bad "pinned filter lists the note"
+
+body -X PUT "$BASE/api/notes/$NOTE_ID" "${AUTH[@]}" "${JSON[@]}"   -d '{"title":"Smoke note edited","color":"RED","archived":1}' | jq_has 'd.get("title")=="Smoke note edited" and d.get("color")=="RED"' | grep -q yes   && ok "update note title/color/archived" || bad "update note title/color/archived"
+
+body -X PUT "$BASE/api/notes/$NOTE_ID/trash" "${AUTH[@]}" >/dev/null
+body -X PUT "$BASE/api/notes/$NOTE_ID" "${AUTH[@]}" "${JSON[@]}" -d '{"trashed_at":""}' | jq_has 'd.get("trashed_at") in (None,"")' | grep -q yes   && ok "trash and restore note" || bad "trash and restore note"
+
+# --- checklist items: toggle must persist (regression: all-Unchanged noop) ---
+ITEM_NOTE="$(post notes '{"title":"Smoke list","kind":"list","items":[{"text":"one","position":0}]}')"
+ITEM_NOTE_ID="$(printf '%s' "$ITEM_NOTE" | py "import json,sys;print(json.load(sys.stdin).get('id',''))" 2>/dev/null)"
+ITEM_ID="$(printf '%s' "$ITEM_NOTE" | py "import json,sys;print(json.load(sys.stdin)['items'][0]['id'])" 2>/dev/null)"
+body -X PUT "$BASE/api/notes/$ITEM_NOTE_ID/items/$ITEM_ID" "${AUTH[@]}" "${JSON[@]}"   -d '{"checked":1,"text":"one edited"}' | jq_has "[i for i in d.get('items',[]) if i.get('id')=='$ITEM_ID'][0].get('checked')==1" | grep -q yes   && ok "toggling a checklist item persists" || bad "toggling a checklist item persists"
+
+# --- depth cap: grandchild under a child is rejected ---
+CHILD="$(body -X POST "$BASE/api/notes/$ITEM_NOTE_ID/items" "${AUTH[@]}" "${JSON[@]}" -d "{\"text\":\"kid\",\"parent_id\":\"$ITEM_ID\",\"position\":1}")"
+CHILD_ID="$(printf '%s' "$CHILD" | py "import json,sys;d=json.load(sys.stdin);print([i['id'] for i in d.get('items',[]) if i.get('text')=='kid'][0])" 2>/dev/null)"
+expect_status 400 "depth>2 grandchild is rejected"   -X POST "$BASE/api/notes/$ITEM_NOTE_ID/items" "${AUTH[@]}" "${JSON[@]}"   -d "{\"text\":\"grand\",\"parent_id\":\"$CHILD_ID\",\"position\":2}"
+
+# --- labels join + shadow check (static /labels must win over /{id}) ---
+LBL="$(body -X POST "$BASE/api/notes/labels" "${AUTH[@]}" "${JSON[@]}" -d '{"name":"SmokeLabel"}')"
+LBL_ID="$(printf '%s' "$LBL" | py "import json,sys;print(json.load(sys.stdin).get('id',''))" 2>/dev/null)"
+[ -n "$LBL_ID" ] && ok "create label returns an id" || bad "create label returns an id" "${LBL:0:160}"
+body -X POST "$BASE/api/notes/$NOTE_ID/labels/$LBL_ID" "${AUTH[@]}" | jq_has "any(l.get('id')=='$LBL_ID' for l in d.get('labels',[]))" | grep -q yes   && ok "attach label to note" || bad "attach label to note"
+body -X DELETE "$BASE/api/notes/$NOTE_ID/labels/$LBL_ID" "${AUTH[@]}" | jq_has "not any(l.get('id')=='$LBL_ID' for l in d.get('labels',[]))" | grep -q yes   && ok "detach label from note" || bad "detach label from note"
+body "$BASE/api/notes?q=edited" "${AUTH[@]}" | jq_has "any('edited' in (x.get('title') or '') for x in (d if isinstance(d,list) else d.get('data',[])))" | grep -q yes   && ok "note search finds edited title" || bad "note search finds edited title"
+
+# --- buy-list create + convert (expense + asset + depreciation) ---
+BL="$(post buy-list '{"title":"Smoke PS5","estimated_cost":45000,"asset_type":"gaming","shop":"Amazon","status":"pending"}')"
+BL_ID="$(printf '%s' "$BL" | py "import json,sys;print(json.load(sys.stdin).get('id',''))" 2>/dev/null)"
+[ -n "$BL_ID" ] && ok "create buy-list item returns an id" || bad "create buy-list item returns an id" "${BL:0:160}"
+CONV="$(body -X POST "$BASE/api/buy-list/$BL_ID/convert" "${AUTH[@]}" "${JSON[@]}"   -d "{\"actual_cost\":44000,\"purchase_date\":\"2026-10-01\",\"bank_id\":\"$LEDGER_BANK_ID\",\"asset_name\":\"PS5 Slim\",\"category\":\"gaming\",\"depreciation_method\":\"straight_line\",\"useful_life_months\":24,\"salvage_value\":5000}")"
+printf '%s' "$CONV" | jq_has 'bool(d.get("expense_recorded")) and bool((d.get("asset") or {}).get("id"))' | grep -q yes   && ok "convert records expense and creates asset" || bad "convert records expense and creates asset" "${CONV:0:160}"
+CONV_ASSET_ID="$(printf '%s' "$CONV" | py "import json,sys;print((json.load(sys.stdin).get('asset') or {}).get('id',''))" 2>/dev/null)"
+
+# --- depreciation schedule ---
+body "$BASE/api/assets/$CONV_ASSET_ID/depreciation" "${AUTH[@]}" | jq_has 'len(d.get("periods",[]))==24 and d.get("problem") is None' | grep -q yes   && ok "depreciation returns 24 periods, no problem" || bad "depreciation returns 24 periods, no problem"
+
+# --- cascade delete: note removal takes items + joins ---
+body -X DELETE "$BASE/api/notes/$ITEM_NOTE_ID" "${AUTH[@]}" >/dev/null
+expect_status 404 "deleted note is gone" "$BASE/api/notes/$ITEM_NOTE_ID" "${AUTH[@]}"
+
+
 printf '\n%s%d passed%s, %s%d failed%s\n' "$c_g" "$PASS" "$c_0" \
   "$([ "$FAIL" -gt 0 ] && printf '%s' "$c_r" || printf '%s' "$c_d")" "$FAIL" "$c_0"
 [ "$FAIL" -eq 0 ]

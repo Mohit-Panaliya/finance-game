@@ -9,7 +9,9 @@ import {
   walletOutline,
   analyticsOutline,
   cloudOfflineOutline,
-  syncOutline
+  syncOutline,
+  albumsOutline,
+  cartOutline
 } from 'ionicons/icons'
 import { useSyncStore } from '@/stores/syncStore'
 import { usePlatform } from '@/composables/usePlatform'
@@ -31,6 +33,10 @@ const PRIMARY: NavEntry[] = [
   { path: '/transactions', icon: listOutline, label: 'Activity', hint: 'Income and expenses' },
   { path: '/analytics', icon: analyticsOutline, label: 'Insights', hint: 'Trends and allocation' },
   { path: '/debts', icon: peopleOutline, label: 'Debts', hint: 'Who owes whom' },
+  { path: '/notes', icon: albumsOutline, label: 'Notes', hint: 'Keep notes and lists' },
+  { path: '/buy-list', icon: cartOutline, label: 'Buy List', hint: 'Wishlist and purchases' },
+
+
   { path: '/settings', icon: settingsOutline, label: 'Settings', hint: 'Sync and account' }
 ]
 

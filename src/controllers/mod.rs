@@ -9,6 +9,7 @@ pub mod expenses;
 pub mod fixed_deposits;
 pub mod incomes;
 pub mod investments;
+pub mod notes;
 pub mod sync;
 
 use loco_rs::prelude::*;

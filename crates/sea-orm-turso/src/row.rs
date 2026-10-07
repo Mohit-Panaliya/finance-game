@@ -3,39 +3,29 @@ use sea_orm::{ProxyRow, Value as SeaValue};
 use std::collections::BTreeMap;
 use turso::{Row, Value as TursoValue};
 
-const BOOL_COLUMN_NAMES: &[&str] = &[
-    "completed",
-    "active",
-    "enabled",
-    "verified",
-    "approved",
-    "is_",
-    "has_",
-    "can_",
-    "should_",
-    "was_",
-    "did_",
-    "deleted",
-    "archived",
-    "published",
-    "visible",
-    "hidden",
-    "disabled",
+// SQLite has no BOOLEAN type, so bool columns are declared INTEGER. The
+// PRAGMA column type cannot distinguish a real bool column from an i64 column,
+// so we carry an exhaustive list of the bool columns in this application.
+//
+// Over-matching here is a correctness bug, not a cosmetic one: a column named
+// like a boolean that is actually i64 (e.g. depreciation_entries.is_current)
+// gets decoded as SeaValue::Bool and sea-orm refuses to hydrate the i64 model
+// field ("Missing value for column ..."). Keep this list equal to the set of
+// `pub x: bool` fields in src/models/ and referenced in the migrations.
+const BOOL_COLUMNS: &[&str] = &[
     "is_active",
-    "is_primary",
-    // SQLite has no BOOLEAN type, so bool columns are declared INTEGER and are
-    // otherwise decoded as BigInt. investments.tax_saving is the one bool column
-    // that does not follow an is_/has_ naming convention, and its model field is
-    // a plain bool, so reading a row failed with "Missing value for column
-    // 'tax_saving'".
+    "is_auto_renew",
+    "is_fixed",
+    "is_gross",
+    "is_liquid",
+    "is_recurring",
+    "is_settled",
     "tax_saving",
 ];
 
-fn is_likely_boolean(col_name: &str) -> bool {
+fn is_bool_column(col_name: &str) -> bool {
     let lower = col_name.to_lowercase();
-    BOOL_COLUMN_NAMES
-        .iter()
-        .any(|p| lower == *p || lower.starts_with(p))
+    BOOL_COLUMNS.iter().any(|c| lower == *c)
 }
 
 /// Convert a Turso Row to a SeaORM ProxyRow
@@ -58,10 +48,13 @@ pub fn row_to_proxy_row(
             .get_value(i)
             .map_err(|e| format!("Failed to get column {}: {}", col_name, e))?;
 
+        // Only the default-data SQLite type flavours matter here: anything
+        // declared BOOLEAN by the final migration wins first, and the
+        // exhaustive per-column list above covers the INTEGER-declared bools.
         let is_bool = schema_cache
             .values()
             .any(|cols| matches!(cols.get(&col_name), Some(ColumnType::Boolean)))
-            || is_likely_boolean(&col_name);
+            || is_bool_column(&col_name);
 
         let sea_val = turso_value_to_sea_value_typed(val, is_bool)?;
         values.insert(col_name, sea_val);
@@ -256,5 +249,18 @@ mod tests {
         let val =
             turso_value_to_sea_value_typed(TursoValue::Text("hello world".into()), false).unwrap();
         assert!(matches!(val, SeaValue::String(Some(_))));
+    }
+
+    #[test]
+    fn test_is_bool_column_exact() {
+        // i64 columns must never be misread as booleans, even when named like one.
+        assert!(is_bool_column("is_active"));
+        assert!(is_bool_column("is_liquid"));
+        assert!(is_bool_column("tax_saving"));
+        assert!(!is_bool_column("is_current"));
+        assert!(!is_bool_column("active_count"));
+        assert!(!is_bool_column("is_asset"));
+        assert!(!is_bool_column("is_"));
+        assert!(!is_bool_column(""));
     }
 }

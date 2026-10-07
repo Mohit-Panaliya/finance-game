@@ -6,6 +6,7 @@ mod m20260922_000001_init;
 mod m20260930_000002_drop_game_tables;
 mod m20261001_000003_debts;
 mod m20261004_000005_asset_ledger_depreciation;
+mod m20261006_000006_notes;
 
 pub struct Migrator;
 
@@ -17,6 +18,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20260930_000002_drop_game_tables::Migration),
             Box::new(m20261001_000003_debts::Migration),
             Box::new(m20261004_000005_asset_ledger_depreciation::Migration),
+            Box::new(m20261006_000006_notes::Migration),
             // inject-above (do not remove this comment)
         ]
     }
