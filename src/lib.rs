@@ -6,5 +6,6 @@ pub mod embedded;
 pub mod initializers;
 pub mod ledger;
 pub mod models;
+pub mod statement;
 pub mod sync_engine;
 pub mod views;

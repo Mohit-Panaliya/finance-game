@@ -149,7 +149,7 @@ function onKey(e: KeyboardEvent) {
 .adp {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--density-gap);
   width: 100%;
 }
 .adp-label {
@@ -171,9 +171,9 @@ function onKey(e: KeyboardEvent) {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--density-gap);
   min-height: 44px;
-  padding: 10px 12px;
+  padding: var(--density-row-pad-y) var(--density-row-pad-x);
   background: transparent;
   border: none;
   color: var(--text);
@@ -211,22 +211,22 @@ function onKey(e: KeyboardEvent) {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: var(--density-page-pad);
 }
 .adp-panel {
   width: min(360px, 100%);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 14px;
+  padding: var(--density-card-pad);
   box-shadow: var(--shadow-lg);
 }
 .adp-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: var(--density-gap);
+  margin-bottom: var(--density-gap);
 }
 .adp-title {
   font-size: 1rem;
@@ -289,8 +289,8 @@ function onKey(e: KeyboardEvent) {
 }
 .adp-foot {
   display: flex;
-  gap: 8px;
-  margin-top: 14px;
+  gap: var(--density-gap);
+  margin-top: var(--density-section-gap);
 }
 .adp-foot-btn {
   flex: 1;

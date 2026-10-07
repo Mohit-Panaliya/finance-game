@@ -79,7 +79,7 @@ function onInput(e: Event) {
 .ainput {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--density-gap);
   width: 100%;
 }
 .ainput-label {
@@ -113,7 +113,7 @@ function onInput(e: Event) {
   color: var(--text);
   font-family: var(--font-body);
   font-size: 1rem;
-  padding: 11px 12px;
+  padding: var(--density-row-pad-y) var(--density-row-pad-x);
   -webkit-user-select: text;
   user-select: text;
 }
@@ -128,7 +128,7 @@ function onInput(e: Event) {
 .ainput-suffix {
   color: var(--text-muted);
   font-size: 0.85rem;
-  padding-right: 12px;
+  padding-right: var(--density-row-pad-x);
   white-space: nowrap;
 }
 .ainput-hint {

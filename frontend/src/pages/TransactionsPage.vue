@@ -386,7 +386,7 @@ onMounted(() => {
 .tally {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: var(--density-gap);
 }
 .tally-cell {
   display: flex;
@@ -439,9 +439,9 @@ onMounted(() => {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--density-gap);
   width: 100%;
-  padding: 12px 13px;
+  padding: var(--density-row-pad-y) var(--density-row-pad-x);
   background: var(--surface);
   transition: transform 0.22s ease;
   cursor: pointer;
@@ -457,7 +457,7 @@ onMounted(() => {
 }
 .fab-row {
   display: flex;
-  gap: 8px;
+  gap: var(--density-gap);
 }
 .fab-row > * {
   flex: 1;

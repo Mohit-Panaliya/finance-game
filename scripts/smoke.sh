@@ -364,7 +364,12 @@ NOTE="$(post notes '{"title":"Smoke note","body_text":"buy milk","kind":"text","
 NOTE_ID="$(printf '%s' "$NOTE" | py "import json,sys;print(json.load(sys.stdin).get('id',''))" 2>/dev/null)"
 [ -n "$NOTE_ID" ] && ok "create note returns an id" || bad "create note returns an id" "${NOTE:0:160}"
 
-body "$BASE/api/notes?pinned=true" "${AUTH[@]}" | jq_has "any(n.get('id')=='$NOTE_ID' for n in (d if isinstance(d,list) else d.get('data',[])))" | grep -q yes   && ok "pinned filter lists the note" || bad "pinned filter lists the note"
+# A second, UNPINNED note: without the negative half this assertion passes even when
+# the filter is a no-op — query strings arrive as strings, so Value::as_bool() is None.
+UNPINNED="$(post notes '{"title":"Unpinned twin","body_text":"leave me unpinned","kind":"text"}')"
+UNPINNED_ID="$(printf '%s' "$UNPINNED" | py "import json,sys;print(json.load(sys.stdin).get('id',''))" 2>/dev/null)"
+body "$BASE/api/notes?pinned=true" "${AUTH[@]}" | jq_has "any(n.get('id')=='$NOTE_ID' for n in (d if isinstance(d,list) else d.get('data',[]))) and not any(n.get('id')=='$UNPINNED_ID' for n in (d if isinstance(d,list) else d.get('data',[])))" | grep -q yes   && ok "pinned filter lists the pinned note and drops the unpinned one" || bad "pinned filter is a real filter"
+body "$BASE/api/notes?pinned=1" "${AUTH[@]}" | jq_has "any(n.get('id')=='$NOTE_ID' for n in (d if isinstance(d,list) else d.get('data',[])))" | grep -q yes   && ok "pinned filter accepts the integer form" || bad "pinned filter accepts the integer form"
 
 body -X PUT "$BASE/api/notes/$NOTE_ID" "${AUTH[@]}" "${JSON[@]}"   -d '{"title":"Smoke note edited","color":"RED","archived":1}' | jq_has 'd.get("title")=="Smoke note edited" and d.get("color")=="RED"' | grep -q yes   && ok "update note title/color/archived" || bad "update note title/color/archived"
 
@@ -405,6 +410,59 @@ body "$BASE/api/assets/$CONV_ASSET_ID/depreciation" "${AUTH[@]}" | jq_has 'len(d
 body -X DELETE "$BASE/api/notes/$ITEM_NOTE_ID" "${AUTH[@]}" >/dev/null
 expect_status 404 "deleted note is gone" "$BASE/api/notes/$ITEM_NOTE_ID" "${AUTH[@]}"
 
+
+head_ "16. account statements (bank + card trail, R-039)"
+
+stmt_of() { body "$BASE/api/$1/$2/statement" "${AUTH[@]}"; }
+
+# The ledger bank at this point holds exactly two movements: the queued income (+90)
+# and the buy-list purchase (-44000). The unlinked rent (bank_id cleared), the
+# both-ids expense (the card wins) and the converted asset (its expense already
+# carries the outlay) must all be absent from the trail.
+BANK_STMT="$(stmt_of banks "$LEDGER_BANK_ID")"
+printf '%s' "$BANK_STMT" | jq_has 'isinstance(d, list)' >/dev/null \
+  && ok "bank statement answers with a bare list" \
+  || bad "bank statement answers with a bare list" "${BANK_STMT:0:200}"
+printf '%s' "$BANK_STMT" | jq_has "len(d) == 2 and [e['entry_type'] for e in d] == ['expense','income']" >/dev/null \
+  && ok "bank statement holds exactly the rows that moved it" \
+  || bad "bank statement row set" "$(printf '%s' "$BANK_STMT" | head -c 300)"
+printf '%s' "$BANK_STMT" | jq_has "sorted(d, key=lambda e: e['occurred_on'], reverse=True) == d" >/dev/null \
+  && ok "entries are ordered newest first" || bad "entries are ordered newest first"
+printf '%s' "$BANK_STMT" | jq_has "[e['title'] for e in d] == ['PS5 Slim','Queued Salary']" >/dev/null \
+  && ok "entries carry the record that produced them" || bad "entry titles"
+
+CUR="$(bal_of "$LEDGER_BANK_ID")"
+[ -n "$CUR" ] && printf '%s' "$BANK_STMT" | jq_has "abs(d[0]['balance_after'] - $CUR) < 0.005" >/dev/null \
+  && ok "newest balance_after equals the stored balance ($CUR)" \
+  || bad "newest balance_after equals the stored balance" "bank balance $CUR"
+printf '%s' "$BANK_STMT" | jq_has "all(abs(d[i+1]['balance_after'] - (d[i]['balance_after'] - d[i]['signed_amount'])) < 0.005 for i in range(len(d)-1))" >/dev/null \
+  && ok "the running balance walks backwards from the stored balance" \
+  || bad "running balance walk" "$(printf '%s' "$BANK_STMT" | head -c 300)"
+printf '%s' "$BANK_STMT" | jq_has "abs(d[0]['signed_amount'] + 44000) < 0.005 and abs(d[1]['signed_amount'] - 90) < 0.005" >/dev/null \
+  && ok "signed amounts match the ledger (-44000, +90)" || bad "signed amounts"
+printf '%s' "$BANK_STMT" | jq_has "all(abs(e['amount']*100 - round(e['amount']*100)) < 1e-6 and abs(e['balance_after']*100 - round(e['balance_after']*100)) < 1e-6 for e in d)" >/dev/null \
+  && ok "every amount is rounded to two decimals" || bad "two-decimal rounding"
+
+# The card carries the both-ids expense: a charge raises the amount owed.
+CARD_STMT="$(stmt_of credit-cards "$LEDGER_CARD_ID")"
+printf '%s' "$CARD_STMT" | jq_has "len(d) == 1 and d[0]['entry_type'] == 'expense' and d[0]['title'] == 'Both Ids' and abs(d[0]['signed_amount'] - 300) < 0.005" >/dev/null \
+  && ok "card statement holds the charge that moved it" \
+  || bad "card statement row set" "$(printf '%s' "$CARD_STMT" | head -c 300)"
+CCUR="$(card_bal_of "$LEDGER_CARD_ID")"
+[ -n "$CCUR" ] && printf '%s' "$CARD_STMT" | jq_has "abs(d[0]['balance_after'] - $CCUR) < 0.005" >/dev/null \
+  && ok "card balance_after equals the amount owed ($CCUR)" \
+  || bad "card balance_after equals the amount owed" "card balance $CCUR"
+
+expect_status 401 "statement requires authentication" \
+  "$BASE/api/banks/$LEDGER_BANK_ID/statement"
+expect_status 404 "unknown account statement is a 404" \
+  "${AUTH[@]}" "$BASE/api/banks/no-such-account/statement"
+expect_status 404 "unknown card statement is a 404" \
+  "${AUTH[@]}" "$BASE/api/credit-cards/no-such-card/statement"
+expect_status 404 "another user cannot read this statement" \
+  -H "Authorization: Bearer $OTHER_TOKEN" "$BASE/api/banks/$LEDGER_BANK_ID/statement"
+expect_status 404 "another user cannot read this card statement" \
+  -H "Authorization: Bearer $OTHER_TOKEN" "$BASE/api/credit-cards/$LEDGER_CARD_ID/statement"
 
 printf '\n%s%d passed%s, %s%d failed%s\n' "$c_g" "$PASS" "$c_0" \
   "$([ "$FAIL" -gt 0 ] && printf '%s' "$c_r" || printf '%s' "$c_d")" "$FAIL" "$c_0"

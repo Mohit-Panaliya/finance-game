@@ -794,7 +794,7 @@ onMounted(() => {
 .debt-summary {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: var(--density-gap);
 }
 .debt-tile {
   background: var(--surface);
@@ -844,8 +844,8 @@ onMounted(() => {
 .debt-alert {
   display: flex;
   align-items: flex-start;
-  gap: 9px;
-  padding: 11px 13px;
+  gap: var(--density-gap);
+  padding: var(--density-row-pad-y) var(--density-row-pad-x);
   border-radius: var(--radius-md);
   border: 1px solid var(--warning-soft);
   background: var(--warning-soft);
@@ -935,7 +935,7 @@ onMounted(() => {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--density-gap);
   width: 100%;
   padding: var(--density-row-pad-y) var(--density-row-pad-x);
   background: var(--surface);
@@ -948,7 +948,7 @@ onMounted(() => {
 
 /* ---- notes ---- */
 .loading-note {
-  padding: 22px;
+  padding: var(--density-card-pad);
   text-align: center;
   color: var(--text-muted);
   font-size: 0.88rem;
@@ -965,8 +965,8 @@ onMounted(() => {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
+  gap: var(--density-gap);
+  padding: var(--density-row-pad-y) var(--density-row-pad-x);
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -991,7 +991,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: var(--density-gap);
 }
 .settle-done-icon {
   font-size: 34px;

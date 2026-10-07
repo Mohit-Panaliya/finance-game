@@ -23,6 +23,20 @@ export interface Paged<T> {
   perPage?: number
 }
 
+/**
+ * One line of `GET /api/banks/{id}/statement` or `GET /api/credit-cards/{id}/statement`.
+ * Newest first; `balance_after` is walked backwards from the account's stored balance.
+ */
+export interface StatementEntry {
+  entry_type: 'income' | 'expense' | 'asset' | 'investment'
+  id: string
+  title: string
+  amount: number
+  signed_amount: number
+  occurred_on: string
+  balance_after: number
+}
+
 export interface User {
   id?: number | string
   email?: string

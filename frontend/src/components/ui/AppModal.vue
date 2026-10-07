@@ -76,14 +76,15 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 18px;
+  padding: var(--density-page-pad);
 }
 .amd-panel-sheet {
   align-self: flex-end;
   width: min(560px, 100%);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   padding-bottom: calc(14px + env(safe-area-inset-bottom));
-  margin-bottom: calc(-18px - env(safe-area-inset-bottom));
+  /* Cancels the overlay gutter so the sheet still docks flush to the edge. */
+  margin-bottom: calc(-1 * var(--density-page-pad) - env(safe-area-inset-bottom));
 }
 .amd-panel {
   width: min(560px, 100%);
@@ -99,8 +100,8 @@ onBeforeUnmount(() => {
 .amd-head {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 16px 14px 12px;
+  gap: var(--density-gap);
+  padding: var(--density-card-pad) var(--density-card-pad) var(--density-gap);
   border-bottom: 1px solid var(--border);
 }
 .amd-head-text {
@@ -134,12 +135,12 @@ onBeforeUnmount(() => {
 .amd-body {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 14px;
+  padding: var(--density-card-pad);
 }
 .amd-foot {
   display: flex;
-  gap: 8px;
-  padding: 12px 14px 0;
+  gap: var(--density-gap);
+  padding: var(--density-gap) var(--density-card-pad) 0;
   border-top: 1px solid var(--border);
 }
 .amd-fade-enter-active,

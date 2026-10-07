@@ -211,8 +211,8 @@ const ariaLabel = computed(() => {
 .donut-legend {
   align-self: stretch;
   flex-direction: column;
-  gap: 6px;
-  margin-top: 12px;
+  gap: var(--density-gap);
+  margin-top: var(--density-gap);
   list-style: none;
   margin-bottom: 0;
   padding: 0;

@@ -67,21 +67,23 @@ function onClick(e: MouseEvent) {
 .abtn-face {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--density-gap);
 }
+/* Horizontal padding rides the density row gutter so all three sizes keep
+   their ladder relative to one density instead of freezing in px. */
 .abtn-sm {
   min-height: 34px;
-  padding: 0 12px;
+  padding: 0 calc(var(--density-row-pad-x) - 3px);
   font-size: 0.82rem;
   border-radius: var(--radius-sm);
 }
 .abtn-md {
   min-height: 42px;
-  padding: 0 18px;
+  padding: 0 calc(var(--density-row-pad-x) + 3px);
 }
 .abtn-lg {
   min-height: 50px;
-  padding: 0 24px;
+  padding: 0 calc(var(--density-row-pad-x) + 9px);
   font-size: 1.05rem;
 }
 .abtn-block {

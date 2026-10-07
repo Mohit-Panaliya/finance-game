@@ -883,15 +883,15 @@ onMounted(() => {
 .group {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  margin-top: 30px;
+  gap: var(--density-section-gap);
+  margin-top: calc(var(--density-section-gap) * 2);
   animation: an-group-in 0.26s ease both;
 }
 
 .group-title {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--density-gap);
   font-size: 0.74rem;
   font-weight: 700;
   letter-spacing: 0.09em;
@@ -909,14 +909,14 @@ onMounted(() => {
 .block {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--density-gap);
   min-width: 0;
 }
 
 /* Two charts side by side once there is room; one column on a phone. */
 .pair {
   display: grid;
-  gap: 18px;
+  gap: var(--density-gap);
   grid-template-columns: minmax(0, 1fr);
 }
 
@@ -927,8 +927,8 @@ onMounted(() => {
 }
 
 .chart-split {
-  margin-top: 14px;
-  padding-top: 12px;
+  margin-top: var(--density-section-gap);
+  padding-top: var(--density-gap);
   border-top: 1px solid var(--border);
 }
 
@@ -941,7 +941,7 @@ onMounted(() => {
 .ring-row {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: var(--density-gap);
   flex-wrap: wrap;
 }
 
@@ -954,9 +954,9 @@ onMounted(() => {
 .cal-stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 14px;
-  padding-top: 12px;
+  gap: var(--density-gap);
+  margin-top: var(--density-section-gap);
+  padding-top: var(--density-gap);
   border-top: 1px solid var(--border);
 }
 
@@ -985,7 +985,7 @@ onMounted(() => {
 }
 
 .cal-note {
-  margin: 10px 0 0;
+  margin: var(--density-gap) 0 0;
   max-width: 62ch;
 }
 
@@ -995,17 +995,17 @@ onMounted(() => {
 
 /* ---- cash-flow table ---- */
 .cf-table {
-  margin-top: 14px;
-  padding-top: 12px;
+  margin-top: var(--density-section-gap);
+  padding-top: var(--density-gap);
   border-top: 1px solid var(--border);
 }
 
 .cf-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto auto;
-  gap: 12px;
+  gap: var(--density-gap);
   align-items: baseline;
-  padding: 7px 0;
+  padding: var(--density-meta-pad);
   border-bottom: 1px solid var(--border);
   font-size: 0.82rem;
 }
@@ -1037,14 +1037,14 @@ onMounted(() => {
 .unlinked {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--density-gap);
   align-items: flex-start;
 }
 
 .unlinked-head {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--density-gap);
   font-weight: 700;
 }
 
@@ -1057,7 +1057,7 @@ onMounted(() => {
 .section-link {
   display: inline-block;
   margin-top: 4px;
-  padding: 7px 13px;
+  padding: var(--density-row-pad-y) var(--density-row-pad-x);
   border-radius: 999px;
   border: 1px solid currentColor;
   font-size: 0.78rem;
@@ -1078,8 +1078,8 @@ onMounted(() => {
 .card-row {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 12px 0;
+  gap: var(--density-gap);
+  padding: var(--density-meta-pad);
   border-bottom: 1px solid var(--border);
 }
 
@@ -1096,7 +1096,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: var(--density-gap);
   margin-bottom: 2px;
 }
 
@@ -1107,7 +1107,7 @@ onMounted(() => {
 /* ---- debts ---- */
 .debt-grid {
   display: grid;
-  gap: 12px;
+  gap: var(--density-gap);
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
@@ -1116,7 +1116,7 @@ onMounted(() => {
 }
 
 .row-list .empty-text {
-  padding: 14px;
+  padding: var(--density-card-pad);
 }
 
 /* ---- restrained entrance, disabled when the OS asks for less motion ---- */

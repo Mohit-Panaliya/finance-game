@@ -91,21 +91,22 @@ async function submit() {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px 18px calc(28px + env(safe-area-inset-bottom));
+  padding: var(--density-page-pad) var(--density-page-pad)
+    calc(var(--density-page-pad) + 12px + env(safe-area-inset-bottom));
 }
 .auth-card {
   width: min(400px, 100%);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 26px 20px 20px;
+  padding: calc(var(--density-hero-pad) + 6px) var(--density-hero-pad) var(--density-hero-pad);
   box-shadow: var(--shadow-md);
   text-align: center;
 }
 .auth-mark {
   width: 52px;
   height: 52px;
-  margin: 0 auto 12px;
+  margin: 0 auto var(--density-gap);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -121,7 +122,7 @@ async function submit() {
   letter-spacing: -0.02em;
 }
 .auth-sub {
-  margin: 5px 0 22px;
+  margin: 5px 0 var(--density-section-gap);
   font-size: 0.88rem;
   color: var(--text-muted);
 }
@@ -144,7 +145,7 @@ async function submit() {
   cursor: pointer;
 }
 .auth-alt {
-  margin: 20px 0 0;
+  margin: var(--density-section-gap) 0 0;
   font-size: 0.85rem;
   color: var(--text-muted);
 }

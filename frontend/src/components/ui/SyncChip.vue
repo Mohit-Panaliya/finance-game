@@ -42,9 +42,9 @@ const text = computed(() => {
 .schip {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--density-gap);
   min-height: 34px;
-  padding: 0 12px;
+  padding: 0 var(--density-row-pad-x);
   border-radius: 999px;
   border: 1px solid var(--border);
   background: var(--surface-2);

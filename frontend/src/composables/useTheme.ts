@@ -5,6 +5,22 @@ export type ResolvedTheme = 'light' | 'dark'
 export type AccentName = 'blue' | 'indigo' | 'violet' | 'sky' | 'rose' | 'amber'
 export type Density = 'comfortable' | 'compact'
 
+/** Visual style ids, mirrored by `[data-style=…]` rules in `src/theme/app.css`. */
+export type StyleId =
+  | 'flexoki'
+  | 'minimalism'
+  | 'flat'
+  | 'material'
+  | 'bento'
+  | 'glassmorphism'
+  | 'neumorphism'
+  | 'claymorphism'
+  | 'skeuomorphism'
+  | 'neobrutalism'
+  | 'liquidglass'
+  | 'y2k'
+  | 'cyberpunk'
+
 export interface AccentPalette {
   name: AccentName
   label: string
@@ -12,16 +28,27 @@ export interface AccentPalette {
   swatch: string
 }
 
+export interface ThemeStyle {
+  value: StyleId
+  label: string
+}
+
+export interface ThemeFamily {
+  label: string
+  themes: ThemeStyle[]
+}
+
 /** One namespaced key holding one JSON object, so state can never be half-written. */
 export const THEME_STORAGE_KEY = 'fintrack:theme'
 
 /**
- * These three must stay in sync with the inline bootstrap in `index.html`, which
+ * These four must stay in sync with the inline bootstrap in `index.html`, which
  * has to apply the theme before the first paint and cannot import this file.
  */
 export const DEFAULT_MODE: ThemeMode = 'system'
 export const DEFAULT_ACCENT: AccentName = 'blue'
 export const DEFAULT_DENSITY: Density = 'comfortable'
+export const DEFAULT_STYLE: StyleId = 'flexoki'
 
 export const THEME_MODES: { value: ThemeMode; label: string }[] = [
   { value: 'system', label: 'System' },
@@ -33,6 +60,47 @@ export const DENSITIES: { value: Density; label: string }[] = [
   { value: 'comfortable', label: 'Comfortable' },
   { value: 'compact', label: 'Compact' }
 ]
+
+/** Grouped exactly as the settings picker shows them; the CSS agent keys off `value`. */
+export const THEME_FAMILIES: ThemeFamily[] = [
+  {
+    label: 'Default',
+    themes: [{ value: 'flexoki', label: 'Flexoki' }]
+  },
+  {
+    label: 'Modern / Minimal',
+    themes: [
+      { value: 'minimalism', label: 'Minimalism' },
+      { value: 'flat', label: 'Flat Design' },
+      { value: 'material', label: 'Material Design' },
+      { value: 'bento', label: 'Bento Grid' }
+    ]
+  },
+  {
+    label: 'Tactile / Dimensional',
+    themes: [
+      { value: 'glassmorphism', label: 'Glassmorphism' },
+      { value: 'neumorphism', label: 'Neumorphism' },
+      { value: 'claymorphism', label: 'Claymorphism' },
+      { value: 'skeuomorphism', label: 'Skeuomorphism' }
+    ]
+  },
+  {
+    label: 'Artistic / Experimental',
+    themes: [
+      { value: 'neobrutalism', label: 'Neo-Brutalism' },
+      { value: 'liquidglass', label: 'Liquid Glass' },
+      { value: 'y2k', label: 'Y2K Retro-Futurism' },
+      { value: 'cyberpunk', label: 'Dark Mode / Cyberpunk' }
+    ]
+  }
+]
+
+export const FLAT_STYLES: ThemeStyle[] = THEME_FAMILIES.flatMap((f) => f.themes)
+
+export const STYLE_LABELS: Record<StyleId, string> = Object.fromEntries(
+  FLAT_STYLES.map((s) => [s.value, s.label])
+) as Record<StyleId, string>
 
 export const ACCENT_PALETTES: AccentPalette[] = [
   { name: 'blue', label: 'Blue', swatch: '#4c8dff' },
@@ -46,6 +114,7 @@ export const ACCENT_PALETTES: AccentPalette[] = [
 const MODES: ThemeMode[] = ['system', 'light', 'dark']
 const ACCENTS: AccentName[] = ACCENT_PALETTES.map((p) => p.name)
 const DENSITY_VALUES: Density[] = ['comfortable', 'compact']
+const STYLES: StyleId[] = FLAT_STYLES.map((s) => s.value)
 
 /** Matches `--bg` in `src/theme/app.css`; drives the pre-paint colour in `index.html`. */
 const PAGE_BG: Record<ResolvedTheme, string> = { light: '#eef1f6', dark: '#0f1115' }
@@ -54,10 +123,16 @@ interface StoredTheme {
   mode: ThemeMode
   accent: AccentName
   density: Density
+  style: StyleId
 }
 
 function defaults(): StoredTheme {
-  return { mode: DEFAULT_MODE, accent: DEFAULT_ACCENT, density: DEFAULT_DENSITY }
+  return {
+    mode: DEFAULT_MODE,
+    accent: DEFAULT_ACCENT,
+    density: DEFAULT_DENSITY,
+    style: DEFAULT_STYLE
+  }
 }
 
 function prefersDark(): boolean {
@@ -77,6 +152,9 @@ function readStored(): StoredTheme {
     if (MODES.includes(bag.mode as ThemeMode)) out.mode = bag.mode as ThemeMode
     if (ACCENTS.includes(bag.accent as AccentName)) out.accent = bag.accent as AccentName
     if (DENSITY_VALUES.includes(bag.density as Density)) out.density = bag.density as Density
+    // A bag written before styles existed has no `style` key: it fails this
+    // check and keeps the default, which is exactly what we want.
+    if (STYLES.includes(bag.style as StyleId)) out.style = bag.style as StyleId
   } catch {
     return defaults()
   }
@@ -87,6 +165,7 @@ const stored = readStored()
 const mode = ref<ThemeMode>(stored.mode)
 const accent = ref<AccentName>(stored.accent)
 const density = ref<Density>(stored.density)
+const style = ref<StyleId>(stored.style)
 const systemDark = ref(prefersDark())
 
 const resolvedTheme = computed<ResolvedTheme>(() =>
@@ -106,6 +185,7 @@ function apply(): void {
   setAttr('data-theme', theme)
   setAttr('data-accent', accent.value)
   setAttr('data-density', density.value)
+  setAttr('data-style', style.value)
   const el = document.documentElement
   if (el.style.getPropertyValue('--boot-bg') !== PAGE_BG[theme]) {
     el.style.setProperty('--boot-bg', PAGE_BG[theme])
@@ -120,7 +200,12 @@ function persist(): void {
   try {
     localStorage.setItem(
       THEME_STORAGE_KEY,
-      JSON.stringify({ mode: mode.value, accent: accent.value, density: density.value })
+      JSON.stringify({
+        mode: mode.value,
+        accent: accent.value,
+        density: density.value,
+        style: style.value
+      })
     )
   } catch {
     /* storage blocked or full: the theme applies, it just is not remembered */
@@ -172,11 +257,18 @@ function setDensity(next: Density): void {
   persist()
 }
 
+function setStyle(next: StyleId): void {
+  if (!STYLES.includes(next) || next === style.value) return
+  style.value = next
+  persist()
+}
+
 function reset(): void {
   const fresh = defaults()
   mode.value = fresh.mode
   accent.value = fresh.accent
   density.value = fresh.density
+  style.value = fresh.style
   try {
     localStorage.removeItem(THEME_STORAGE_KEY)
   } catch {
@@ -191,9 +283,11 @@ export interface ThemeControls {
   systemTheme: ResolvedTheme
   accent: AccentName
   density: Density
+  style: StyleId
   setMode: (next: ThemeMode) => void
   setAccent: (next: AccentName) => void
   setDensity: (next: Density) => void
+  setStyle: (next: StyleId) => void
   reset: () => void
 }
 
@@ -213,16 +307,21 @@ const controls: ThemeControls = {
   get density() {
     return density.value
   },
+  get style() {
+    return style.value
+  },
   setMode,
   setAccent,
   setDensity,
+  setStyle,
   reset
 }
 
 /**
  * Shared appearance state, mirrored onto `<html>` as `data-theme`,
- * `data-accent` and `data-density`. Singleton, so any number of components can
- * call it without duplicating listeners or fighting over the DOM attributes.
+ * `data-accent`, `data-density` and `data-style`. Singleton, so any number of
+ * components can call it without duplicating listeners or fighting over the DOM
+ * attributes.
  */
 export function useTheme(): Readonly<ThemeControls> {
   // Only scope-bound callers are counted, otherwise a call from a store or a
@@ -236,6 +335,6 @@ export function useTheme(): Readonly<ThemeControls> {
   return readonly(controls) as Readonly<ThemeControls>
 }
 
-watch([resolvedTheme, accent, density], apply)
+watch([resolvedTheme, accent, density, style], apply)
 startSync()
 apply()

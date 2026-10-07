@@ -25,8 +25,9 @@ import {
   rowValue
 } from '@/entityConfig'
 import type { FieldDef } from '@/entityConfig'
-import type { EntityType, FinanceRow } from '@/types'
-import { formatMoney, rowCurrency } from '@/utils/money'
+import type { EntityType, FinanceRow, StatementEntry } from '@/types'
+import { api, ApiError } from '@/api/client'
+import { formatMoney, formatSigned, rowCurrency } from '@/utils/money'
 import { formatDate, formatDateTime, todayISO } from '@/utils/date'
 import { uuid } from '@/services/offlineQueue'
 import AppButton from '@/components/ui/AppButton.vue'
@@ -295,6 +296,50 @@ const detailDate = computed(() => {
   return formatDate(row[DATE_COLUMN[entity.value]])
 })
 
+/* ---------------- statement trail (banks + credit cards) ---------------- */
+
+/** Only accounts have a derived statement; every other entity has nothing to walk. */
+const isStatementAccount = computed(() => entity.value === 'banks' || entity.value === 'credit-cards')
+
+const statement = ref<StatementEntry[]>([])
+const statementLoading = ref(false)
+const statementError = ref('')
+/** Guards against a slow response landing after the modal has been switched or closed. */
+const statementFor = ref<string | null>(null)
+
+const statementCurrency = computed(() => (detail.value ? rowCurrency(detail.value) : null))
+
+watch(
+  () => (detail.value ? String(detail.value.id ?? '') : ''),
+  async (id) => {
+    statement.value = []
+    statementError.value = ''
+    statementFor.value = id || null
+    if (!id || !isStatementAccount.value) {
+      statementLoading.value = false
+      return
+    }
+    statementLoading.value = true
+    try {
+      const rows = await api.get<StatementEntry[]>(`/${entity.value}/${id}/statement`)
+      if (statementFor.value !== id) return
+      statement.value = Array.isArray(rows) ? rows : []
+    } catch (e) {
+      if (statementFor.value !== id) return
+      statementError.value = e instanceof ApiError ? e.message : 'Statement unavailable'
+    } finally {
+      if (statementFor.value === id) statementLoading.value = false
+    }
+  },
+  { immediate: true },
+)
+
+/** Each entry links to the record it came from (`/accounts/incomes/{id}`, …). */
+function statementHref(entry: StatementEntry): string {
+  const plural = `${entry.entry_type}s`
+  return isEntityType(plural) ? `/accounts/${plural}/${entry.id}` : ''
+}
+
 /* ---------------- create / edit / delete ---------------- */
 
 function startCreate() {
@@ -505,18 +550,50 @@ onMounted(() => {
       :subtitle="detail ? `${cfg.singular} · ${detailDate}` : ''"
       @close="detail = null"
     >
-      <div v-if="detail" class="meta-list">
-        <div v-for="f in fields" :key="f.key" class="meta-row">
-          <span class="meta-key">{{ f.label }}</span>
-          <span class="meta-val">{{ fieldValue(detail, f) }}</span>
+      <template v-if="detail">
+        <!-- Derived statement: every row that moved this account, newest first -->
+        <section v-if="isStatementAccount" class="stmt">
+          <p class="card-label">Statement</p>
+          <p v-if="statementLoading" class="text-sm text-muted">Loading statement…</p>
+          <p v-else-if="statementError" class="form-error">{{ statementError }}</p>
+          <p v-else-if="!statement.length" class="text-sm text-muted">
+            No movements recorded for this account yet.
+          </p>
+          <div v-else class="row-list stmt-list">
+            <router-link
+              v-for="e in statement"
+              :key="`${e.entry_type}-${e.id}`"
+              class="row-item stmt-row"
+              :to="statementHref(e)"
+              @click="detail = null"
+            >
+              <span class="row-main">
+                <span class="row-title clamp-1">{{ e.title || e.entry_type }}</span>
+                <span class="row-sub clamp-1">{{ formatDate(e.occurred_on) }} · {{ e.entry_type }}</span>
+              </span>
+              <span class="row-value">
+                <span :class="e.signed_amount < 0 ? 'text-danger' : 'text-success'">
+                  {{ formatSigned(e.signed_amount, statementCurrency) }}
+                </span>
+                <span class="row-extra">{{ formatMoney(e.balance_after, statementCurrency) }}</span>
+              </span>
+            </router-link>
+          </div>
+        </section>
+
+        <div class="meta-list">
+          <div v-for="f in fields" :key="f.key" class="meta-row">
+            <span class="meta-key">{{ f.label }}</span>
+            <span class="meta-val">{{ fieldValue(detail, f) }}</span>
+          </div>
+          <div v-for="extra in detailExtra" :key="extra.key" class="meta-row">
+            <span class="meta-key">{{ extra.key.replace(/_/g, ' ') }}</span>
+            <span class="meta-val">
+              {{ extra.key.endsWith('_at') ? formatDateTime(extra.value) : extra.key === 'tags' && Array.isArray(extra.value) ? extra.value.join(', ') : extra.value }}
+            </span>
+          </div>
         </div>
-        <div v-for="extra in detailExtra" :key="extra.key" class="meta-row">
-          <span class="meta-key">{{ extra.key.replace(/_/g, ' ') }}</span>
-          <span class="meta-val">
-            {{ extra.key.endsWith('_at') ? formatDateTime(extra.value) : extra.key === 'tags' && Array.isArray(extra.value) ? extra.value.join(', ') : extra.value }}
-          </span>
-        </div>
-      </div>
+      </template>
       <template #footer>
         <AppButton variant="neutral" size="md" @click="detail && startEdit(detail)">Edit</AppButton>
         <AppButton variant="danger" size="md" @click="detail && askDelete(detail)">Delete</AppButton>
@@ -593,7 +670,7 @@ onMounted(() => {
 .head-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--density-gap);
   min-width: 0;
 }
 .back-btn {
@@ -612,16 +689,16 @@ onMounted(() => {
 }
 .toolbar {
   display: flex;
-  gap: 8px;
+  gap: var(--density-gap);
   align-items: center;
 }
 .search {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--density-gap);
   min-height: 42px;
-  padding: 0 11px;
+  padding: 0 var(--density-row-pad-x);
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -663,7 +740,7 @@ onMounted(() => {
   cursor: pointer;
 }
 .loading-note {
-  padding: 22px;
+  padding: var(--density-card-pad);
   text-align: center;
   color: var(--text-muted);
   font-size: 0.88rem;
@@ -731,14 +808,25 @@ onMounted(() => {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--density-gap);
   width: 100%;
-  padding: 12px 13px;
+  padding: var(--density-row-pad-y) var(--density-row-pad-x);
   background: var(--surface);
   transition: transform 0.22s ease;
   cursor: pointer;
 }
 .swipe-content-open {
   transform: translateX(-148px);
+}
+
+/* statement trail (banks + cards) */
+.stmt {
+  display: flex;
+  flex-direction: column;
+  gap: var(--density-gap);
+}
+.stmt-row .row-title,
+.stmt-row .row-value {
+  font-variant-numeric: tabular-nums;
 }
 </style>

@@ -135,7 +135,7 @@ onMounted(() => {
   display: flex;
   gap: 2px;
   height: 10px;
-  margin: 10px 0 2px;
+  margin: var(--density-gap) 0 2px;
   border-radius: 999px;
   overflow: hidden;
   background: var(--surface-3);

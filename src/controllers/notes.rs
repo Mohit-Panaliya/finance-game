@@ -75,6 +75,22 @@ async fn get_list_items(db: &DatabaseConnection, note_id: &str) -> Result<Vec<se
         .collect())
 }
 
+/// Query params reach the handler as strings (`?pinned=1`), so `Value::as_bool()`
+/// always returns `None` and the filter silently never applied. Accept a JSON bool,
+/// an integer, or the usual textual forms.
+fn flag(v: Option<&serde_json::Value>) -> Option<bool> {
+    match v? {
+        serde_json::Value::Bool(b) => Some(*b),
+        serde_json::Value::Number(n) => n.as_i64().map(|i| i != 0),
+        serde_json::Value::String(s) => match s.trim().to_ascii_lowercase().as_str() {
+            "1" | "true" | "yes" | "on" => Some(true),
+            "0" | "false" | "no" | "off" => Some(false),
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
 #[debug_handler]
 async fn list(
     auth: auth::JWT,
@@ -85,12 +101,9 @@ async fn list(
     let uid = super::uid(&ctx, &auth).await?;
     let q = params.get("q").and_then(|v| v.as_str()).unwrap_or("");
     let color = params.get("color").and_then(|v| v.as_str());
-    let pinned = params.get("pinned").and_then(|v| v.as_bool());
-    let archived = params.get("archived").and_then(|v| v.as_bool());
-    let trashed = params
-        .get("trashed")
-        .and_then(|v| v.as_bool())
-        .unwrap_or(false);
+    let pinned = flag(params.get("pinned"));
+    let archived = flag(params.get("archived"));
+    let trashed = flag(params.get("trashed")).unwrap_or(false);
     let label = params
         .get("label")
         .and_then(|v| v.as_str().map(|s| s.to_string()));

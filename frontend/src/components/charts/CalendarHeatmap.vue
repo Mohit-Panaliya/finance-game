@@ -303,9 +303,9 @@ const ariaLabel = computed(() =>
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: var(--density-gap);
   flex-wrap: wrap;
-  margin-top: 10px;
+  margin-top: var(--density-gap);
   font-size: 0.74rem;
   color: var(--text-muted);
 }

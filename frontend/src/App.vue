@@ -155,7 +155,7 @@ onUnmounted(() => {
   height: 34px;
   border-radius: 10px;
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-contrast);
   font-weight: 700;
   font-size: 1.05rem;
 }

@@ -119,7 +119,7 @@ onBeforeUnmount(() => {
 .asel {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--density-gap);
   width: 100%;
 }
 .asel-label {
@@ -132,10 +132,10 @@ onBeforeUnmount(() => {
 .asel-trigger {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--density-gap);
   width: 100%;
   min-height: 44px;
-  padding: 10px 12px;
+  padding: var(--density-row-pad-y) var(--density-row-pad-x);
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -186,14 +186,15 @@ onBeforeUnmount(() => {
   border: 1px solid var(--border);
   border-bottom: none;
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  padding: 14px 12px calc(16px + env(safe-area-inset-bottom));
+  padding: var(--density-card-pad) var(--density-card-pad)
+    calc(var(--density-card-pad) + env(safe-area-inset-bottom));
   box-shadow: var(--shadow-lg);
 }
 .asel-sheet-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 2px 6px 12px;
+  padding: 2px 6px var(--density-gap);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -225,15 +226,15 @@ onBeforeUnmount(() => {
   -webkit-overflow-scrolling: touch;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--density-gap);
   padding-bottom: 4px;
 }
 .asel-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--density-gap);
   width: 100%;
-  padding: 12px 14px;
+  padding: var(--density-row-pad-y) var(--density-row-pad-x);
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -260,7 +261,7 @@ onBeforeUnmount(() => {
 }
 .asel-empty {
   text-align: center;
-  padding: 24px;
+  padding: var(--density-card-pad);
   color: var(--text-faint);
 }
 .asel-fade-enter-active,

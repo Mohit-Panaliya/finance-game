@@ -16,7 +16,15 @@ import { useSyncStore } from '@/stores/syncStore'
 import { getQueue } from '@/services/offlineQueue'
 import { formatMoney, formatNumber } from '@/utils/money'
 import { formatDateTime } from '@/utils/date'
-import { ACCENT_PALETTES, DENSITIES, THEME_MODES, useTheme } from '@/composables/useTheme'
+import {
+  ACCENT_PALETTES,
+  DEFAULT_STYLE,
+  DENSITIES,
+  STYLE_LABELS,
+  THEME_FAMILIES,
+  THEME_MODES,
+  useTheme
+} from '@/composables/useTheme'
 import { ENTITY_LIST, entityConfig, summaryHead } from '@/entityConfig'
 import AppButton from '@/components/ui/AppButton.vue'
 import SyncChip from '@/components/ui/SyncChip.vue'
@@ -29,6 +37,18 @@ const theme = useTheme()
 
 const accentLabel = computed(
   () => ACCENT_PALETTES.find((p) => p.name === theme.accent)?.label ?? theme.accent
+)
+
+const styleLabel = computed(() => STYLE_LABELS[theme.style] ?? theme.style)
+
+/** Family groups for the picker; the default option carries its own caption. */
+const styleGroups = computed(() =>
+  THEME_FAMILIES.map((family) => ({
+    label: family.label,
+    themes: family.themes.map((t) =>
+      t.value === DEFAULT_STYLE ? { ...t, label: 'Flexoki (default)' } : t
+    )
+  }))
 )
 
 const appearanceNote = computed(() =>
@@ -161,6 +181,26 @@ async function queueSize() {
 
           <div class="card">
             <p class="card-label">Theme</p>
+            <div class="style-families" role="group" aria-label="Theme style">
+              <div v-for="family in styleGroups" :key="family.label" class="style-family">
+                <p class="style-family-label">{{ family.label }}</p>
+                <div class="style-chips">
+                  <button
+                    v-for="s in family.themes"
+                    :key="s.value"
+                    type="button"
+                    class="chip"
+                    :class="{ 'chip-active': theme.style === s.value }"
+                    :aria-pressed="theme.style === s.value"
+                    @click="theme.setStyle(s.value)"
+                  >
+                    {{ s.label }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <p class="card-label spaced">Mode</p>
             <div class="chips" role="group" aria-label="Theme mode">
               <button
                 v-for="m in THEME_MODES"
@@ -229,6 +269,10 @@ async function queueSize() {
             <div class="meta-row">
               <span class="meta-key">Density</span>
               <span class="meta-val">{{ theme.density }}</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-key">Theme style</span>
+              <span class="meta-val">{{ styleLabel }}</span>
             </div>
           </div>
 
@@ -360,6 +404,28 @@ async function queueSize() {
 }
 .spaced {
   margin-top: 16px;
+}
+.style-families {
+  display: flex;
+  flex-direction: column;
+  gap: var(--density-gap);
+}
+.style-family {
+  display: flex;
+  flex-direction: column;
+  gap: var(--density-gap);
+}
+.style-family-label {
+  font-size: calc(0.74rem * var(--density-font-scale));
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.style-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--density-gap);
 }
 .swatch-grid {
   display: grid;

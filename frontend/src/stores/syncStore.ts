@@ -1,9 +1,17 @@
 import { defineStore } from 'pinia'
 import { api, ApiError } from '@/api/client'
+import { useFinanceStore } from '@/stores/financeStore'
 import { enqueue, getQueue, getLastServerTs, removeOps, setLastServerTs } from '@/services/offlineQueue'
 import type { SyncOp } from '@/types'
 
 export type SyncStatus = 'online' | 'offline' | 'pushing' | 'synced' | 'error'
+
+/**
+ * Replaying one of these moves a bank or card balance through the ledger even though
+ * no `banks`/`credit-cards` row was pushed, so those two lists are re-fetched after
+ * the push lands.
+ */
+const LEDGER_SYNC_ENTITIES = ['incomes', 'expenses', 'assets', 'investments']
 
 interface SyncState {
   status: SyncStatus
@@ -78,6 +86,9 @@ export const useSyncStore = defineStore('sync', {
           ? `Synced · ${rejected.length} change${rejected.length > 1 ? 's' : ''} rejected`
           : 'All changes synced'
         await this.refreshCount()
+        if (queue.some((o) => LEDGER_SYNC_ENTITIES.includes(o.entity))) {
+          await useFinanceStore().refreshLinkedBalances()
+        }
         return true
       } catch (e) {
         if (e instanceof ApiError && e.offline) {

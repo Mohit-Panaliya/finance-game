@@ -96,10 +96,10 @@ onMounted(load)
 </script>
 
 <style scoped>
-.content-container { padding: 16px; }
-.summary { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; margin-bottom: 12px; }
+.content-container { padding: var(--density-page-pad); }
+.summary { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--density-gap); margin-bottom: var(--density-gap); }
 .table-wrapper { overflow-x: auto; }
 .depr-table { width: 100%; border-collapse: collapse; }
-.depr-table th, .depr-table td { border: 1px solid var(--border); padding: 8px; text-align: left; }
+.depr-table th, .depr-table td { border: 1px solid var(--border); padding: var(--density-row-pad-y); text-align: left; }
 .depr-table .num { font-variant-numeric: tabular-nums; text-align: right; }
 </style>

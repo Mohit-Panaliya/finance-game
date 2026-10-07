@@ -19,11 +19,29 @@
       /* Inline and blocking on purpose: the theme has to be on <html> before the
          first paint, and a module or deferred script runs too late to stop the
          flash. The defaults below must stay in sync with
-         src/composables/useTheme.ts. */
+         src/composables/useTheme.ts. data-style selects the visual style whose
+         [data-style=…] palette rules live in src/theme/app.css, so setting the
+         attribute is enough for them to apply on the first painted frame. */
       ;(function () {
         var mode = 'system'
         var accent = 'blue'
         var density = 'comfortable'
+        var style = 'flexoki'
+        var styles = [
+          'flexoki',
+          'minimalism',
+          'flat',
+          'material',
+          'bento',
+          'glassmorphism',
+          'neumorphism',
+          'claymorphism',
+          'skeuomorphism',
+          'neobrutalism',
+          'liquidglass',
+          'y2k',
+          'cyberpunk'
+        ]
         try {
           var raw = localStorage.getItem('fintrack:theme')
           var parsed = raw ? JSON.parse(raw) : null
@@ -36,6 +54,10 @@
             }
             if (parsed.density === 'comfortable' || parsed.density === 'compact') {
               density = parsed.density
+            }
+            /* a bag saved before styles existed simply keeps the default */
+            if (styles.indexOf(parsed.style) !== -1) {
+              style = parsed.style
             }
           }
         } catch (e) {
@@ -51,6 +73,7 @@
         el.setAttribute('data-theme', dark ? 'dark' : 'light')
         el.setAttribute('data-accent', accent)
         el.setAttribute('data-density', density)
+        el.setAttribute('data-style', style)
         el.style.setProperty('--boot-bg', bg)
         var meta = document.querySelector('meta[name="theme-color"]')
         if (meta) meta.setAttribute('content', bg)

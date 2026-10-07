@@ -10,6 +10,7 @@ pub fn routes() -> Routes {
     Routes::new()
         .prefix("/api/credit-cards")
         .add("/summary", get(summary))
+        .add("/{id}/statement", get(statement))
         .add("/", get(list).post(create))
         .add("/{id}", get(show).put(update).delete(remove))
 }
@@ -71,6 +72,32 @@ async fn show(
         Some(item) => format::json(item),
         None => not_found(),
     }
+}
+
+/// Every charge that moved this card, newest first, with the running amount owed walked
+/// backwards from the stored `current_balance`.
+#[debug_handler]
+async fn statement(
+    auth: auth::JWT,
+    State(ctx): State<AppContext>,
+    Path(id): Path<String>,
+) -> Result<Response> {
+    let db = ctx
+        .shared_store
+        .get_ref::<sea_orm_turso::TursoConnection>()
+        .unwrap();
+    let uid = super::uid(&ctx, &auth).await?;
+    let Some(item) = credit_cards::Entity::find_by_id(id)
+        .filter(credit_cards::Column::UserId.eq(uid))
+        .one(&*db)
+        .await?
+    else {
+        return not_found();
+    };
+    let entries = crate::statement::for_card(&*db, uid, &item.id, item.current_balance)
+        .await
+        .map_err(|e| Error::string(&e.to_string()))?;
+    format::json(entries)
 }
 
 #[debug_handler]

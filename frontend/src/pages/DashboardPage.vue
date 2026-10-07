@@ -244,14 +244,14 @@ onMounted(async () => {
 .hero-meta {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-top: 10px;
+  gap: var(--density-gap);
+  margin-top: var(--density-gap);
   flex-wrap: wrap;
 }
 
 .empty-cta {
   margin-top: 6px;
-  padding: 9px 16px;
+  padding: var(--density-row-pad-y) var(--density-row-pad-x);
   border-radius: var(--radius-sm);
   background: var(--accent);
   color: var(--on-accent);

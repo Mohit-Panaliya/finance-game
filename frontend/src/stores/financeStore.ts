@@ -13,6 +13,13 @@ export interface EntityListState {
 
 const PAGE_SIZE = 100
 
+/**
+ * Writing one of these moves money through `src/ledger.rs`, so a `banks` or
+ * `credit-cards` balance changes even though neither row was touched. Every
+ * create/update/remove on them re-fetches both accounts (see refreshLinkedBalances).
+ */
+const LEDGER_ENTITIES: EntityType[] = ['incomes', 'expenses', 'assets', 'investments']
+
 function emptyList(): EntityListState {
   return { items: [], total: 0, loading: false, error: '', fetchedAt: 0 }
 }
@@ -90,6 +97,21 @@ export const useFinanceStore = defineStore('finance', {
       } catch {
         /* summaries are decorative — a failure must not break the page */
       }
+    },
+
+    /**
+     * The ledger adjusts account balances *outside* the row that was written, so the
+     * linked bank/card lists and totals go stale on every income/expense/asset/
+     * investment write. Re-fetching just those two keeps Accounts honest without a
+     * full reload.
+     */
+    async refreshLinkedBalances(): Promise<void> {
+      await Promise.allSettled([
+        this.fetchList('banks'),
+        this.fetchList('credit-cards'),
+        this.fetchSummary('banks'),
+        this.fetchSummary('credit-cards')
+      ])
     },
 
     /** One `Promise.allSettled` fan-out for all 7 entities, instead of 7 chained round-trips. */
@@ -184,6 +206,7 @@ export const useFinanceStore = defineStore('finance', {
       const created = await api.post<FinanceRow>(`/${entity}`, data)
       await this.fetchList(entity)
       await this.fetchSummary(entity)
+      if (LEDGER_ENTITIES.includes(entity)) await this.refreshLinkedBalances()
       void this.fetchOverview()
       return created?.id ? created : { ...data, id: created?.id }
     },
@@ -192,6 +215,7 @@ export const useFinanceStore = defineStore('finance', {
       await api.put<FinanceRow>(`/${entity}/${id}`, data)
       await this.fetchList(entity)
       await this.fetchSummary(entity)
+      if (LEDGER_ENTITIES.includes(entity)) await this.refreshLinkedBalances()
       void this.fetchOverview()
     },
 
@@ -199,6 +223,7 @@ export const useFinanceStore = defineStore('finance', {
       await api.del(`/${entity}/${id}`)
       await this.fetchList(entity)
       await this.fetchSummary(entity)
+      if (LEDGER_ENTITIES.includes(entity)) await this.refreshLinkedBalances()
       void this.fetchOverview()
     },
 
