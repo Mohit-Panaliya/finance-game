@@ -1,0 +1,462 @@
+/* ============================================================
+   Style preset — claymorphism
+   ------------------------------------------------------------
+   Fonts:  Varela Round (display) · Nunito Sans (body) · IBM Plex Mono (data)
+   Signature: chunky clay slabs. Every raised object carries the clay pair —
+              a soft outer drop shadow plus a 3px inset top highlight — over a
+              warm 1px clay border, on 16–28px radii. Pastel-tinted stat tiles,
+              pill buttons that squish on press, no hairline anywhere.
+   Accent: pinned. Orange #F97316 fills (dark navy ink), #9A3412 is the
+           text-safe orange, so clay stays warm regardless of the picker.
+   ============================================================ */
+
+/* ---- 1. typography ---- */
+[data-style='claymorphism'] {
+  --font-display: 'Varela Round', 'Nunito Sans', ui-rounded, system-ui, sans-serif;
+  --font-body: 'Nunito Sans', ui-rounded, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Varela Round ships one weight: the roundness carries the display voice, so
+   the title is sized up instead of bolded into a synthetic smear. */
+html[data-style='claymorphism'] .page-title {
+  font-weight: 400;
+  font-size: calc(1.64rem * var(--density-font-scale));
+  letter-spacing: -0.005em;
+}
+
+html[data-style='claymorphism'] .page-subtitle {
+  font-weight: 600;
+}
+
+html[data-style='claymorphism'] .section-title,
+html[data-style='claymorphism'] .card-label,
+html[data-style='claymorphism'] .stat-tile-label {
+  font-family: var(--font-body);
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  font-size: calc(0.75rem * var(--density-font-scale));
+}
+
+html[data-style='claymorphism'] .card-value {
+  font-weight: 400;
+  font-size: calc(2.05rem * var(--density-font-scale));
+  letter-spacing: -0.01em;
+}
+
+html[data-style='claymorphism'] .row-title {
+  font-size: calc(0.97rem * var(--density-font-scale));
+  font-weight: 700;
+}
+
+html[data-style='claymorphism'] .row-value,
+html[data-style='claymorphism'] .stat-tile-value {
+  font-weight: 700;
+}
+
+html[data-style='claymorphism'] .section-note,
+html[data-style='claymorphism'] .row-sub,
+html[data-style='claymorphism'] .card-foot {
+  font-weight: 600;
+}
+
+html[data-style='claymorphism'] .badge,
+html[data-style='claymorphism'] .chip {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 0.74rem;
+  letter-spacing: 0.03em;
+}
+
+/* ---- 2. geometry + shadows ---- */
+[data-style='claymorphism'] {
+  --radius-sm: 16px;
+  --radius-md: 22px;
+  --radius-lg: 28px;
+}
+
+/* ---- 3. palettes (light + dark, full token set) ---- */
+[data-theme='light'][data-style='claymorphism'] {
+  color-scheme: light;
+  --bg: #f2ebe2;
+  --surface: #fffaf4;
+  --surface-2: #fbf1e7;
+  --surface-3: #f4e7d9;
+  --border: #e2d0bd;
+  --border-strong: #d3bda6;
+  --text: #2b2116;
+  --text-muted: #5f4c34;
+  --text-faint: #756046;
+  --accent: #f97316;
+  --accent-rgb: 249, 115, 22;
+  --accent-soft: rgba(var(--accent-rgb), 0.16);
+  --accent-ink: #9a3412;
+  --accent-contrast: #0f172a;
+  --accent-contrast-rgb: 15, 23, 42;
+  --accent-shade: #ea580c;
+  --accent-tint: #fdba74;
+  --on-accent: var(--accent-contrast);
+  --success: #15803d;
+  --success-soft: rgba(21, 128, 61, 0.12);
+  --danger: #c81e1e;
+  --danger-soft: rgba(200, 30, 30, 0.12);
+  --warning: #b45309;
+  --warning-soft: rgba(180, 83, 9, 0.14);
+  --info: #2563eb;
+  --info-soft: rgba(37, 99, 235, 0.12);
+  --ink: #f97316;
+  --ink-rgb: 249, 115, 22;
+  --ink-contrast: #0f172a;
+  --ink-contrast-rgb: 15, 23, 42;
+  --scrim: rgba(43, 33, 22, 0.5);
+  --shadow-sm: 0 4px 10px rgba(122, 92, 61, 0.16);
+  --shadow-md: 0 10px 22px rgba(122, 92, 61, 0.2);
+  --shadow-lg: 0 24px 48px rgba(122, 92, 61, 0.26);
+  --ion-text-color-rgb: 43, 33, 22;
+  --ion-background-color-rgb: 242, 235, 226;
+  --ion-color-primary: var(--accent);
+  --ion-color-primary-rgb: var(--accent-rgb);
+  --ion-color-primary-contrast: var(--accent-contrast);
+  --ion-color-primary-contrast-rgb: var(--accent-contrast-rgb);
+  --ion-color-primary-shade: var(--accent-shade);
+  --ion-color-primary-tint: var(--accent-tint);
+  --ion-focus-color: var(--accent-ink);
+  --style-clay-border: rgba(160, 126, 92, 0.45);
+  --style-clay-shadow: rgba(122, 92, 61, 0.3);
+  --style-clay-highlight: rgba(255, 255, 255, 0.9);
+}
+
+[data-theme='dark'][data-style='claymorphism'] {
+  color-scheme: dark;
+  --bg: #1a1610;
+  --surface: #262019;
+  --surface-2: #2f271d;
+  --surface-3: #3a3025;
+  --border: #5a4a37;
+  --border-strong: #6b5944;
+  --text: #f7efe4;
+  --text-muted: #cbb49a;
+  --text-faint: #ad977e;
+  --accent: #f97316;
+  --accent-rgb: 249, 115, 22;
+  --accent-soft: rgba(var(--accent-rgb), 0.18);
+  --accent-ink: #fb923c;
+  --accent-contrast: #1a1610;
+  --accent-contrast-rgb: 26, 22, 16;
+  --accent-shade: #ea580c;
+  --accent-tint: #fdba74;
+  --on-accent: var(--accent-contrast);
+  --success: #4ade80;
+  --success-soft: rgba(74, 222, 128, 0.16);
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.16);
+  --warning: #fbbf24;
+  --warning-soft: rgba(251, 191, 36, 0.16);
+  --info: #60a5fa;
+  --info-soft: rgba(96, 165, 250, 0.16);
+  --ink: #fb923c;
+  --ink-rgb: 251, 146, 60;
+  --ink-contrast: #1a1610;
+  --ink-contrast-rgb: 26, 22, 16;
+  --scrim: rgba(6, 4, 2, 0.7);
+  --shadow-sm: 0 4px 10px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 12px 26px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 26px 52px rgba(0, 0, 0, 0.6);
+  --ion-text-color-rgb: 247, 239, 228;
+  --ion-background-color-rgb: 26, 22, 16;
+  --ion-color-primary: var(--accent);
+  --ion-color-primary-rgb: var(--accent-rgb);
+  --ion-color-primary-contrast: var(--accent-contrast);
+  --ion-color-primary-contrast-rgb: var(--accent-contrast-rgb);
+  --ion-color-primary-shade: var(--accent-shade);
+  --ion-color-primary-tint: var(--accent-tint);
+  --ion-focus-color: var(--accent-ink);
+  --style-clay-border: rgba(255, 226, 194, 0.18);
+  --style-clay-shadow: rgba(0, 0, 0, 0.55);
+  --style-clay-highlight: rgba(255, 235, 210, 0.12);
+}
+
+/* ---- 4. component signatures ---- */
+
+/* The clay pair itself: drop shadow outside, lit top edge inside. */
+html[data-style='claymorphism'] .card,
+html[data-style='claymorphism'] .row-list,
+html[data-style='claymorphism'] .stat-tile {
+  border: 1px solid var(--style-clay-border);
+  border-radius: var(--radius-md);
+  box-shadow:
+    0 10px 22px var(--style-clay-shadow),
+    inset 0 3px 0 var(--style-clay-highlight);
+}
+
+html[data-style='claymorphism'] .card-hero {
+  position: relative;
+  background: linear-gradient(165deg, var(--surface) 0%, var(--surface-2) 70%, var(--surface-3) 100%);
+  border: 1px solid var(--style-clay-border);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 16px 34px var(--style-clay-shadow),
+    inset 0 4px 0 var(--style-clay-highlight);
+}
+
+/* Pastel-tinted tiles: four soft clays over the warm ground (dark mode tints
+   downward instead, so faint labels keep their 4.5:1). */
+html[data-theme='light'][data-style='claymorphism'] .stat-grid .stat-tile {
+  background:
+    color-mix(in oklab, #fed7aa 45%, var(--surface)),
+    var(--surface);
+}
+html[data-theme='light'][data-style='claymorphism'] .stat-grid .stat-tile:nth-child(2) {
+  background: color-mix(in oklab, #bfdbfe 45%, var(--surface));
+}
+html[data-theme='light'][data-style='claymorphism'] .stat-grid .stat-tile:nth-child(3) {
+  background: color-mix(in oklab, #bbf7d0 40%, var(--surface));
+}
+html[data-theme='light'][data-style='claymorphism'] .stat-grid .stat-tile:nth-child(4) {
+  background: color-mix(in oklab, #fde68a 40%, var(--surface));
+}
+html[data-theme='dark'][data-style='claymorphism'] .stat-grid .stat-tile {
+  background: color-mix(in oklab, #3d2418 45%, var(--surface));
+}
+html[data-theme='dark'][data-style='claymorphism'] .stat-grid .stat-tile:nth-child(2) {
+  background: color-mix(in oklab, #1f2a3a 45%, var(--surface));
+}
+html[data-theme='dark'][data-style='claymorphism'] .stat-grid .stat-tile:nth-child(3) {
+  background: color-mix(in oklab, #1c2e22 45%, var(--surface));
+}
+html[data-theme='dark'][data-style='claymorphism'] .stat-grid .stat-tile:nth-child(4) {
+  background: color-mix(in oklab, #33301a 45%, var(--surface));
+}
+
+/* Chunky pill buttons. */
+html[data-style='claymorphism'] .abtn {
+  border: 1px solid var(--style-clay-border);
+  border-radius: 999px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow:
+    0 8px 18px var(--style-clay-shadow),
+    inset 0 3px 0 var(--style-clay-highlight);
+}
+html[data-style='claymorphism'] .abtn:focus-visible {
+  outline: 3px solid var(--accent-ink);
+  outline-offset: 2px;
+}
+html[data-style='claymorphism'] .abtn-ghost {
+  border-color: transparent;
+  box-shadow: none;
+}
+/* Dark ink on the orange primary, but the deep-red/green fills need light ink
+   in light mode — the dark palette's bright fills already take the dark ink. */
+html[data-theme='light'][data-style='claymorphism'] .abtn-success,
+html[data-theme='light'][data-style='claymorphism'] .abtn-danger {
+  color: #fffaf4;
+}
+
+/* Wells: inputs, selects and the date trigger press into the clay. */
+html[data-style='claymorphism'] .ainput-shell,
+html[data-style='claymorphism'] .asel-trigger,
+html[data-style='claymorphism'] .adp-shell,
+html[data-style='claymorphism'] .adp-foot-btn,
+html[data-style='claymorphism'] .adp-nav {
+  background: var(--surface);
+  border: 1px solid var(--style-clay-border);
+  border-radius: var(--radius-sm);
+  box-shadow:
+    0 4px 10px var(--style-clay-shadow),
+    inset 0 2px 0 var(--style-clay-highlight);
+}
+html[data-style='claymorphism'] .ainput-focused .ainput-shell,
+html[data-style='claymorphism'] .asel-trigger-open {
+  border-color: var(--accent-ink);
+  box-shadow:
+    0 0 0 3px var(--accent-soft),
+    0 4px 10px var(--style-clay-shadow),
+    inset 0 2px 0 var(--style-clay-highlight);
+}
+
+html[data-style='claymorphism'] .amd-panel,
+html[data-style='claymorphism'] .asel-sheet,
+html[data-style='claymorphism'] .adp-panel {
+  background: var(--surface);
+  border: 1px solid var(--style-clay-border);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 30px 60px var(--style-clay-shadow),
+    inset 0 3px 0 var(--style-clay-highlight);
+}
+
+html[data-style='claymorphism'] .row-icon {
+  background: var(--accent-soft);
+  border: 1px solid var(--style-clay-border);
+  border-radius: 14px;
+}
+
+/* Only shape and shadow here: base already paints the warm 1px border, and
+   .badge-*/.chip-active variants own their own colours. */
+html[data-style='claymorphism'] .badge,
+html[data-style='claymorphism'] .chip {
+  border-radius: 999px;
+  box-shadow:
+    0 4px 10px var(--style-clay-shadow),
+    inset 0 2px 0 var(--style-clay-highlight);
+}
+html[data-style='claymorphism'] .chip {
+  padding: 8px 15px;
+}
+
+html[data-style='claymorphism'] .empty {
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+  border: 2px dashed var(--style-clay-border);
+  border-radius: var(--radius-lg);
+  box-shadow: inset 0 3px 0 var(--style-clay-highlight);
+}
+
+/* Border colours stay base's so .notice-success/.notice-warning keep their
+   semantic stroke — only the shape and the shadow are clay's. */
+html[data-style='claymorphism'] .notice,
+html[data-style='claymorphism'] .form-error {
+  border-radius: 16px;
+  box-shadow: 0 6px 14px var(--style-clay-shadow);
+}
+
+html[data-style='claymorphism'] .bar {
+  height: 12px;
+  background: var(--surface-3);
+  box-shadow: inset 0 2px 3px var(--style-clay-shadow);
+}
+
+/* The accent is a fill colour here; anything that would paint it as a
+   foreground flips to the text-safe orange ink (>=4.5:1 in both modes). */
+html[data-style='claymorphism'] .abtn-ghost,
+html[data-style='claymorphism'] .link-btn,
+html[data-style='claymorphism'] .auth-link,
+html[data-style='claymorphism'] .auth-mark,
+html[data-style='claymorphism'] .side-link-active,
+html[data-style='claymorphism'] .app-nav-link-active,
+html[data-style='claymorphism'] .schip-pushing,
+html[data-style='claymorphism'] .adp-icon,
+html[data-style='claymorphism'] .asel-check {
+  color: var(--accent-ink);
+}
+
+html[data-style='claymorphism'] .app-nav {
+  background: var(--surface);
+  border-top: 1px solid var(--style-clay-border);
+  box-shadow: 0 -10px 24px var(--style-clay-shadow);
+}
+html[data-style='claymorphism'] .side-nav {
+  background: var(--surface);
+  border-right: 1px solid var(--style-clay-border);
+  box-shadow: 10px 0 30px var(--style-clay-shadow);
+}
+html[data-style='claymorphism'] .side-logo {
+  border-radius: 14px;
+  box-shadow:
+    0 6px 14px var(--style-clay-shadow),
+    inset 0 2px 0 var(--style-clay-highlight);
+}
+
+/* ---- 5. layout rhythm (density tokens are read, never written) ---- */
+html[data-style='claymorphism'] .page {
+  gap: calc(var(--density-gap) + 5px);
+}
+html[data-style='claymorphism'] .page-head {
+  padding-bottom: 4px;
+}
+html[data-style='claymorphism'] .section-head {
+  padding-bottom: 4px;
+}
+html[data-style='claymorphism'] .stat-grid {
+  gap: calc(var(--density-gap) + 2px);
+}
+
+/* ---- 6. effects ---- */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-style='claymorphism'] .abtn,
+  html[data-style='claymorphism'] .chip,
+  html[data-style='claymorphism'] .row-item,
+  html[data-style='claymorphism'] .stat-tile {
+    transition:
+      transform 0.2s ease-out,
+      box-shadow 0.2s ease-out,
+      background 0.2s ease-out;
+  }
+  /* Soft press: the clay squishes into the page. */
+  html[data-style='claymorphism'] .abtn:active:not(.abtn-disabled),
+  html[data-style='claymorphism'] .chip:active {
+    transform: translateY(2px);
+    box-shadow:
+      0 3px 8px var(--style-clay-shadow),
+      inset 0 2px 0 var(--style-clay-highlight);
+  }
+  html[data-style='claymorphism'] .row-item:active {
+    transform: translateY(1px);
+  }
+}
+
+/* ---- 7. charts ---- */
+html[data-style='claymorphism'] .line-chart,
+html[data-style='claymorphism'] .donut-chart,
+html[data-style='claymorphism'] .bar-chart {
+  --chart-c1: var(--success);
+  --chart-c2: var(--warning);
+  --chart-c3: var(--info);
+}
+html[data-theme='light'][data-style='claymorphism'] .line-chart,
+html[data-theme='light'][data-style='claymorphism'] .donut-chart {
+  --chart-c0: var(--accent-shade);
+}
+html[data-theme='dark'][data-style='claymorphism'] .line-chart,
+html[data-theme='dark'][data-style='claymorphism'] .donut-chart {
+  --chart-c0: var(--accent);
+}
+
+html[data-style='claymorphism'] .chart-grid {
+  stroke: var(--border);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+html[data-style='claymorphism'] .chart-zero {
+  stroke: var(--border-strong);
+  stroke-width: 1.5;
+  stroke-dasharray: none;
+}
+html[data-style='claymorphism'] .chart-axis-text {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 10px;
+  fill: var(--text-muted);
+}
+/* Thick, soft, rounded — never a hairline. */
+html[data-style='claymorphism'] .line-path {
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+html[data-style='claymorphism'] .line-area {
+  opacity: 0.85;
+}
+/* Ring geometry is computed in the component, so thickness stays theirs — the
+   clay voice goes into the type instead. */
+html[data-style='claymorphism'] .donut-track {
+  stroke: var(--surface-3);
+}
+html[data-style='claymorphism'] .donut-center-value,
+html[data-style='claymorphism'] .ring-value-text {
+  font-family: var(--font-display);
+  font-weight: 400;
+}
+html[data-style='claymorphism'] .bar-mark {
+  opacity: 1;
+  stroke-linejoin: round;
+}
+html[data-style='claymorphism'] .heat-cell {
+  rx: 3;
+}
+html[data-style='claymorphism'] .ring-value {
+  stroke-linecap: round;
+}
+html[data-style='claymorphism'] .ring-track {
+  stroke: var(--surface-3);
+}

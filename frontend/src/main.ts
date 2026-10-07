@@ -12,6 +12,9 @@ import '@ionic/vue/css/text-transformation.css'
 // Ionic 8 ships no light palette; this app is dark-only by design.
 import '@ionic/vue/css/palettes/dark.always.css'
 import './theme/app.css'
+// Style presets after app.css on purpose: equal-specificity preset rules have
+// to win against the base component rules above.
+import './theme/styles/index.css'
 
 import App from './App.vue'
 import router from './router'

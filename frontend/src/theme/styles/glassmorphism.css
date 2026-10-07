@@ -1,0 +1,423 @@
+/* ============================================================
+   Style preset — glassmorphism
+   ------------------------------------------------------------
+   Fonts:  Inter (body/display) · IBM Plex Mono (data)
+   Signature: flagship fintech glassmorphism. Trust-blue + profit-green
+              with 10–20px backdrop-blur, translucent surfaces,
+              subtle inner highlights, soft glints, generous rounding,
+              high-legibility text, grain-free. 4.5:1+ on body text.
+              Light/dark balanced; motion safe.
+   Accent: trust cyan/blue (#0ea5e9) with high-contrast on-accent.
+   ============================================================ */
+
+/* ---- 1. typography ---- */
+[data-style='glassmorphism'] {
+  --font-display: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+html[data-style='glassmorphism'] .page-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  font-size: calc(2.1rem * var(--density-font-scale));
+}
+
+html[data-style='glassmorphism'] .page-subtitle {
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+html[data-style='glassmorphism'] .section-title,
+html[data-style='glassmorphism'] .card-label,
+html[data-style='glassmorphism'] .stat-tile-label {
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: calc(0.7rem * var(--density-font-scale));
+}
+
+html[data-style='glassmorphism'] .card-value {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+  font-size: calc(1.9rem * var(--density-font-scale));
+}
+
+html[data-style='glassmorphism'] .row-title {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+html[data-style='glassmorphism'] .row-value,
+html[data-style='glassmorphism'] .stat-tile-value,
+html[data-style='glassmorphism'] .meta-val {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-style='glassmorphism'] .section-note,
+html[data-style='glassmorphism'] .row-sub,
+html[data-style='glassmorphism'] .meta-key,
+html[data-style='glassmorphism'] .card-foot {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* ---- 2. geometry ---- */
+[data-style='glassmorphism'] {
+  --radius-sm: 16px;
+  --radius-md: 20px;
+  --radius-lg: 28px;
+}
+
+/* ---- 3. palettes ---- */
+[data-theme='light'][data-style='glassmorphism'] {
+  color-scheme: light;
+  --bg: radial-gradient(160% 160% at 50% 0%, #f8fbff 0%, #eef5ff 100%);
+  --surface: rgba(255, 255, 255, 0.62);
+  --surface-2: rgba(248, 251, 255, 0.72);
+  --surface-3: rgba(226, 236, 255, 0.72);
+  --border: rgba(148, 163, 184, 0.28);
+  --border-strong: rgba(14, 165, 233, 0.46);
+  --text: #0f172a;
+  --text-muted: #334155;
+  --text-faint: #475569;
+  --accent: #0ea5e9;
+  --accent-rgb: 14, 165, 233;
+  --accent-soft: rgba(14, 165, 233, 0.16);
+  --accent-ink: #0284c7;
+  --accent-contrast: #f8fafc;
+  --accent-contrast-rgb: 248, 250, 252;
+  --accent-shade: #0284c7;
+  --accent-tint: #7dd3fc;
+  --on-accent: var(--accent-contrast);
+  --success: #16a34a;
+  --success-soft: rgba(22, 163, 74, 0.16);
+  --danger: #dc2626;
+  --danger-soft: rgba(220, 38, 38, 0.16);
+  --warning: #b45309;
+  --warning-soft: rgba(180, 83, 9, 0.16);
+  --info: #2563eb;
+  --info-soft: rgba(37, 99, 235, 0.16);
+  --ink: #0ea5e9;
+  --ink-rgb: 14, 165, 233;
+  --scrim: rgba(15, 23, 42, 0.5);
+  --shadow-sm: 0 4px 24px -16px rgba(14, 165, 233, 0.28);
+  --shadow-md: 0 12px 40px -24px rgba(15, 23, 42, 0.32);
+  --shadow-lg: 0 24px 60px -32px rgba(14, 165, 233, 0.36);
+  --ion-text-color-rgb: 15, 23, 42;
+  --ion-background-color-rgb: 238, 245, 255;
+  --ion-color-primary: var(--accent);
+  --ion-color-primary-rgb: var(--accent-rgb);
+  --ion-color-primary-contrast: var(--accent-contrast);
+  --ion-color-primary-contrast-rgb: var(--accent-contrast-rgb);
+  --ion-color-primary-shade: var(--accent-shade);
+  --ion-color-primary-tint: var(--accent-tint);
+  --ion-focus-color: var(--accent);
+}
+
+[data-theme='dark'][data-style='glassmorphism'] {
+  color-scheme: dark;
+  --bg: radial-gradient(160% 160% at 50% 0%, #06121f 0%, #020617 100%);
+  --surface: rgba(15, 23, 42, 0.56);
+  --surface-2: rgba(30, 41, 59, 0.62);
+  --surface-3: rgba(14, 165, 233, 0.22);
+  --border: rgba(148, 163, 184, 0.36);
+  --border-strong: rgba(56, 189, 248, 0.56);
+  --text: #f8fafc;
+  --text-muted: #cbd5f5;
+  --text-faint: #94a3b8;
+  --accent: #38bdf8;
+  --accent-rgb: 56, 189, 248;
+  --accent-soft: rgba(56, 189, 248, 0.22);
+  --accent-ink: #0ea5e9;
+  --accent-contrast: #020617;
+  --accent-contrast-rgb: 2, 6, 23;
+  --accent-shade: #0ea5e9;
+  --accent-tint: #bae6fd;
+  --on-accent: var(--accent-contrast);
+  --success: #22c55e;
+  --success-soft: rgba(34, 197, 94, 0.22);
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.22);
+  --warning: #fbbf24;
+  --warning-soft: rgba(251, 191, 36, 0.22);
+  --info: #60a5fa;
+  --info-soft: rgba(96, 165, 250, 0.22);
+  --ink: #38bdf8;
+  --ink-rgb: 56, 189, 248;
+  --scrim: rgba(2, 6, 23, 0.7);
+  --shadow-sm: 0 8px 40px -24px rgba(14, 165, 233, 0.32);
+  --shadow-md: 0 16px 60px -32px rgba(14, 165, 233, 0.38);
+  --shadow-lg: 0 32px 90px -40px rgba(14, 165, 233, 0.44);
+  --ion-text-color-rgb: 248, 250, 252;
+  --ion-background-color-rgb: 2, 6, 23;
+  --ion-color-primary: var(--accent);
+  --ion-color-primary-rgb: var(--accent-rgb);
+  --ion-color-primary-contrast: var(--accent-contrast);
+  --ion-color-primary-contrast-rgb: var(--accent-contrast-rgb);
+  --ion-color-primary-shade: var(--accent-shade);
+  --ion-color-primary-tint: var(--accent-tint);
+  --ion-focus-color: var(--accent);
+}
+
+/* ---- 4. components ---- */
+html[data-style='glassmorphism'] .card,
+html[data-style='glassmorphism'] .row-list,
+html[data-style='glassmorphism'] .stat-tile {
+  background: var(--surface);
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  position: relative;
+}
+
+html[data-style='glassmorphism'] .card::before,
+html[data-style='glassmorphism'] .stat-tile::before {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: calc(var(--radius-lg) - 2px);
+  background: radial-gradient(120% 120% at 50% 0%, rgba(255, 255, 255, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+html[data-style='glassmorphism'] .card > *,
+html[data-style='glassmorphism'] .stat-tile > *,
+html[data-style='glassmorphism'] .row-list > * {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-style='glassmorphism'] .card-hero {
+  background: linear-gradient(160deg, rgba(56, 189, 248, 0.18) 0%, rgba(15, 23, 42, 0.12) 100%),
+    var(--surface);
+  backdrop-filter: blur(18px) saturate(125%);
+  -webkit-backdrop-filter: blur(18px) saturate(125%);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+html[data-style='glassmorphism'] .row-item {
+  border-bottom: 1px solid var(--border);
+}
+
+html[data-style='glassmorphism'] .row-item:last-child {
+  border-bottom: none;
+}
+
+html[data-style='glassmorphism'] .row-icon {
+  background: var(--surface-2);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-style='glassmorphism'] .abtn {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  backdrop-filter: blur(10px);
+  transition: transform 150ms ease, box-shadow 200ms ease, background-color 150ms ease,
+    border-color 150ms ease;
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-style='glassmorphism'] .abtn:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+html[data-style='glassmorphism'] .abtn-primary {
+  background: var(--accent);
+  border-color: var(--border-strong);
+  color: var(--accent-contrast);
+}
+
+html[data-style='glassmorphism'] .abtn-success {
+  background: var(--success);
+  color: #ffffff;
+}
+
+html[data-style='glassmorphism'] .abtn-danger {
+  background: var(--danger);
+  color: #ffffff;
+}
+
+html[data-style='glassmorphism'] .ainput-shell,
+html[data-style='glassmorphism'] .asel-trigger,
+html[data-style='glassmorphism'] .adp-shell,
+html[data-style='glassmorphism'] .adp-nav,
+html[data-style='glassmorphism'] .adp-foot-btn,
+html[data-style='glassmorphism'] .asel-x,
+html[data-style='glassmorphism'] .amd-x {
+  background: var(--surface-2);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-style='glassmorphism'] .ainput-focused .ainput-shell,
+html[data-style='glassmorphism'] .asel-trigger-open {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow-md);
+}
+
+html[data-style='glassmorphism'] .amd-panel,
+html[data-style='glassmorphism'] .asel-sheet,
+html[data-style='glassmorphism'] .adp-panel {
+  background: var(--surface);
+  backdrop-filter: blur(18px) saturate(125%);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+html[data-style='glassmorphism'] .adp-day-selected {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-style='glassmorphism'] .badge {
+  background: var(--surface-2);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-style='glassmorphism'] .badge-accent {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-color: var(--border-strong);
+}
+
+html[data-style='glassmorphism'] .badge-success {
+  background: var(--success);
+  color: #ffffff;
+}
+
+html[data-style='glassmorphism'] .badge-danger {
+  background: var(--danger);
+  color: #ffffff;
+}
+
+html[data-style='glassmorphism'] .badge-warning {
+  background: var(--warning);
+  color: #ffffff;
+}
+
+html[data-style='glassmorphism'] .badge-info {
+  background: var(--info);
+  color: #ffffff;
+}
+
+/* ---- 5. motion ---- */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-style='glassmorphism'] .abtn:active:not(.abtn-disabled) {
+    transform: translateY(1px);
+  }
+  html[data-style='glassmorphism'] .card:hover,
+  html[data-style='glassmorphism'] .stat-tile:hover {
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-lg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-style='glassmorphism'] * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---- 6. density ---- */
+html[data-style='glassmorphism'][data-density='comfortable'] {
+  --density-gap: 1.25rem;
+  --density-card-pad: 1.25rem 1.375rem;
+}
+
+html[data-style='glassmorphism'][data-density='compact'] {
+  --density-gap: 0.875rem;
+  --density-card-pad: 0.875rem 1rem;
+}
+
+/* ---- 7. charts ---- */
+html[data-style='glassmorphism'] .line-chart,
+html[data-style='glassmorphism'] .donut-chart,
+html[data-style='glassmorphism'] .bar-chart {
+  --chart-c0: #38bdf8;
+  --chart-c1: #22c55e;
+  --chart-c2: #60a5fa;
+  --chart-c3: #34d399;
+  --chart-c4: #a5b4fc;
+  --chart-c5: #38bdf8;
+  --chart-c6: #22c55e;
+  --chart-c7: #f87171;
+}
+
+html[data-style='glassmorphism'] .chart-grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+html[data-style='glassmorphism'] .chart-zero {
+  stroke: var(--text);
+  stroke-width: 1.6;
+}
+
+html[data-style='glassmorphism'] .chart-axis-text {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  fill: var(--text-muted);
+}
+
+html[data-style='glassmorphism'] .line-path {
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+html[data-style='glassmorphism'] .line-area {
+  opacity: 0.18;
+}
+
+html[data-style='glassmorphism'] .donut-track {
+  stroke: var(--surface-3);
+  opacity: 0.6;
+}
+
+html[data-style='glassmorphism'] .bar-mark {
+  stroke: rgba(255, 255, 255, 0.32);
+  stroke-width: 1;
+}
+
+html[data-style='glassmorphism'] .heat-cell {
+  rx: 10;
+}
+
+html[data-style='glassmorphism'] .ring-track {
+  stroke: var(--surface-3);
+  opacity: 0.6;
+}
+
+html[data-style='glassmorphism'] .donut-center-value,
+html[data-style='glassmorphism'] .ring-value-text {
+  font-family: var(--font-mono);
+  font-weight: 600;
+}

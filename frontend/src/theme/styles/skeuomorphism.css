@@ -1,0 +1,492 @@
+/* ============================================================
+   Style preset — skeuomorphism
+   ------------------------------------------------------------
+   Fonts:  IBM Plex Serif (display) · IBM Plex Sans (body) · IBM Plex Mono (data)
+   Signature: cards are objects, not panels. Light mode: ruled cream stock with
+              a white top bevel, a dashed stitch inset on the hero and a soft
+              drop shadow onto the grey desk. Dark mode: leather grain over the
+              same silhouette — bright bevel, deep shadow. Small radii, ledger
+              rules between rows, mono figures, gold for emphasis.
+   Accent: pinned to premium gold #A16207 (light) / #CA8A04 (dark) on trust
+           navy ink; #8A5207 is the text-safe gold.
+   ============================================================ */
+
+/* ---- 1. typography ---- */
+[data-style='skeuomorphism'] {
+  --font-display: 'IBM Plex Serif', Georgia, 'Times New Roman', serif;
+  --font-body: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+html[data-style='skeuomorphism'] .page-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+/* Ledger headings are serif small caps; the label rows are mono. */
+html[data-style='skeuomorphism'] .section-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  font-size: calc(0.75rem * var(--density-font-scale));
+}
+
+html[data-style='skeuomorphism'] .card-label,
+html[data-style='skeuomorphism'] .stat-tile-label {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  font-size: calc(0.71rem * var(--density-font-scale));
+}
+
+/* Every figure is tabular mono: columns line up like a printed ledger. */
+html[data-style='skeuomorphism'] .card-value,
+html[data-style='skeuomorphism'] .card-value-sm,
+html[data-style='skeuomorphism'] .stat-tile-value,
+html[data-style='skeuomorphism'] .row-value,
+html[data-style='skeuomorphism'] .meta-val {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+html[data-style='skeuomorphism'] .card-value {
+  font-weight: 600;
+  font-size: calc(1.85rem * var(--density-font-scale));
+  letter-spacing: -0.04em;
+}
+
+html[data-style='skeuomorphism'] .section-note,
+html[data-style='skeuomorphism'] .row-sub,
+html[data-style='skeuomorphism'] .meta-key,
+html[data-style='skeuomorphism'] .card-foot {
+  font-family: var(--font-mono);
+  font-size: 0.73rem;
+}
+
+html[data-style='skeuomorphism'] .badge,
+html[data-style='skeuomorphism'] .chip {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+html[data-style='skeuomorphism'] .row-title {
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+
+/* ---- 2. geometry + shadows ---- */
+[data-style='skeuomorphism'] {
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+}
+
+/* ---- 3. palettes (light + dark, full token set) ---- */
+[data-theme='light'][data-style='skeuomorphism'] {
+  color-scheme: light;
+  --bg: #dcdcdc;
+  --surface: #fbf9f2;
+  --surface-2: #f4f1e7;
+  --surface-3: #ebe7db;
+  --border: #cbc4b2;
+  --border-strong: #b6ae9a;
+  --text: #14181f;
+  --text-muted: #454f61;
+  --text-faint: #646c7b;
+  --accent: #a16207;
+  --accent-rgb: 161, 98, 7;
+  --accent-soft: rgba(var(--accent-rgb), 0.14);
+  --accent-ink: #8a5207;
+  --accent-contrast: #ffffff;
+  --accent-contrast-rgb: 255, 255, 255;
+  --accent-shade: #85520a;
+  --accent-tint: #c08a22;
+  --on-accent: var(--accent-contrast);
+  --success: #166534;
+  --success-soft: rgba(22, 101, 52, 0.12);
+  --danger: #b91c1c;
+  --danger-soft: rgba(185, 28, 28, 0.12);
+  --warning: #92400e;
+  --warning-soft: rgba(146, 64, 14, 0.14);
+  --info: #1e3a8a;
+  --info-soft: rgba(30, 58, 138, 0.12);
+  --ink: #0f172a;
+  --ink-rgb: 15, 23, 42;
+  --ink-contrast: #ffffff;
+  --ink-contrast-rgb: 255, 255, 255;
+  --scrim: rgba(20, 24, 31, 0.45);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.16);
+  --shadow-md: 0 3px 8px rgba(15, 23, 42, 0.18);
+  --shadow-lg: 0 14px 30px rgba(15, 23, 42, 0.24);
+  --ion-text-color-rgb: 20, 24, 31;
+  --ion-background-color-rgb: 220, 220, 220;
+  --ion-color-primary: var(--accent);
+  --ion-color-primary-rgb: var(--accent-rgb);
+  --ion-color-primary-contrast: var(--accent-contrast);
+  --ion-color-primary-contrast-rgb: var(--accent-contrast-rgb);
+  --ion-color-primary-shade: var(--accent-shade);
+  --ion-color-primary-tint: var(--accent-tint);
+  --ion-focus-color: var(--accent-ink);
+  --style-skeu-card-bg: linear-gradient(to bottom, #fffef9 0%, #f6f2e6 100%);
+  --style-skeu-ruled-bg:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0 27px,
+      var(--style-skeu-rule) 27px 28px
+    ),
+    linear-gradient(to bottom, #fffef9 0%, #f6f2e6 100%);
+  --style-skeu-rule: rgba(15, 23, 42, 0.07);
+  --style-skeu-ledger: rgba(15, 23, 42, 0.16);
+  --style-skeu-border: #c3bba6;
+  --style-skeu-bevel-top: rgba(255, 255, 255, 0.95);
+  --style-skeu-bevel-bottom: rgba(15, 23, 42, 0.12);
+  --style-skeu-well: rgba(15, 23, 42, 0.14);
+  --style-skeu-press: rgba(15, 23, 42, 0.3);
+  --style-skeu-shadow: rgba(15, 23, 42, 0.28);
+  --style-skeu-stitch: rgba(15, 23, 42, 0.32);
+}
+
+[data-theme='dark'][data-style='skeuomorphism'] {
+  color-scheme: dark;
+  --bg: #161616;
+  --surface: #232323;
+  --surface-2: #282828;
+  --surface-3: #2f2f2f;
+  --border: #3f3f3f;
+  --border-strong: #565656;
+  --text: #f0eee8;
+  --text-muted: #b9b5ab;
+  --text-faint: #979185;
+  --accent: #ca8a04;
+  --accent-rgb: 202, 138, 4;
+  --accent-soft: rgba(var(--accent-rgb), 0.16);
+  --accent-ink: #e9b949;
+  --accent-contrast: #161616;
+  --accent-contrast-rgb: 22, 22, 22;
+  --accent-shade: #a87403;
+  --accent-tint: #e3ad22;
+  --on-accent: var(--accent-contrast);
+  --success: #4ade80;
+  --success-soft: rgba(74, 222, 128, 0.16);
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.16);
+  --warning: #fbbf24;
+  --warning-soft: rgba(251, 191, 36, 0.16);
+  --info: #7dd3fc;
+  --info-soft: rgba(125, 211, 252, 0.16);
+  --ink: #ca8a04;
+  --ink-rgb: 202, 138, 4;
+  --ink-contrast: #161616;
+  --ink-contrast-rgb: 22, 22, 22;
+  --scrim: rgba(0, 0, 0, 0.7);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 10px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.65);
+  --ion-text-color-rgb: 240, 238, 232;
+  --ion-background-color-rgb: 22, 22, 22;
+  --ion-color-primary: var(--accent);
+  --ion-color-primary-rgb: var(--accent-rgb);
+  --ion-color-primary-contrast: var(--accent-contrast);
+  --ion-color-primary-contrast-rgb: var(--accent-contrast-rgb);
+  --ion-color-primary-shade: var(--accent-shade);
+  --ion-color-primary-tint: var(--accent-tint);
+  --ion-focus-color: var(--accent-ink);
+  /* Leather: two crossed grains over the card body, deep bevel, deep shadow. */
+  --style-skeu-card-bg:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.022) 0 2px, transparent 2px 5px),
+    repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.32) 0 2px, transparent 2px 5px),
+    linear-gradient(to bottom, #2a2a2a 0%, #232323 100%);
+  --style-skeu-ruled-bg:
+    repeating-linear-gradient(to bottom, transparent 0 27px, var(--style-skeu-rule) 27px 28px),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.022) 0 2px, transparent 2px 5px),
+    linear-gradient(to bottom, #2a2a2a 0%, #232323 100%);
+  --style-skeu-rule: rgba(255, 255, 255, 0.05);
+  --style-skeu-ledger: rgba(255, 255, 255, 0.13);
+  --style-skeu-border: #0a0a0a;
+  --style-skeu-bevel-top: rgba(255, 255, 255, 0.22);
+  --style-skeu-bevel-bottom: rgba(0, 0, 0, 0.6);
+  --style-skeu-well: rgba(0, 0, 0, 0.5);
+  --style-skeu-press: rgba(0, 0, 0, 0.65);
+  --style-skeu-shadow: rgba(0, 0, 0, 0.7);
+  --style-skeu-stitch: rgba(255, 255, 255, 0.3);
+}
+
+/* ---- 4. component signatures ---- */
+
+/* Bodies: stock or leather, lit on the top edge, dropped onto the desk. */
+html[data-style='skeuomorphism'] .card,
+html[data-style='skeuomorphism'] .stat-tile,
+html[data-style='skeuomorphism'] .row-list {
+  background: var(--style-skeu-card-bg);
+  border: 1px solid var(--style-skeu-border);
+  border-radius: var(--radius-md);
+  box-shadow:
+    inset 0 1px 0 var(--style-skeu-bevel-top),
+    inset 0 -1px 0 var(--style-skeu-bevel-bottom),
+    0 3px 8px var(--style-skeu-shadow);
+}
+
+/* The hero is a ruled ledger page with a stitched outline. */
+html[data-style='skeuomorphism'] .card-hero {
+  position: relative;
+  background: var(--style-skeu-ruled-bg);
+  border: 1px solid var(--style-skeu-border);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    inset 0 1px 0 var(--style-skeu-bevel-top),
+    0 4px 12px var(--style-skeu-shadow);
+}
+html[data-style='skeuomorphism'] .card-hero::after {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border: 1px dashed var(--style-skeu-stitch);
+  border-radius: 5px;
+  pointer-events: none;
+}
+
+/* Row dividers read as ledger rules: thin, slightly warm. */
+html[data-style='skeuomorphism'] .row-item,
+html[data-style='skeuomorphism'] .meta-row {
+  border-bottom-color: var(--style-skeu-ledger);
+}
+
+html[data-style='skeuomorphism'] .row-icon {
+  background: var(--surface-2);
+  border-color: var(--style-skeu-border);
+  border-radius: var(--radius-sm);
+  box-shadow: inset 0 1px 0 var(--style-skeu-bevel-top);
+}
+
+/* Buttons are moulded: a highlight on the crown, a shade at the heel, and a
+   gradient over whatever the variant colour is. */
+html[data-style='skeuomorphism'] .abtn {
+  border: 1px solid var(--style-skeu-border);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.25), rgba(0, 0, 0, 0.14));
+  box-shadow:
+    inset 0 1px 0 var(--style-skeu-bevel-top),
+    0 1px 3px var(--style-skeu-shadow);
+}
+
+/* Wells: controls sink into the surface. */
+html[data-style='skeuomorphism'] .ainput-shell,
+html[data-style='skeuomorphism'] .asel-trigger,
+html[data-style='skeuomorphism'] .adp-shell,
+html[data-style='skeuomorphism'] .adp-nav,
+html[data-style='skeuomorphism'] .adp-foot-btn,
+html[data-style='skeuomorphism'] .asel-x,
+html[data-style='skeuomorphism'] .amd-x {
+  background: linear-gradient(to bottom, var(--surface-3), var(--surface-2));
+  border: 1px solid var(--style-skeu-border);
+  border-radius: var(--radius-sm);
+  box-shadow:
+    inset 0 2px 4px var(--style-skeu-well),
+    0 1px 0 var(--style-skeu-bevel-top);
+}
+html[data-style='skeuomorphism'] .ainput-focused .ainput-shell,
+html[data-style='skeuomorphism'] .asel-trigger-open {
+  border-color: var(--accent-ink);
+  box-shadow:
+    inset 0 2px 4px var(--style-skeu-well),
+    0 0 0 3px var(--accent-soft);
+}
+
+html[data-style='skeuomorphism'] .amd-panel,
+html[data-style='skeuomorphism'] .asel-sheet,
+html[data-style='skeuomorphism'] .adp-panel {
+  background: var(--style-skeu-card-bg);
+  border: 1px solid var(--style-skeu-border);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    inset 0 1px 0 var(--style-skeu-bevel-top),
+    0 12px 34px var(--style-skeu-shadow);
+}
+
+/* Gold does the emphasising: the accent badge and the selected chip are solid. */
+html[data-style='skeuomorphism'] .badge {
+  background: var(--surface-2);
+  border: 1px solid var(--style-skeu-border);
+  border-radius: var(--radius-sm);
+  box-shadow: inset 0 1px 0 var(--style-skeu-bevel-top);
+}
+html[data-style='skeuomorphism'] .badge-accent {
+  background: var(--accent);
+  border-color: var(--accent-shade);
+  color: var(--accent-contrast);
+}
+html[data-style='skeuomorphism'] .chip {
+  border: 1px solid var(--style-skeu-border);
+  border-radius: var(--radius-sm);
+  box-shadow:
+    inset 0 1px 0 var(--style-skeu-bevel-top),
+    0 1px 2px var(--style-skeu-shadow);
+}
+html[data-style='skeuomorphism'] .chip-active {
+  background: var(--accent);
+  border-color: var(--accent-shade);
+  color: var(--accent-contrast);
+}
+
+html[data-style='skeuomorphism'] .empty {
+  background: var(--style-skeu-card-bg);
+  border: 1px dashed var(--style-skeu-border);
+  border-radius: var(--radius-md);
+  box-shadow: inset 0 1px 0 var(--style-skeu-bevel-top);
+}
+/* Border colours stay base's so .notice-success/.notice-warning keep their
+   semantic stroke; the paper ground is safe (only the border tone varies). */
+html[data-style='skeuomorphism'] .notice {
+  background: var(--style-skeu-card-bg);
+  border-radius: var(--radius-sm);
+  box-shadow: inset 0 1px 0 var(--style-skeu-bevel-top);
+}
+html[data-style='skeuomorphism'] .form-error {
+  border-radius: var(--radius-sm);
+  box-shadow: inset 0 1px 0 var(--style-skeu-bevel-top);
+}
+html[data-style='skeuomorphism'] .bar {
+  border: 1px solid var(--style-skeu-border);
+  border-radius: var(--radius-sm);
+  box-shadow: inset 0 2px 4px var(--style-skeu-well);
+}
+html[data-style='skeuomorphism'] .bar-fill {
+  background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.3), rgba(0, 0, 0, 0.12));
+}
+
+/* The gold accent is a fill; foreground uses take the darker, text-safe gold. */
+html[data-style='skeuomorphism'] .abtn-ghost,
+html[data-style='skeuomorphism'] .link-btn,
+html[data-style='skeuomorphism'] .auth-link,
+html[data-style='skeuomorphism'] .auth-mark,
+html[data-style='skeuomorphism'] .side-link-active,
+html[data-style='skeuomorphism'] .app-nav-link-active,
+html[data-style='skeuomorphism'] .schip-pushing,
+html[data-style='skeuomorphism'] .adp-icon,
+html[data-style='skeuomorphism'] .asel-check {
+  color: var(--accent-ink);
+}
+
+html[data-style='skeuomorphism'] .app-nav {
+  background: var(--style-skeu-card-bg);
+  border-top: 1px solid var(--style-skeu-border);
+  box-shadow:
+    inset 0 1px 0 var(--style-skeu-bevel-top),
+    0 -3px 10px var(--style-skeu-shadow);
+}
+html[data-style='skeuomorphism'] .side-nav {
+  background: var(--style-skeu-card-bg);
+  border-right: 1px solid var(--style-skeu-border);
+  box-shadow: 4px 0 14px var(--style-skeu-shadow);
+}
+html[data-style='skeuomorphism'] .side-brand,
+html[data-style='skeuomorphism'] .side-foot {
+  border-color: var(--style-skeu-ledger);
+}
+html[data-style='skeuomorphism'] .side-logo {
+  border-radius: var(--radius-sm);
+  box-shadow:
+    inset 0 1px 0 var(--style-skeu-bevel-top),
+    0 1px 3px var(--style-skeu-shadow);
+}
+
+/* ---- 5. layout rhythm (density tokens are read, never written) ---- */
+html[data-style='skeuomorphism'] .page {
+  gap: calc(var(--density-gap) + 2px);
+}
+html[data-style='skeuomorphism'] .page-head {
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--style-skeu-ledger);
+}
+html[data-style='skeuomorphism'] .section-head {
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--style-skeu-ledger);
+}
+
+/* ---- 6. effects ---- */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-style='skeuomorphism'] .abtn,
+  html[data-style='skeuomorphism'] .chip,
+  html[data-style='skeuomorphism'] .row-item {
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease,
+      background 0.2s ease;
+  }
+  /* A moulded button goes down into its bezel when pressed. */
+  html[data-style='skeuomorphism'] .abtn:active:not(.abtn-disabled) {
+    transform: translateY(1px);
+    background-image: none;
+    box-shadow: inset 0 2px 5px var(--style-skeu-press);
+  }
+  html[data-style='skeuomorphism'] .chip:active {
+    box-shadow: inset 0 2px 4px var(--style-skeu-press);
+  }
+}
+
+/* ---- 7. charts ---- */
+html[data-style='skeuomorphism'] .line-chart,
+html[data-style='skeuomorphism'] .donut-chart,
+html[data-style='skeuomorphism'] .bar-chart {
+  --chart-c0: var(--accent);
+  --chart-c1: var(--success);
+  --chart-c2: var(--warning);
+  --chart-c3: var(--info);
+}
+
+/* Printed look: thin ruled grid, ink strokes, no glow. */
+html[data-style='skeuomorphism'] .chart-grid {
+  stroke: var(--style-skeu-ledger);
+  stroke-width: 1;
+}
+html[data-style='skeuomorphism'] .chart-zero {
+  stroke: var(--text-muted);
+  stroke-width: 1;
+  stroke-dasharray: none;
+}
+html[data-style='skeuomorphism'] .chart-axis-text {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  fill: var(--text-muted);
+}
+html[data-style='skeuomorphism'] .line-path {
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+html[data-style='skeuomorphism'] .line-area {
+  opacity: 0.16;
+}
+html[data-style='skeuomorphism'] .donut-slice {
+  stroke: var(--surface);
+  stroke-width: 1;
+}
+html[data-style='skeuomorphism'] .donut-track {
+  stroke: var(--surface-3);
+}
+html[data-style='skeuomorphism'] .bar-mark {
+  opacity: 1;
+  stroke: var(--text);
+  stroke-width: 0.75;
+  stroke-linejoin: miter;
+}
+html[data-style='skeuomorphism'] .heat-cell {
+  rx: 1;
+}
+html[data-style='skeuomorphism'] .ring-value {
+  stroke-linecap: butt;
+}
+html[data-style='skeuomorphism'] .ring-track {
+  stroke: var(--surface-3);
+}
+html[data-style='skeuomorphism'] .donut-center-value,
+html[data-style='skeuomorphism'] .ring-value-text {
+  font-family: var(--font-mono);
+  font-weight: 600;
+}

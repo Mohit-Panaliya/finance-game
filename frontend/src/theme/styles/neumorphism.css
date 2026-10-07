@@ -1,0 +1,385 @@
+/* ============================================================
+   Style preset — neumorphism
+   ------------------------------------------------------------
+   Fonts:  Plus Jakarta Sans (display + body)
+           JetBrains Mono (data)
+   Signature: soft UI with subtle depth, convex/concave surfaces,
+              monochromatic shadows, low-contrast borders, minimal
+              glints. Physical depth without hard edges. Focused
+              on tactility and reduced visual noise.
+   Accent: soft pink #EC4899 + trust blue #0284C7 for CTAs.
+   ============================================================ */
+
+/* ---- 1. typography ---- */
+[data-style='neumorphism'] {
+  --font-display: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+html[data-style='neumorphism'] .page-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  font-size: calc(2rem * var(--density-font-scale));
+}
+
+html[data-style='neumorphism'] .page-subtitle {
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+html[data-style='neumorphism'] .section-title,
+html[data-style='neumorphism'] .card-label,
+html[data-style='neumorphism'] .stat-tile-label {
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-size: calc(0.7rem * var(--density-font-scale));
+}
+
+html[data-style='neumorphism'] .card-value {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+  font-size: calc(1.95rem * var(--density-font-scale));
+}
+
+html[data-style='neumorphism'] .row-title {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+html[data-style='neumorphism'] .row-value,
+html[data-style='neumorphism'] .stat-tile-value,
+html[data-style='neumorphism'] .meta-val {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-style='neumorphism'] .section-note,
+html[data-style='neumorphism'] .row-sub,
+html[data-style='neumorphism'] .meta-key,
+html[data-style='neumorphism'] .card-foot {
+  font-size: 0.75rem;
+}
+
+/* ---- 2. geometry ---- */
+[data-style='neumorphism'] {
+  --radius-sm: 14px;
+  --radius-md: 18px;
+  --radius-lg: 24px;
+}
+
+/* ---- 3. palettes ---- */
+[data-theme='light'][data-style='neumorphism'] {
+  color-scheme: light;
+  --bg: #fdf4f8;
+  --surface: #fdf4f8;
+  --surface-2: #f7ecf3;
+  --surface-3: #f0dcea;
+  --border: #f3e3ee;
+  --border-strong: rgba(236, 72, 153, 0.28);
+  --text: #0f172a;
+  --text-muted: #475569;
+  --text-faint: #64748b;
+  --accent: #ec4899;
+  --accent-rgb: 236, 72, 153;
+  --accent-soft: rgba(236, 72, 153, 0.12);
+  --accent-ink: #be185d;
+  --accent-contrast: #000000;
+  --accent-contrast-rgb: 0, 0, 0;
+  --accent-shade: #be185d;
+  --accent-tint: #f9a8d4;
+  --on-accent: var(--accent-contrast);
+  --success: #16a34a;
+  --success-soft: rgba(22, 163, 74, 0.12);
+  --danger: #dc2626;
+  --danger-soft: rgba(220, 38, 38, 0.12);
+  --warning: #b45309;
+  --warning-soft: rgba(180, 83, 9, 0.14);
+  --info: #0284c7;
+  --info-soft: rgba(2, 132, 199, 0.12);
+  --ink: #ec4899;
+  --ink-rgb: 236, 72, 153;
+  --scrim: rgba(15, 23, 42, 0.48);
+  --shadow-sm: -4px -4px 8px rgba(255, 255, 255, 0.8), 4px 4px 8px rgba(209, 178, 197, 0.16);
+  --shadow-md: -6px -6px 12px rgba(255, 255, 255, 0.85), 6px 6px 12px rgba(209, 178, 197, 0.22);
+  --shadow-lg: -10px -10px 20px rgba(255, 255, 255, 0.88), 10px 10px 20px rgba(209, 178, 197, 0.28);
+  --shadow-inset: inset -2px -2px 6px rgba(255, 255, 255, 0.92),
+    inset 2px 2px 6px rgba(209, 178, 197, 0.22);
+  --ion-text-color-rgb: 15, 23, 42;
+  --ion-background-color-rgb: 253, 244, 248;
+  --ion-color-primary: var(--accent);
+  --ion-color-primary-rgb: var(--accent-rgb);
+  --ion-color-primary-contrast: var(--accent-contrast);
+  --ion-color-primary-contrast-rgb: var(--accent-contrast-rgb);
+  --ion-color-primary-shade: var(--accent-shade);
+  --ion-color-primary-tint: var(--accent-tint);
+  --ion-focus-color: var(--accent);
+}
+
+[data-theme='dark'][data-style='neumorphism'] {
+  color-scheme: dark;
+  --bg: #161016;
+  --surface: #161016;
+  --surface-2: #1f171f;
+  --surface-3: #2a202a;
+  --border: rgba(249, 168, 212, 0.12);
+  --border-strong: rgba(244, 114, 182, 0.36);
+  --text: #f8f8f8;
+  --text-muted: #e2d6e2;
+  --text-faint: #c9b9c9;
+  --accent: #f472b6;
+  --accent-rgb: 244, 114, 182;
+  --accent-soft: rgba(244, 114, 182, 0.16);
+  --accent-ink: #f9a8d4;
+  --accent-contrast: #0f172a;
+  --accent-contrast-rgb: 15, 23, 42;
+  --accent-shade: #ec4899;
+  --accent-tint: #fbcfe8;
+  --on-accent: var(--accent-contrast);
+  --success: #22c55e;
+  --success-soft: rgba(34, 197, 94, 0.16);
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.16);
+  --warning: #fbbf24;
+  --warning-soft: rgba(251, 191, 36, 0.16);
+  --info: #38bdf8;
+  --info-soft: rgba(56, 189, 248, 0.16);
+  --ink: #f472b6;
+  --ink-rgb: 244, 114, 182;
+  --scrim: rgba(15, 8, 15, 0.64);
+  --shadow-sm: -4px -4px 8px rgba(40, 32, 40, 0.6), 4px 4px 8px rgba(10, 6, 10, 0.8);
+  --shadow-md: -6px -6px 12px rgba(40, 32, 40, 0.64), 6px 6px 12px rgba(10, 6, 10, 0.88);
+  --shadow-lg: -10px -10px 20px rgba(44, 36, 44, 0.68), 10px 10px 20px rgba(8, 4, 8, 0.92);
+  --shadow-inset: inset -2px -2px 6px rgba(44, 36, 44, 0.8), inset 2px 2px 6px rgba(8, 4, 8, 0.9);
+  --ion-text-color-rgb: 248, 248, 248;
+  --ion-background-color-rgb: 22, 16, 22;
+  --ion-color-primary: var(--accent);
+  --ion-color-primary-rgb: var(--accent-rgb);
+  --ion-color-primary-contrast: var(--accent-contrast);
+  --ion-color-primary-contrast-rgb: var(--accent-contrast-rgb);
+  --ion-color-primary-shade: var(--accent-shade);
+  --ion-color-primary-tint: var(--accent-tint);
+  --ion-focus-color: var(--accent);
+}
+
+/* ---- 4. components ---- */
+html[data-style='neumorphism'] .card,
+html[data-style='neumorphism'] .row-list,
+html[data-style='neumorphism'] .stat-tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  transition: box-shadow 200ms ease, transform 160ms ease;
+}
+
+html[data-style='neumorphism'] .card-hero {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+html[data-style='neumorphism'] .row-item {
+  border-bottom: 1px solid var(--border);
+}
+
+html[data-style='neumorphism'] .row-item:last-child {
+  border-bottom: none;
+}
+
+html[data-style='neumorphism'] .row-icon {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-style='neumorphism'] .abtn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 160ms ease, transform 140ms ease;
+}
+
+html[data-style='neumorphism'] .abtn:focus-visible {
+  outline: 3px solid var(--accent-soft);
+  outline-offset: 3px;
+}
+
+html[data-style='neumorphism'] .abtn-primary {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+}
+
+html[data-style='neumorphism'] .abtn-success {
+  background: var(--success);
+  color: #ffffff;
+}
+
+html[data-style='neumorphism'] .abtn-danger {
+  background: var(--danger);
+  color: #ffffff;
+}
+
+html[data-style='neumorphism'] .ainput-shell,
+html[data-style='neumorphism'] .asel-trigger,
+html[data-style='neumorphism'] .adp-shell,
+html[data-style='neumorphism'] .adp-nav,
+html[data-style='neumorphism'] .adp-foot-btn,
+html[data-style='neumorphism'] .asel-x,
+html[data-style='neumorphism'] .amd-x {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-inset);
+}
+
+html[data-style='neumorphism'] .ainput-focused .ainput-shell,
+html[data-style='neumorphism'] .asel-trigger-open {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-inset), 0 0 0 3px var(--accent-soft);
+}
+
+html[data-style='neumorphism'] .amd-panel,
+html[data-style='neumorphism'] .asel-sheet,
+html[data-style='neumorphism'] .adp-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+html[data-style='neumorphism'] .adp-day-selected {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-style='neumorphism'] .badge {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-style='neumorphism'] .badge-accent {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+html[data-style='neumorphism'] .badge-success {
+  background: var(--success);
+  color: #ffffff;
+}
+
+html[data-style='neumorphism'] .badge-danger {
+  background: var(--danger);
+  color: #ffffff;
+}
+
+html[data-style='neumorphism'] .badge-warning {
+  background: var(--warning);
+  color: #ffffff;
+}
+
+html[data-style='neumorphism'] .badge-info {
+  background: var(--info);
+  color: #ffffff;
+}
+
+/* ---- 5. motion ---- */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-style='neumorphism'] .abtn:active:not(.abtn-disabled) {
+    transform: scale(0.995);
+    box-shadow: var(--shadow-inset);
+  }
+  html[data-style='neumorphism'] .card:hover,
+  html[data-style='neumorphism'] .stat-tile:hover {
+    box-shadow: var(--shadow-lg);
+  }
+}
+
+/* ---- 6. density ---- */
+html[data-style='neumorphism'][data-density='comfortable'] {
+  --density-gap: 1.25rem;
+  --density-card-pad: 1.25rem 1.25rem;
+}
+
+html[data-style='neumorphism'][data-density='compact'] {
+  --density-gap: 0.875rem;
+  --density-card-pad: 0.875rem 0.875rem;
+}
+
+/* ---- 7. charts ---- */
+html[data-style='neumorphism'] .line-chart,
+html[data-style='neumorphism'] .donut-chart,
+html[data-style='neumorphism'] .bar-chart {
+  --chart-c0: #ec4899;
+  --chart-c1: #22c55e;
+  --chart-c2: #0284c7;
+  --chart-c3: #34d399;
+  --chart-c4: #a855f7;
+  --chart-c5: #f472b6;
+  --chart-c6: #38bdf8;
+  --chart-c7: #dc2626;
+}
+
+html[data-style='neumorphism'] .chart-grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+html[data-style='neumorphism'] .chart-zero {
+  stroke: var(--text-muted);
+  stroke-width: 1.6;
+}
+
+html[data-style='neumorphism'] .chart-axis-text {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  fill: var(--text-muted);
+}
+
+html[data-style='neumorphism'] .line-path {
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+html[data-style='neumorphism'] .line-area {
+  opacity: 0.1;
+}
+
+html[data-style='neumorphism'] .donut-track {
+  stroke: var(--surface-3);
+}
+
+html[data-style='neumorphism'] .bar-mark {
+  stroke: rgba(255, 255, 255, 0.4);
+  stroke-width: 1;
+}
+
+html[data-style='neumorphism'] .heat-cell {
+  rx: 12;
+}
+
+html[data-style='neumorphism'] .ring-track {
+  stroke: var(--surface-3);
+}
+
+html[data-style='neumorphism'] .donut-center-value,
+html[data-style='neumorphism'] .ring-value-text {
+  font-family: var(--font-body);
+  font-weight: 700;
+}

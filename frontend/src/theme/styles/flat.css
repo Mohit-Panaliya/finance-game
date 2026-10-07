@@ -1,0 +1,444 @@
+/* ============================================================
+   Style preset — flat (Flat Design)
+   ------------------------------------------------------------
+   Fonts:  Fira Sans (display + body) · Fira Code (all figures)
+   Signature: flat colour blocks on a quiet ground — no shadows
+               anywhere, solid 1px borders, 6–10px radius, a green
+               hero plate, ink bars behind every section head,
+               accent-tinted icon squares, chunky 700-weight
+               buttons with 110ms state swaps.
+   Accent: ds green, tuned per mode — #15803D in light (the ds
+           #22C55E only reaches 2.1:1 as text on white), vivid
+           #22C55E kept in dark where it clears 8:1.
+   ============================================================ */
+
+/* ---- 1. typography ---- */
+[data-style='flat'] {
+  --font-display: 'Fira Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-body: 'Fira Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+html[data-style='flat'] .page-title {
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+html[data-style='flat'] .page-subtitle {
+  font-weight: 400;
+}
+
+/* Section titles sit inside ink bars, so they get weight and size. */
+html[data-style='flat'] .section-title {
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  font-size: calc(0.8rem * var(--density-font-scale));
+}
+
+html[data-style='flat'] .card-label,
+html[data-style='flat'] .stat-tile-label {
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  font-size: calc(0.7rem * var(--density-font-scale));
+}
+
+/* Figures are monospaced blocks: bold, tabular, unambiguous. */
+html[data-style='flat'] .card-value,
+html[data-style='flat'] .card-value-sm,
+html[data-style='flat'] .stat-tile-value,
+html[data-style='flat'] .row-value {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+}
+
+html[data-style='flat'] .row-title {
+  font-weight: 700;
+}
+
+html[data-style='flat'] .section-note,
+html[data-style='flat'] .row-sub {
+  font-weight: 500;
+}
+
+html[data-style='flat'] .meta-val {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+/* ---- 2. geometry + shadows ---- */
+[data-style='flat'] {
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+}
+
+/* ---- 3. palettes ---- */
+[data-theme='light'][data-style='flat'] {
+  color-scheme: light;
+  --bg: #f8f9fa;
+  --surface: #ffffff;
+  --surface-2: #eef1f5;
+  --surface-3: #e3e8ef;
+  --border: #dde3ea;
+  --border-strong: #c3ccd7;
+  --text: #10151c;
+  --text-muted: #4a5561;
+  --text-faint: #5c6672;
+
+  --accent: #146c34;
+  --accent-rgb: 20, 108, 52;
+  --accent-soft: rgba(20, 108, 52, 0.12);
+  --accent-ink: #10592c;
+  --accent-contrast: #ffffff;
+  --accent-contrast-rgb: 255, 255, 255;
+  --accent-shade: #0e4c26;
+  --accent-tint: #1f8a4a;
+  --on-accent: #ffffff;
+
+  --success: #146c34;
+  --success-soft: rgba(20, 108, 52, 0.12);
+  --danger: #b21f1f;
+  --danger-soft: rgba(178, 31, 31, 0.12);
+  --warning: #8a5206;
+  --warning-soft: rgba(138, 82, 6, 0.14);
+  --info: #1d4ed8;
+  --info-soft: rgba(29, 78, 216, 0.12);
+
+  --ink: #10151c;
+  --ink-rgb: 16, 21, 28;
+  --ink-contrast: #ffffff;
+  --ink-contrast-rgb: 255, 255, 255;
+
+  --scrim: rgba(8, 12, 18, 0.45);
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+
+  --ion-text-color-rgb: 16, 21, 28;
+  --ion-background-color-rgb: 248, 249, 250;
+  --ion-color-primary: var(--accent);
+  --ion-color-primary-rgb: var(--accent-rgb);
+  --ion-color-primary-contrast: var(--accent-contrast);
+  --ion-color-primary-contrast-rgb: var(--accent-contrast-rgb);
+  --ion-color-primary-shade: var(--accent-shade);
+  --ion-color-primary-tint: var(--accent-tint);
+  --ion-focus-color: var(--accent);
+
+  /* Hero plate + a secondary block hue for charts. */
+  --style-flat-hero: #146c34;
+  --style-flat-hero-fg: #ffffff;
+  --style-flat-hero-muted: #eafaf0;
+  --style-flat-block-1: #7c3aed;
+}
+
+[data-theme='dark'][data-style='flat'] {
+  color-scheme: dark;
+  --bg: #111315;
+  --surface: #191e24;
+  --surface-2: #222831;
+  --surface-3: #2c333d;
+  --border: #333b45;
+  --border-strong: #4a545f;
+  --text: #f1f3f5;
+  --text-muted: #a8b2bd;
+  --text-faint: #93a0ad;
+
+  --accent: #22c55e;
+  --accent-rgb: 34, 197, 94;
+  --accent-soft: rgba(34, 197, 94, 0.14);
+  --accent-ink: #22c55e;
+  --accent-contrast: #052e16;
+  --accent-contrast-rgb: 5, 46, 22;
+  --accent-shade: #1aa64f;
+  --accent-tint: #4ade80;
+  --on-accent: #052e16;
+
+  --success: #22c55e;
+  --success-soft: rgba(34, 197, 94, 0.16);
+  --danger: #ff8a80;
+  --danger-soft: rgba(255, 138, 128, 0.16);
+  --warning: #fbbf24;
+  --warning-soft: rgba(251, 191, 36, 0.16);
+  --info: #38bdf8;
+  --info-soft: rgba(56, 189, 248, 0.16);
+
+  --ink: #e9ecef;
+  --ink-rgb: 233, 236, 239;
+  --ink-contrast: #111315;
+  --ink-contrast-rgb: 17, 19, 21;
+
+  --scrim: rgba(0, 0, 0, 0.7);
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+
+  --ion-text-color-rgb: 241, 243, 245;
+  --ion-background-color-rgb: 17, 19, 21;
+  --ion-color-primary: var(--accent);
+  --ion-color-primary-rgb: var(--accent-rgb);
+  --ion-color-primary-contrast: var(--accent-contrast);
+  --ion-color-primary-contrast-rgb: var(--accent-contrast-rgb);
+  --ion-color-primary-shade: var(--accent-shade);
+  --ion-color-primary-tint: var(--accent-tint);
+  --ion-focus-color: var(--accent);
+
+  --style-flat-hero: #22c55e;
+  --style-flat-hero-fg: #052e16;
+  --style-flat-hero-muted: #073b1d;
+  --style-flat-block-1: #a78bfa;
+}
+
+/* ---- 4. component signatures ---- */
+
+/* The hero is the loudest block on the page: a solid green plate. */
+html[data-style='flat'] .card-hero {
+  background: var(--style-flat-hero);
+  border: none;
+  border-radius: var(--radius-lg);
+  box-shadow: none;
+  color: var(--style-flat-hero-fg);
+}
+
+html[data-style='flat'] .card-hero .card-label {
+  color: var(--style-flat-hero-muted);
+}
+
+html[data-style='flat'] .card-hero .text-muted {
+  color: var(--style-flat-hero-muted);
+}
+
+/* Badges stay semantic inside the plate — solid chips, never soft washes. */
+html[data-style='flat'] .card-hero .badge-success {
+  background: #ffffff;
+  border-color: #ffffff;
+  color: #14532d;
+}
+html[data-style='flat'] .card-hero .badge-danger {
+  background: #7f1d1d;
+  border-color: #7f1d1d;
+  color: #ffe4e6;
+}
+
+/* Cards and tiles are blocks: flat fill, solid edge, no depth. */
+html[data-style='flat'] .card,
+html[data-style='flat'] .stat-tile,
+html[data-style='flat'] .row-list,
+html[data-style='flat'] .empty {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: none;
+}
+
+/* Icon squares are accent-tinted blocks. */
+html[data-style='flat'] .row-icon {
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+html[data-style='flat'] .row-item:active {
+  background: var(--surface-3);
+}
+
+/* Section heads are bold colour bars. */
+html[data-style='flat'] .section-head {
+  background: var(--ink);
+  border-radius: var(--radius-md);
+  padding: 9px 14px;
+}
+
+html[data-style='flat'] .section-title {
+  color: var(--ink-contrast);
+}
+
+html[data-style='flat'] .section-head .section-note {
+  color: var(--ink-contrast);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Chunky geometry: rectangles with weight, not pills. */
+html[data-style='flat'] .badge,
+html[data-style='flat'] .chip {
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+html[data-style='flat'] .chip {
+  background: var(--surface);
+  border-color: var(--border-strong);
+}
+
+html[data-style='flat'] .chip-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+
+html[data-style='flat'] .abtn {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-weight: 700;
+}
+html[data-style='flat'] .abtn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+}
+html[data-style='flat'] .abtn-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--accent-ink);
+}
+html[data-style='flat'] .abtn:active:not(.abtn-disabled) {
+  opacity: 1;
+  background: var(--surface-3);
+}
+html[data-style='flat'] .abtn-primary:active:not(.abtn-disabled) {
+  background: var(--accent-shade);
+}
+
+html[data-style='flat'] .ainput-shell,
+html[data-style='flat'] .asel-trigger,
+html[data-style='flat'] .adp-shell {
+  background: var(--surface);
+  border-color: var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+html[data-style='flat'] .ainput-focused .ainput-shell,
+html[data-style='flat'] .asel-trigger-open {
+  border-color: var(--accent);
+  box-shadow: none;
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+html[data-style='flat'] .amd-panel {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: none;
+}
+html[data-style='flat'] .amd-overlay {
+  backdrop-filter: none;
+}
+html[data-style='flat'] .amd-head {
+  background: var(--surface-2);
+}
+html[data-style='flat'] .amd-x {
+  border-radius: var(--radius-sm);
+}
+
+html[data-style='flat'] .empty-cta {
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 700;
+  text-align: center;
+}
+
+html[data-style='flat'] .bar {
+  border-radius: var(--radius-sm);
+  background: var(--surface-3);
+}
+html[data-style='flat'] .bar-fill {
+  border-radius: var(--radius-sm);
+}
+
+/* ---- 5. layout rhythm (density tokens are read, never written) ---- */
+html[data-style='flat'] .page {
+  gap: calc(var(--density-gap) + 2px);
+}
+
+html[data-style='flat'] .page-head {
+  padding-bottom: 10px;
+  border-bottom: 3px solid var(--ink);
+}
+
+html[data-style='flat'] .section {
+  gap: calc(var(--density-section-gap) + 4px);
+}
+
+/* ---- 6. effects ---- */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-style='flat'] .abtn,
+  html[data-style='flat'] .chip,
+  html[data-style='flat'] .row-item,
+  html[data-style='flat'] .side-link,
+  html[data-style='flat'] .app-nav-link {
+    transition: background 0.11s linear, color 0.11s linear, border-color 0.11s linear;
+  }
+  html[data-style='flat'] .bar-fill {
+    transition: width 0.12s linear;
+  }
+}
+
+/* ---- 7. charts ---- */
+
+/* Solid blocks, no gradients, bold hues on a clean baseline. */
+html[data-style='flat'] .line-chart,
+html[data-style='flat'] .bar-chart,
+html[data-style='flat'] .donut-chart {
+  --chart-c0: var(--accent);
+  --chart-c1: var(--info);
+  --chart-c2: var(--warning);
+  --chart-c3: var(--danger);
+  --chart-c4: var(--style-flat-block-1);
+  --chart-c5: var(--text-muted);
+  --chart-c6: var(--success);
+  --chart-c7: var(--text-faint);
+}
+
+html[data-style='flat'] .chart-grid {
+  stroke: var(--border-strong);
+  stroke-width: 1;
+}
+
+html[data-style='flat'] .chart-zero {
+  stroke: var(--text);
+  stroke-width: 2;
+  stroke-dasharray: none;
+}
+
+html[data-style='flat'] .chart-axis-text {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  fill: var(--text-muted);
+}
+
+html[data-style='flat'] .line-path {
+  stroke-width: 3;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+}
+
+/* The gradient stops are replaced by one flat wash. */
+html[data-style='flat'] .line-area {
+  fill: var(--accent-soft);
+}
+
+html[data-style='flat'] .bar-mark {
+  rx: 0;
+  opacity: 1;
+}
+
+html[data-style='flat'] .donut-track {
+  stroke: var(--surface-3);
+}
+
+html[data-style='flat'] .heat-cell {
+  rx: 0;
+}
+
+html[data-style='flat'] .legend-dot {
+  border-radius: 3px;
+}

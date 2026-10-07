@@ -1,0 +1,462 @@
+/* ============================================================
+   Style preset — material (Material Design 3 Expressive)
+   ------------------------------------------------------------
+   Fonts:  Roboto 300–700 (display + body) · IBM Plex Mono (data)
+   Signature: M3 tonal surface ladder off a purple seed (no card
+               borders — elevation instead), 12/16/28px rounding,
+               pill filled buttons, accent state layers at 10% on
+               hover/press, filled text fields with a 2px underline,
+               nav indicator pill, and an extended-FAB empty CTA.
+   Accent: purple, M3-tuned per mode — #6750A4 light (the ds
+           #8B5CF6 lands at 4.0:1 on the light ground), #A78BFA
+           dark (6.8:1). The ds gold survives as the hero's tonal
+           container in both modes and as --warning in dark;
+           light --warning is darkened to #92400E for 4.5:1.
+   ============================================================ */
+
+/* ---- 1. typography ---- */
+[data-style='material'] {
+  --font-display: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-body: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+html[data-style='material'] .page-title {
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+html[data-style='material'] .page-subtitle {
+  font-weight: 400;
+}
+
+/* M3 label role: small, medium weight, modest tracking. */
+html[data-style='material'] .section-title,
+html[data-style='material'] .card-label,
+html[data-style='material'] .stat-tile-label {
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  font-size: calc(0.72rem * var(--density-font-scale));
+}
+
+html[data-style='material'] .card-value {
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+html[data-style='material'] .card-value-sm,
+html[data-style='material'] .stat-tile-value {
+  font-weight: 500;
+}
+
+html[data-style='material'] .row-title {
+  font-weight: 500;
+}
+
+html[data-style='material'] .row-value {
+  font-weight: 500;
+}
+
+html[data-style='material'] .section-note,
+html[data-style='material'] .row-sub,
+html[data-style='material'] .meta-key {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
+/* ---- 2. geometry + shadows ---- */
+[data-style='material'] {
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 28px;
+}
+
+/* ---- 3. palettes (tonal ladder off the purple seed) ---- */
+[data-theme='light'][data-style='material'] {
+  color-scheme: light;
+  --bg: #f7f9fc;
+  --surface: #fdfbff;
+  --surface-2: #f1edf9;
+  --surface-3: #e9e4f4;
+  --border: #ded8ec;
+  --border-strong: #c8c1da;
+  --text: #1b1725;
+  --text-muted: #575069;
+  --text-faint: #6b6480;
+
+  --accent: #6750a4;
+  --accent-rgb: 103, 80, 164;
+  --accent-soft: rgba(103, 80, 164, 0.1);
+  --accent-ink: #4f378b;
+  --accent-contrast: #ffffff;
+  --accent-contrast-rgb: 255, 255, 255;
+  --accent-shade: #59418f;
+  --accent-tint: #7e6bb5;
+  --on-accent: #ffffff;
+
+  --success: #176b2f;
+  --success-soft: rgba(23, 107, 47, 0.12);
+  --danger: #b3261e;
+  --danger-soft: rgba(179, 38, 30, 0.12);
+  --warning: #92400e;
+  --warning-soft: rgba(146, 64, 14, 0.14);
+  --info: #00639b;
+  --info-soft: rgba(0, 99, 155, 0.12);
+
+  --ink: #1b1725;
+  --ink-rgb: 27, 23, 37;
+  --ink-contrast: #ffffff;
+  --ink-contrast-rgb: 255, 255, 255;
+
+  --scrim: rgba(20, 16, 32, 0.42);
+  --shadow-sm: 0 1px 2px rgba(40, 32, 64, 0.12);
+  --shadow-md: 0 3px 10px rgba(40, 32, 64, 0.14);
+  --shadow-lg: 0 14px 34px rgba(40, 32, 64, 0.2);
+
+  --ion-text-color-rgb: 27, 23, 37;
+  --ion-background-color-rgb: 247, 249, 252;
+  --ion-color-primary: var(--accent);
+  --ion-color-primary-rgb: var(--accent-rgb);
+  --ion-color-primary-contrast: var(--accent-contrast);
+  --ion-color-primary-contrast-rgb: var(--accent-contrast-rgb);
+  --ion-color-primary-shade: var(--accent-shade);
+  --ion-color-primary-tint: var(--accent-tint);
+  --ion-focus-color: var(--accent);
+
+  /* Gold, kept as the hero's tonal container. */
+  --style-material-hero: #fdf1dd;
+  --style-material-hero-fg: #1b1725;
+}
+
+[data-theme='dark'][data-style='material'] {
+  color-scheme: dark;
+  --bg: #101418;
+  --surface: #17161d;
+  --surface-2: #1f1d27;
+  --surface-3: #2a2733;
+  --border: #363344;
+  --border-strong: #4a465e;
+  --text: #f4f0fa;
+  --text-muted: #c4bed4;
+  --text-faint: #9a94ab;
+
+  --accent: #a78bfa;
+  --accent-rgb: 167, 139, 250;
+  --accent-soft: rgba(167, 139, 250, 0.12);
+  --accent-ink: #a78bfa;
+  --accent-contrast: #1b1040;
+  --accent-contrast-rgb: 27, 16, 64;
+  --accent-shade: #8f73e4;
+  --accent-tint: #bca7ff;
+  --on-accent: #1b1040;
+
+  --success: #66bb6a;
+  --success-soft: rgba(102, 187, 106, 0.16);
+  --danger: #ff8a80;
+  --danger-soft: rgba(255, 138, 128, 0.16);
+  --warning: #f59e0b;
+  --warning-soft: rgba(245, 158, 11, 0.16);
+  --info: #8ab4f8;
+  --info-soft: rgba(138, 180, 248, 0.16);
+
+  --ink: #f4f0fa;
+  --ink-rgb: 244, 240, 250;
+  --ink-contrast: #101418;
+  --ink-contrast-rgb: 16, 20, 24;
+
+  --scrim: rgba(0, 0, 0, 0.66);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.6);
+
+  --ion-text-color-rgb: 244, 240, 250;
+  --ion-background-color-rgb: 16, 20, 24;
+  --ion-color-primary: var(--accent);
+  --ion-color-primary-rgb: var(--accent-rgb);
+  --ion-color-primary-contrast: var(--accent-contrast);
+  --ion-color-primary-contrast-rgb: var(--accent-contrast-rgb);
+  --ion-color-primary-shade: var(--accent-shade);
+  --ion-color-primary-tint: var(--accent-tint);
+  --ion-focus-color: var(--accent);
+
+  /* The same gold, dropped into a dark tonal container. */
+  --style-material-hero: #2b2417;
+  --style-material-hero-fg: #f6ead1;
+}
+
+/* ---- 4. component signatures ---- */
+
+/* Hero rides the gold container instead of a gradient + border. */
+html[data-style='material'] .card-hero {
+  background: var(--style-material-hero);
+  color: var(--style-material-hero-fg);
+  border: none;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Badges on the gold plate get a solid surface so their own text keeps 4.5:1. */
+html[data-style='material'] .card-hero .badge {
+  background: var(--surface);
+  border-color: transparent;
+}
+
+/* Elevation replaces outlines: tonal cards, no borders. */
+html[data-style='material'] .card,
+html[data-style='material'] .row-list {
+  background: var(--surface);
+  border-color: transparent;
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-style='material'] .stat-tile {
+  background: var(--surface-2);
+  border-color: transparent;
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-style='material'] .empty {
+  background: var(--surface-2);
+  border-color: var(--border);
+}
+
+/* State layers: the accent at ~10% over the tonal surface. */
+html[data-style='material'] .row-item:hover,
+html[data-style='material'] .row-item:active {
+  background: var(--accent-soft);
+}
+
+html[data-style='material'] .row-icon {
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  border-color: transparent;
+  color: var(--accent-ink);
+}
+
+/* M3 buttons are pills; the primary one is filled. */
+html[data-style='material'] .abtn {
+  background: var(--surface-3);
+  border: none;
+  border-radius: 999px;
+  color: var(--accent-ink);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+html[data-style='material'] .abtn-primary {
+  background: var(--accent);
+  border: none;
+  color: var(--on-accent);
+}
+html[data-style='material'] .abtn-neutral {
+  background: var(--surface-3);
+  border: none;
+  color: var(--text);
+}
+html[data-style='material'] .abtn-ghost {
+  background: transparent;
+  border: none;
+  color: var(--accent-ink);
+}
+html[data-style='material'] .abtn:active:not(.abtn-disabled) {
+  opacity: 1;
+  background: var(--accent-soft);
+}
+html[data-style='material'] .abtn-primary:active:not(.abtn-disabled) {
+  background: var(--accent-shade);
+}
+html[data-style='material'] .abtn:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Filled text fields: tonal box, 2px underline instead of a ring. */
+html[data-style='material'] .ainput-shell,
+html[data-style='material'] .asel-trigger,
+html[data-style='material'] .adp-shell {
+  background: var(--surface-3);
+  border: none;
+  border-bottom: 2px solid var(--border-strong);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+html[data-style='material'] .ainput-focused .ainput-shell,
+html[data-style='material'] .asel-trigger-open {
+  border-bottom-color: var(--accent);
+  box-shadow: none;
+}
+
+/* Chips at M3's 8px, selected chip = accent container. */
+html[data-style='material'] .chip {
+  background: var(--surface-3);
+  border-color: var(--border-strong);
+  border-radius: 8px;
+  font-weight: 500;
+}
+html[data-style='material'] .chip-active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+html[data-style='material'] .badge {
+  font-weight: 500;
+}
+
+/* Sheets and dialogs get the 28px top radius and elevation only. */
+html[data-style='material'] .amd-panel {
+  background: var(--surface);
+  border: none;
+  box-shadow: var(--shadow-lg);
+}
+html[data-style='material'] .amd-head {
+  background: var(--surface-2);
+  border-bottom: none;
+}
+html[data-style='material'] .amd-foot {
+  border-top: none;
+}
+html[data-style='material'] .amd-x {
+  background: var(--surface-3);
+  border: none;
+  color: var(--accent-ink);
+}
+
+/* Extended FAB for the empty state's call to action. */
+html[data-style='material'] .empty-cta {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-radius: 999px;
+  box-shadow: var(--shadow-md);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  padding: 14px 24px;
+}
+html[data-style='material'] .empty-cta:active {
+  background: var(--accent-shade);
+}
+
+/* Nav: tonal bar, indicator pill behind the active icon. */
+html[data-style='material'] .app-nav {
+  background: var(--surface-2);
+  border-top: 1px solid var(--border);
+}
+html[data-style='material'] .app-nav-link-active {
+  color: var(--accent-ink);
+}
+html[data-style='material'] .app-nav-link-active .app-nav-icon {
+  background: var(--accent-soft);
+  border-radius: 999px;
+  padding: 2px 14px;
+}
+
+html[data-style='material'] .side-nav {
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+}
+html[data-style='material'] .side-link-active {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+html[data-style='material'] .side-logo {
+  border-radius: var(--radius-sm);
+}
+
+/* ---- 5. layout rhythm (density tokens are read, never written) ---- */
+html[data-style='material'] .page {
+  gap: calc(var(--density-gap) + 5px);
+}
+
+html[data-style='material'] .section {
+  gap: calc(var(--density-section-gap) + 5px);
+}
+
+html[data-style='material'] .section-head {
+  padding: 0 4px;
+}
+
+html[data-style='material'] .stat-grid {
+  gap: calc(var(--density-gap) + 2px);
+}
+
+/* ---- 6. effects ---- */
+html[data-style='material'] :focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html[data-style='material'] .abtn,
+  html[data-style='material'] .chip,
+  html[data-style='material'] .row-item,
+  html[data-style='material'] .side-link,
+  html[data-style='material'] .app-nav-link {
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  html[data-style='material'] .card,
+  html[data-style='material'] .stat-tile,
+  html[data-style='material'] .row-list {
+    transition: box-shadow 0.2s ease, background 0.2s ease;
+  }
+}
+
+/* ---- 7. charts ---- */
+
+/* Tonal fills: purple leads, status hues support, soft grid behind. */
+html[data-style='material'] .line-chart,
+html[data-style='material'] .bar-chart,
+html[data-style='material'] .donut-chart {
+  --chart-c0: var(--accent);
+  --chart-c1: var(--info);
+  --chart-c2: var(--success);
+  --chart-c3: var(--warning);
+  --chart-c4: var(--danger);
+  --chart-c5: var(--text-muted);
+  --chart-c6: var(--text-faint);
+  --chart-c7: var(--border-strong);
+}
+
+html[data-style='material'] .chart-grid {
+  stroke: var(--border);
+  stroke-width: 1;
+  stroke-opacity: 0.7;
+}
+
+html[data-style='material'] .chart-axis-text {
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 500;
+  fill: var(--text-muted);
+}
+
+html[data-style='material'] .line-path {
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+html[data-style='material'] .line-area {
+  fill: var(--accent-soft);
+}
+
+html[data-style='material'] .bar-mark {
+  rx: 6;
+  opacity: 1;
+}
+
+html[data-style='material'] .bar-mark.is-active {
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.35));
+}
+
+html[data-style='material'] .donut-track {
+  stroke: var(--surface-3);
+}
+
+html[data-style='material'] .donut-slice.is-active {
+  filter: brightness(1.08) drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
+}
+
+html[data-style='material'] .heat-cell {
+  rx: 4;
+}
+
+html[data-style='material'] .ring-value {
+  stroke-linecap: round;
+}

@@ -116,8 +116,26 @@ const ACCENTS: AccentName[] = ACCENT_PALETTES.map((p) => p.name)
 const DENSITY_VALUES: Density[] = ['comfortable', 'compact']
 const STYLES: StyleId[] = FLAT_STYLES.map((s) => s.value)
 
-/** Matches `--bg` in `src/theme/app.css`; drives the pre-paint colour in `index.html`. */
-const PAGE_BG: Record<ResolvedTheme, string> = { light: '#eef1f6', dark: '#0f1115' }
+/**
+ * Matches `--bg` per style in `src/theme/styles/*.css`; drives the pre-paint
+ * colour and the browser-chrome meta. The inline bootstrap in `index.html`
+ * carries the same table (`styleBg`) — change one, change both.
+ */
+const PAGE_BG: Record<StyleId, Record<ResolvedTheme, string>> = {
+  flexoki: { light: '#fffcf0', dark: '#0d0c0c' },
+  minimalism: { light: '#ffffff', dark: '#0f0f0f' },
+  flat: { light: '#f8f9fa', dark: '#111315' },
+  material: { light: '#f7f9fc', dark: '#101418' },
+  bento: { light: '#f6f7fb', dark: '#0c1026' },
+  glassmorphism: { light: '#f2f4f8', dark: '#05070f' },
+  neumorphism: { light: '#e6e9ef', dark: '#14171c' },
+  claymorphism: { light: '#f2ebe2', dark: '#1a1610' },
+  skeuomorphism: { light: '#dcdcdc', dark: '#161616' },
+  neobrutalism: { light: '#ffffff', dark: '#0a0a0a' },
+  liquidglass: { light: '#f1f5ff', dark: '#040814' },
+  y2k: { light: '#e8e5ff', dark: '#050510' },
+  cyberpunk: { light: '#fafbfc', dark: '#050505' }
+}
 
 interface StoredTheme {
   mode: ThemeMode
@@ -187,12 +205,13 @@ function apply(): void {
   setAttr('data-density', density.value)
   setAttr('data-style', style.value)
   const el = document.documentElement
-  if (el.style.getPropertyValue('--boot-bg') !== PAGE_BG[theme]) {
-    el.style.setProperty('--boot-bg', PAGE_BG[theme])
+  const bg = PAGE_BG[style.value][theme]
+  if (el.style.getPropertyValue('--boot-bg') !== bg) {
+    el.style.setProperty('--boot-bg', bg)
   }
   const meta = document.querySelector('meta[name="theme-color"]')
-  if (meta && meta.getAttribute('content') !== PAGE_BG[theme]) {
-    meta.setAttribute('content', PAGE_BG[theme])
+  if (meta && meta.getAttribute('content') !== bg) {
+    meta.setAttribute('content', bg)
   }
 }
 

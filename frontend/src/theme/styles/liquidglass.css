@@ -1,0 +1,400 @@
+/* ============================================================
+   Style preset — liquidglass
+   ------------------------------------------------------------
+   Fonts:  Karla (body) · Playfair Display SC (display) · ui-monospace
+   Signature: Apple optical glass — frosted translucency over a layered
+               gradient, a 1px specular edge on every raised surface,
+               24–32px radii, a floating pill nav, lens buttons.
+   Accent: pinned navy #1E3A8A (light) / #3B82F6 (dark). The ds gold
+           #A16207 rides --warning, the specular highlight and the hero
+           sheen, because --accent has exactly one slot.
+   ============================================================ */
+
+/* ---- 1. typography ---- */
+[data-style='liquidglass'] {
+  --font-body: 'Karla', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Playfair Display SC', 'Playfair Display', Georgia, serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+html[data-style='liquidglass'] .page-title {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+html[data-style='liquidglass'] .page-subtitle {
+  font-weight: 500;
+}
+
+html[data-style='liquidglass'] .section-title,
+html[data-style='liquidglass'] .card-label,
+html[data-style='liquidglass'] .stat-tile-label {
+  font-family: var(--font-body);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  font-size: calc(0.7rem * var(--density-font-scale));
+}
+
+html[data-style='liquidglass'] .card-value {
+  font-weight: 700;
+  letter-spacing: 0;
+  text-shadow: 0 1px 0 var(--style-lg-hi);
+}
+
+html[data-style='liquidglass'] .row-title {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+html[data-style='liquidglass'] .row-sub,
+html[data-style='liquidglass'] .section-note,
+html[data-style='liquidglass'] .meta-key {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.01em;
+}
+
+/* ---- 2. geometry + shadows ---- */
+[data-style='liquidglass'] {
+  --radius-sm: 16px;
+  --radius-md: 24px;
+  --radius-lg: 32px;
+}
+
+/* ---- 3. palettes ----
+   Surfaces are translucent: --bg shows through them, so the glass tint
+   is built around the frozen page colour rather than replacing it. */
+[data-theme='light'][data-style='liquidglass'] {
+  color-scheme: light;
+  --bg: #f1f5ff;
+  --surface: rgba(255, 255, 255, 0.66);
+  --surface-2: rgba(255, 255, 255, 0.8);
+  --surface-3: rgba(255, 255, 255, 0.94);
+  --border: rgba(30, 58, 138, 0.16);
+  --border-strong: rgba(30, 58, 138, 0.3);
+  --text: #131a33;
+  --text-muted: #4b5673;
+  --text-faint: #656f8c;
+  --accent: #1e3a8a;
+  --accent-rgb: 30, 58, 138;
+  --accent-soft: rgba(30, 58, 138, 0.12);
+  --accent-ink: #1e3a8a;
+  --accent-contrast: #ffffff;
+  --accent-contrast-rgb: 255, 255, 255;
+  --accent-shade: #172c6e;
+  --accent-tint: #2f55b8;
+  --on-accent: var(--accent-contrast);
+  --success: #0f6e4c;
+  --success-soft: rgba(15, 110, 76, 0.12);
+  --danger: #b32a21;
+  --danger-soft: rgba(179, 42, 33, 0.12);
+  --warning: #8f5606;
+  --warning-soft: rgba(143, 86, 6, 0.12);
+  --info: #0b6aa8;
+  --info-soft: rgba(11, 106, 168, 0.12);
+  --ink: #14265f;
+  --ink-rgb: 20, 38, 95;
+  --ink-contrast: #f6f9ff;
+  --ink-contrast-rgb: 246, 249, 255;
+  --scrim: rgba(15, 23, 42, 0.4);
+  --shadow-sm: 0 2px 8px rgba(24, 44, 110, 0.1);
+  --shadow-md: 0 10px 30px rgba(24, 44, 110, 0.14);
+  --shadow-lg: 0 28px 70px rgba(24, 44, 110, 0.2);
+  --ion-text-color-rgb: 19, 26, 51;
+  --ion-background-color-rgb: 241, 245, 255;
+  --ion-color-primary: var(--accent);
+  --ion-color-primary-rgb: var(--accent-rgb);
+  --ion-color-primary-contrast: var(--accent-contrast);
+  --ion-color-primary-contrast-rgb: var(--accent-contrast-rgb);
+  --ion-color-primary-shade: var(--accent-shade);
+  --ion-color-primary-tint: var(--accent-tint);
+  --ion-focus-color: var(--accent);
+  --style-lg-top: rgba(255, 255, 255, 0.82);
+  --style-lg-bottom: rgba(226, 236, 255, 0.55);
+  --style-lg-hi: rgba(255, 255, 255, 0.95);
+  --style-lg-sheen: rgba(161, 98, 7, 0.16);
+  --style-lg-rim: rgba(30, 58, 138, 0.35);
+}
+
+[data-theme='dark'][data-style='liquidglass'] {
+  color-scheme: dark;
+  --bg: #040814;
+  --surface: rgba(20, 30, 60, 0.62);
+  --surface-2: rgba(26, 38, 74, 0.68);
+  --surface-3: rgba(34, 48, 90, 0.78);
+  --border: rgba(120, 150, 255, 0.28);
+  --border-strong: rgba(150, 180, 255, 0.45);
+  --text: #eff3ff;
+  --text-muted: #b9c4e6;
+  --text-faint: #8a97c4;
+  --accent: #3b82f6;
+  --accent-rgb: 59, 130, 246;
+  --accent-soft: rgba(59, 130, 246, 0.15);
+  --accent-ink: #8ab6ff;
+  --accent-contrast: #061024;
+  --accent-contrast-rgb: 6, 16, 36;
+  --accent-shade: #2f6ad0;
+  --accent-tint: #63a0ff;
+  --on-accent: var(--accent-contrast);
+  --success: #3fcf8e;
+  --success-soft: rgba(63, 207, 142, 0.15);
+  --danger: #ff8080;
+  --danger-soft: rgba(255, 128, 128, 0.15);
+  --warning: #e9b949;
+  --warning-soft: rgba(233, 185, 73, 0.15);
+  --info: #5bc8f5;
+  --info-soft: rgba(91, 200, 245, 0.15);
+  --ink: #e8eeff;
+  --ink-rgb: 232, 238, 255;
+  --ink-contrast: #061026;
+  --ink-contrast-rgb: 6, 16, 38;
+  --scrim: rgba(2, 6, 20, 0.72);
+  --shadow-sm: 0 2px 10px rgba(60, 110, 255, 0.18);
+  --shadow-md: 0 12px 36px rgba(60, 110, 255, 0.24);
+  --shadow-lg: 0 30px 80px rgba(60, 110, 255, 0.32);
+  --ion-text-color-rgb: 239, 243, 255;
+  --ion-background-color-rgb: 4, 8, 20;
+  --ion-color-primary: var(--accent);
+  --ion-color-primary-rgb: var(--accent-rgb);
+  --ion-color-primary-contrast: var(--accent-contrast);
+  --ion-color-primary-contrast-rgb: var(--accent-contrast-rgb);
+  --ion-color-primary-shade: var(--accent-shade);
+  --ion-color-primary-tint: var(--accent-tint);
+  --ion-focus-color: var(--accent);
+  --style-lg-top: rgba(46, 66, 120, 0.62);
+  --style-lg-bottom: rgba(14, 22, 46, 0.55);
+  --style-lg-hi: rgba(255, 255, 255, 0.35);
+  --style-lg-sheen: rgba(233, 185, 73, 0.2);
+  --style-lg-rim: rgba(255, 255, 255, 0.5);
+}
+
+/* ---- 4. component signatures ---- */
+
+/* One pane of glass: layered translucent gradient, lensing blur, a 1px
+   specular edge on top and a soft float underneath. */
+html[data-style='liquidglass'] .card,
+html[data-style='liquidglass'] .card-hero,
+html[data-style='liquidglass'] .row-list,
+html[data-style='liquidglass'] .stat-tile {
+  position: relative;
+  background: linear-gradient(160deg, var(--style-lg-top) 0%, var(--style-lg-bottom) 72%);
+  border-color: var(--border);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  box-shadow:
+    inset 0 1px 0 var(--style-lg-hi),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+    var(--shadow-md);
+}
+
+/* The hero is the big lens: gold sheen top-right, deeper float. */
+html[data-style='liquidglass'] .card-hero {
+  border-color: var(--border-strong);
+  background:
+    radial-gradient(120% 90% at 88% -10%, var(--style-lg-sheen), transparent 62%),
+    linear-gradient(160deg, var(--style-lg-top) 0%, var(--style-lg-bottom) 72%);
+  box-shadow:
+    inset 0 1px 0 var(--style-lg-hi),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.22),
+    var(--shadow-lg);
+}
+
+/* Buttons read as lenses, not slabs. */
+html[data-style='liquidglass'] .abtn {
+  border-radius: 999px;
+  border-color: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 6px 18px rgba(var(--accent-rgb), 0.24);
+}
+
+html[data-style='liquidglass'] .abtn-primary {
+  background: linear-gradient(160deg, rgba(var(--accent-rgb), 0.96) 0%, rgba(var(--accent-rgb), 0.78) 100%);
+  color: var(--accent-contrast);
+}
+
+html[data-style='liquidglass'] .abtn-neutral,
+html[data-style='liquidglass'] .ainput-shell,
+html[data-style='liquidglass'] .asel-trigger,
+html[data-style='liquidglass'] .adp-shell,
+html[data-style='liquidglass'] .badge,
+html[data-style='liquidglass'] .chip,
+html[data-style='liquidglass'] .schip,
+html[data-style='liquidglass'] .amd-x,
+html[data-style='liquidglass'] .asel-x {
+  background: linear-gradient(160deg, var(--style-lg-top), var(--style-lg-bottom));
+  border-color: var(--border);
+  box-shadow: inset 0 1px 0 var(--style-lg-hi);
+}
+
+html[data-style='liquidglass'] .ainput-focused .ainput-shell,
+html[data-style='liquidglass'] .asel-trigger-open {
+  border-color: var(--accent);
+  box-shadow: inset 0 1px 0 var(--style-lg-hi), 0 0 0 3px var(--accent-soft);
+}
+
+html[data-style='liquidglass'] .amd-panel,
+html[data-style='liquidglass'] .adp-panel {
+  border-radius: var(--radius-lg);
+  background: linear-gradient(160deg, var(--style-lg-top), var(--style-lg-bottom));
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  box-shadow: inset 0 1px 0 var(--style-lg-hi), var(--shadow-lg);
+}
+
+html[data-style='liquidglass'] .row-icon {
+  border-radius: 14px;
+  background: linear-gradient(160deg, var(--style-lg-top), var(--style-lg-bottom));
+  border-color: var(--border);
+  box-shadow: inset 0 1px 0 var(--style-lg-hi);
+}
+
+html[data-style='liquidglass'] .row-item:active {
+  background: rgba(var(--accent-rgb), 0.08);
+}
+
+html[data-style='liquidglass'] .empty,
+html[data-style='liquidglass'] .empty-cta {
+  border-radius: var(--radius-lg);
+}
+
+html[data-style='liquidglass'] .empty-cta {
+  background: linear-gradient(160deg, rgba(var(--accent-rgb), 0.96), rgba(var(--accent-rgb), 0.78));
+  color: var(--accent-contrast);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 6px 18px rgba(var(--accent-rgb), 0.3);
+}
+
+/* Nav floats as its own frosted capsule above the page. */
+html[data-style='liquidglass'] .app-nav {
+  left: 12px;
+  right: 12px;
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  height: 58px;
+  padding-bottom: 0;
+  border: 1px solid var(--border);
+  border-radius: 26px;
+  overflow: hidden;
+  background: linear-gradient(160deg, var(--style-lg-top), var(--style-lg-bottom));
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  box-shadow: inset 0 1px 0 var(--style-lg-hi), var(--shadow-lg);
+}
+
+html[data-style='liquidglass'] .app-nav-link-active {
+  color: var(--accent-ink);
+  text-shadow: 0 1px 12px rgba(var(--accent-rgb), 0.45);
+}
+
+html[data-style='liquidglass'] .side-nav {
+  background: linear-gradient(180deg, var(--style-lg-top), var(--style-lg-bottom));
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+}
+
+html[data-style='liquidglass'] .app-content::part(scroll) {
+  padding-bottom: calc(var(--nav-height) + 26px);
+}
+
+/* ---- 5. layout rhythm (density tokens are read, never written) ---- */
+html[data-style='liquidglass'] .page {
+  gap: calc(var(--density-gap) + 6px);
+  padding-top: calc(var(--density-page-pad) + 4px);
+}
+
+html[data-style='liquidglass'] .card {
+  padding: calc(var(--density-card-pad) + 4px);
+}
+
+html[data-style='liquidglass'] .card-hero {
+  padding: calc(var(--density-hero-pad) + 8px);
+}
+
+html[data-style='liquidglass'] .section-head {
+  padding: 0 4px;
+}
+
+/* ---- 6. effects ---- */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-style='liquidglass'] .row-item,
+  html[data-style='liquidglass'] .chip,
+  html[data-style='liquidglass'] .badge,
+  html[data-style='liquidglass'] .abtn,
+  html[data-style='liquidglass'] .app-nav-link {
+    transition:
+      background 0.2s ease,
+      color 0.2s ease,
+      border-color 0.2s ease,
+      box-shadow 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  html[data-style='liquidglass'] .abtn:active:not(.abtn-disabled) {
+    transform: translateY(1px);
+  }
+}
+
+/* ---- 7. charts ---- */
+html[data-style='liquidglass'] .chart-grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+html[data-style='liquidglass'] .chart-axis-text {
+  font-family: var(--font-body);
+  font-size: 10px;
+  letter-spacing: 0.03em;
+}
+
+html[data-style='liquidglass'] .line-path {
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 4px 10px rgba(var(--accent-rgb), 0.35));
+}
+
+html[data-style='liquidglass'] .line-area {
+  opacity: 0.9;
+}
+
+html[data-style='liquidglass'] .donut-slice {
+  opacity: 0.9;
+  filter: drop-shadow(0 1px 2px var(--style-lg-rim));
+}
+
+html[data-style='liquidglass'] .bar-mark {
+  rx: 6;
+}
+
+html[data-style='liquidglass'] .heat-cell {
+  rx: 5;
+}
+
+html[data-style='liquidglass'] .ring-value {
+  filter: drop-shadow(0 2px 6px rgba(var(--accent-rgb), 0.3));
+}
+
+html[data-theme='light'][data-style='liquidglass'] .line-chart,
+html[data-theme='light'][data-style='liquidglass'] .donut-chart,
+html[data-theme='light'][data-style='liquidglass'] .bar-chart {
+  --chart-c0: #1e3a8a;
+  --chart-c1: #a16207;
+  --chart-c2: #3b6fe0;
+  --chart-c3: #0e7490;
+  --chart-c4: #7c3aed;
+  --chart-c5: #be123c;
+  --chart-c6: #047857;
+  --chart-c7: #db2777;
+}
+
+html[data-theme='dark'][data-style='liquidglass'] .line-chart,
+html[data-theme='dark'][data-style='liquidglass'] .donut-chart,
+html[data-theme='dark'][data-style='liquidglass'] .bar-chart {
+  --chart-c0: #6ea1ff;
+  --chart-c1: #e9b949;
+  --chart-c2: #93b4ff;
+  --chart-c3: #38bdf8;
+  --chart-c4: #a78bfa;
+  --chart-c5: #fb7185;
+  --chart-c6: #34d399;
+  --chart-c7: #f472b6;
+}

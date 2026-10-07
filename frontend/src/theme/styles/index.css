@@ -1,0 +1,40 @@
+/* One file per style preset, one preset per design — typography, palette,
+   component signatures, layout rhythm, effects and charts, light and dark.
+   Imported after app.css (see src/main.ts) so equal-specificity preset rules
+   win against the base component rules.
+
+   Conventions for every file in this folder:
+
+     [data-style='x']                            tokens shared by both modes
+     [data-theme='light'][data-style='x']        light-only tokens
+     [data-theme='dark'][data-style='x']         dark-only tokens
+     html[data-style='x'] .thing                 component/layout restyling
+     html[data-theme='light'][data-style='x'] .thing   ... light only
+
+   The `html` prefix is not decoration: SFC <style scoped> compiles to
+   `.class[data-v-hash]` — (0,2,0) — and compounds or :state variants climb
+   higher still, so a bare `[data-style='x'] .thing` can lose inside a
+   component. `html[data-style='x'] .thing` is (0,2,1) and the two-attribute
+   form is (0,3,1).
+
+   Rules:
+     - never redefine the --density-* tokens (density composes, style differentiates)
+     - never redefine --bg values: they are mirrored in the pre-paint bootstrap
+       in index.html and PAGE_BG in composables/useTheme.ts
+     - every preset ships BOTH a light and a dark palette
+     - body text >= 4.5:1 against its own surface in both modes
+     - heavy effects only under `@media (prefers-reduced-motion: no-preference)`
+*/
+@import './flexoki.css';
+@import './minimalism.css';
+@import './flat.css';
+@import './material.css';
+@import './bento.css';
+@import './glassmorphism.css';
+@import './neumorphism.css';
+@import './claymorphism.css';
+@import './skeuomorphism.css';
+@import './neobrutalism.css';
+@import './liquidglass.css';
+@import './y2k.css';
+@import './cyberpunk.css';

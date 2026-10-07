@@ -1,0 +1,538 @@
+/* ============================================================
+   Style preset — neobrutalism
+   ------------------------------------------------------------
+   Fonts:  Space Grotesk (display + body) · IBM Plex Mono (data)
+   Signature: zero radius, 2–3px solid ink borders, hard offset shadows
+              (4–6px, never blurred), uppercase 700 titles, a thick rule under
+              every section head, sticker chips with a ±1.5° tilt, and instant
+              press — buttons physically shove into their shadow.
+   Accent: pinned to hot pink #EC4899 in both modes with black ink;
+           #BE185D (light) / #F472B6 (dark) are the text-safe pinks.
+   ============================================================ */
+
+/* ---- 1. typography ---- */
+[data-style='neobrutalism'] {
+  --font-display: 'Space Grotesk', 'IBM Plex Sans', system-ui, sans-serif;
+  --font-body: 'Space Grotesk', 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+html[data-style='neobrutalism'] .page-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+  font-size: calc(1.7rem * var(--density-font-scale));
+}
+
+html[data-style='neobrutalism'] .page-subtitle {
+  font-weight: 500;
+}
+
+html[data-style='neobrutalism'] .section-title,
+html[data-style='neobrutalism'] .card-label,
+html[data-style='neobrutalism'] .stat-tile-label {
+  font-family: var(--font-body);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: calc(0.78rem * var(--density-font-scale));
+}
+
+html[data-style='neobrutalism'] .card-value {
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-size: calc(1.95rem * var(--density-font-scale));
+}
+
+html[data-style='neobrutalism'] .row-title {
+  font-weight: 700;
+}
+
+html[data-style='neobrutalism'] .row-value,
+html[data-style='neobrutalism'] .stat-tile-value,
+html[data-style='neobrutalism'] .meta-val {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-style='neobrutalism'] .section-note,
+html[data-style='neobrutalism'] .row-sub,
+html[data-style='neobrutalism'] .meta-key,
+html[data-style='neobrutalism'] .card-foot {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
+html[data-style='neobrutalism'] .badge,
+html[data-style='neobrutalism'] .chip {
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* ---- 2. geometry + solid poster fills ---- */
+[data-style='neobrutalism'] {
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --style-neo-fill-success: #4ade80;
+  --style-neo-fill-danger: #f87171;
+  --style-neo-fill-warning: #fde047;
+  --style-neo-fill-info: #22d3ee;
+}
+
+/* ---- 3. palettes (light + dark, full token set) ---- */
+[data-theme='light'][data-style='neobrutalism'] {
+  color-scheme: light;
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #fdf2f8;
+  --surface-3: #fce7f3;
+  --border: var(--text);
+  --border-strong: var(--text);
+  --text: #101010;
+  --text-muted: #3a3a3a;
+  --text-faint: #5c5c5c;
+  --accent: #ec4899;
+  --accent-rgb: 236, 72, 153;
+  --accent-soft: rgba(var(--accent-rgb), 0.12);
+  --accent-ink: #be185d;
+  --accent-contrast: #0a0a0a;
+  --accent-contrast-rgb: 10, 10, 10;
+  --accent-shade: #be185d;
+  --accent-tint: #f9a8d4;
+  --on-accent: var(--accent-contrast);
+  --success: #15803d;
+  --success-soft: rgba(21, 128, 61, 0.12);
+  --danger: #c81e1e;
+  --danger-soft: rgba(200, 30, 30, 0.12);
+  --warning: #b45309;
+  --warning-soft: rgba(180, 83, 9, 0.14);
+  --info: #0e7490;
+  --info-soft: rgba(14, 116, 144, 0.12);
+  --ink: #ec4899;
+  --ink-rgb: 236, 72, 153;
+  --ink-contrast: #0a0a0a;
+  --ink-contrast-rgb: 10, 10, 10;
+  --scrim: rgba(16, 16, 16, 0.55);
+  --shadow-sm: 3px 3px 0 var(--text);
+  --shadow-md: 5px 5px 0 var(--text);
+  --shadow-lg: 8px 8px 0 var(--text);
+  --ion-text-color-rgb: 16, 16, 16;
+  --ion-background-color-rgb: 255, 255, 255;
+  --ion-color-primary: var(--accent);
+  --ion-color-primary-rgb: var(--accent-rgb);
+  --ion-color-primary-contrast: var(--accent-contrast);
+  --ion-color-primary-contrast-rgb: var(--accent-contrast-rgb);
+  --ion-color-primary-shade: var(--accent-shade);
+  --ion-color-primary-tint: var(--accent-tint);
+  --ion-focus-color: var(--accent-ink);
+}
+
+[data-theme='dark'][data-style='neobrutalism'] {
+  color-scheme: dark;
+  --bg: #0a0a0a;
+  --surface: #0f0f0f;
+  --surface-2: #1a1a1a;
+  --surface-3: #242424;
+  --border: var(--text);
+  --border-strong: var(--text);
+  --text: #fafafa;
+  --text-muted: #c4c4c4;
+  --text-faint: #8f8f8f;
+  --accent: #ec4899;
+  --accent-rgb: 236, 72, 153;
+  --accent-soft: rgba(var(--accent-rgb), 0.16);
+  --accent-ink: #f472b6;
+  --accent-contrast: #0a0a0a;
+  --accent-contrast-rgb: 10, 10, 10;
+  --accent-shade: #be185d;
+  --accent-tint: #f9a8d4;
+  --on-accent: var(--accent-contrast);
+  --success: #4ade80;
+  --success-soft: rgba(74, 222, 128, 0.16);
+  --danger: #f87171;
+  --danger-soft: rgba(248, 113, 113, 0.16);
+  --warning: #fbbf24;
+  --warning-soft: rgba(251, 191, 36, 0.16);
+  --info: #22d3ee;
+  --info-soft: rgba(34, 211, 238, 0.16);
+  --ink: #ec4899;
+  --ink-rgb: 236, 72, 153;
+  --ink-contrast: #0a0a0a;
+  --ink-contrast-rgb: 10, 10, 10;
+  --scrim: rgba(0, 0, 0, 0.7);
+  --shadow-sm: 3px 3px 0 var(--text);
+  --shadow-md: 5px 5px 0 var(--text);
+  --shadow-lg: 8px 8px 0 var(--text);
+  --ion-text-color-rgb: 250, 250, 250;
+  --ion-background-color-rgb: 10, 10, 10;
+  --ion-color-primary: var(--accent);
+  --ion-color-primary-rgb: var(--accent-rgb);
+  --ion-color-primary-contrast: var(--accent-contrast);
+  --ion-color-primary-contrast-rgb: var(--accent-contrast-rgb);
+  --ion-color-primary-shade: var(--accent-shade);
+  --ion-color-primary-tint: var(--accent-tint);
+  --ion-focus-color: var(--accent-ink);
+}
+
+/* ---- 4. component signatures ---- */
+
+/* Hard-edged bodies: ink border, offset shadow, no blur. */
+html[data-style='neobrutalism'] .card,
+html[data-style='neobrutalism'] .row-list,
+html[data-style='neobrutalism'] .stat-tile {
+  background: var(--surface);
+  border: 3px solid var(--text);
+  border-radius: 0;
+  box-shadow: 5px 5px 0 var(--text);
+}
+
+html[data-style='neobrutalism'] .card-hero {
+  background: var(--surface);
+  border: 3px solid var(--text);
+  border-top: 12px solid var(--accent);
+  border-radius: 0;
+  box-shadow: 7px 7px 0 var(--text);
+}
+
+html[data-style='neobrutalism'] .row-item {
+  border-bottom: 2px solid var(--text);
+}
+html[data-style='neobrutalism'] .row-item:last-child {
+  border-bottom: none;
+}
+html[data-style='neobrutalism'] .row-icon {
+  background: var(--surface);
+  border: 2px solid var(--text);
+  border-radius: 0;
+  box-shadow: 3px 3px 0 var(--text);
+}
+
+/* Chunky outlined buttons. */
+html[data-style='neobrutalism'] .abtn {
+  background-image: none;
+  border: 3px solid var(--text);
+  border-radius: 0;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow: 5px 5px 0 var(--text);
+}
+html[data-style='neobrutalism'] .abtn:focus-visible {
+  outline: 3px solid var(--text);
+  outline-offset: 3px;
+}
+html[data-style='neobrutalism'] .abtn-primary {
+  background: var(--accent);
+  border-color: var(--text);
+  color: var(--accent-contrast);
+}
+/* Status buttons take the bright poster fills so black ink clears 4.5:1. */
+html[data-style='neobrutalism'] .abtn-success,
+html[data-style='neobrutalism'] .abtn-danger,
+html[data-style='neobrutalism'] .abtn-neutral {
+  color: #0a0a0a;
+}
+html[data-style='neobrutalism'] .abtn-success {
+  background: var(--style-neo-fill-success);
+}
+html[data-style='neobrutalism'] .abtn-danger {
+  background: var(--style-neo-fill-danger);
+}
+
+/* Wells and panels are framed boxes, not sheets. */
+html[data-style='neobrutalism'] .ainput-shell,
+html[data-style='neobrutalism'] .asel-trigger,
+html[data-style='neobrutalism'] .adp-shell,
+html[data-style='neobrutalism'] .adp-nav,
+html[data-style='neobrutalism'] .adp-foot-btn,
+html[data-style='neobrutalism'] .asel-x,
+html[data-style='neobrutalism'] .amd-x {
+  background: var(--surface);
+  border: 2px solid var(--text);
+  border-radius: 0;
+  box-shadow: 4px 4px 0 var(--text);
+}
+html[data-style='neobrutalism'] .ainput-focused .ainput-shell,
+html[data-style='neobrutalism'] .asel-trigger-open {
+  border-color: var(--text);
+  box-shadow:
+    0 0 0 3px var(--accent),
+    4px 4px 0 var(--text);
+}
+html[data-style='neobrutalism'] .amd-panel,
+html[data-style='neobrutalism'] .asel-sheet,
+html[data-style='neobrutalism'] .adp-panel {
+  background: var(--surface);
+  border: 3px solid var(--text);
+  border-radius: 0;
+  box-shadow: 8px 8px 0 var(--text);
+}
+html[data-style='neobrutalism'] .adp-day-selected {
+  background: var(--accent);
+  border-color: var(--text);
+  color: var(--accent-contrast);
+  box-shadow: 3px 3px 0 var(--text);
+}
+
+/* Stickers: solid poster fills, hard outline, tilted off-axis. */
+html[data-style='neobrutalism'] .badge {
+  background: var(--surface);
+  color: var(--text);
+  border: 2px solid var(--text);
+  border-radius: 0;
+  box-shadow: 3px 3px 0 var(--text);
+  transform: rotate(-1.5deg);
+}
+html[data-style='neobrutalism'] .badge:nth-of-type(even) {
+  transform: rotate(1.5deg);
+}
+html[data-style='neobrutalism'] .badge-accent {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+html[data-style='neobrutalism'] .badge-success {
+  background: var(--style-neo-fill-success);
+  color: #0a0a0a;
+}
+html[data-style='neobrutalism'] .badge-danger {
+  background: var(--style-neo-fill-danger);
+  color: #0a0a0a;
+}
+html[data-style='neobrutalism'] .badge-warning {
+  background: var(--style-neo-fill-warning);
+  color: #0a0a0a;
+}
+html[data-style='neobrutalism'] .badge-info {
+  background: var(--style-neo-fill-info);
+  color: #0a0a0a;
+}
+html[data-style='neobrutalism'] .chip {
+  background: var(--surface);
+  border: 2px solid var(--text);
+  border-radius: 0;
+  box-shadow: 3px 3px 0 var(--text);
+}
+html[data-style='neobrutalism'] .chip-active {
+  background: var(--accent);
+  border-color: var(--text);
+  color: var(--accent-contrast);
+}
+
+html[data-style='neobrutalism'] .empty {
+  background: var(--surface-2);
+  border: 3px dashed var(--text);
+  border-radius: 0;
+  box-shadow: none;
+}
+html[data-style='neobrutalism'] .empty-cta {
+  border: 3px solid var(--text);
+  border-radius: 0;
+  box-shadow: 4px 4px 0 var(--text);
+}
+html[data-style='neobrutalism'] .notice {
+  border: 3px solid var(--text);
+  border-left: 8px solid var(--tone, var(--accent));
+  border-radius: 0;
+  box-shadow: 4px 4px 0 var(--text);
+}
+html[data-style='neobrutalism'] .form-error {
+  border: 3px solid var(--danger);
+  border-left: 8px solid var(--danger);
+  border-radius: 0;
+  box-shadow: 4px 4px 0 var(--danger);
+}
+html[data-style='neobrutalism'] .bar {
+  height: 12px;
+  background: var(--surface);
+  border: 2px solid var(--text);
+  border-radius: 0;
+}
+
+/* The accent is a fill; foreground uses take the text-safe pink. */
+html[data-style='neobrutalism'] .abtn-ghost,
+html[data-style='neobrutalism'] .link-btn,
+html[data-style='neobrutalism'] .auth-link,
+html[data-style='neobrutalism'] .auth-mark,
+html[data-style='neobrutalism'] .schip-pushing,
+html[data-style='neobrutalism'] .adp-icon,
+html[data-style='neobrutalism'] .asel-check {
+  color: var(--accent-ink);
+}
+
+html[data-style='neobrutalism'] .auth-mark {
+  border: 3px solid var(--text);
+  border-radius: 0;
+  box-shadow: 4px 4px 0 var(--text);
+}
+html[data-style='neobrutalism'] .app-nav {
+  background: var(--surface);
+  border-top: 3px solid var(--text);
+}
+html[data-style='neobrutalism'] .side-nav {
+  background: var(--surface);
+  border-right: 3px solid var(--text);
+}
+html[data-style='neobrutalism'] .side-brand,
+html[data-style='neobrutalism'] .side-foot {
+  border-color: var(--text);
+}
+html[data-style='neobrutalism'] .side-logo {
+  border: 3px solid var(--text);
+  border-radius: 0;
+  box-shadow: 4px 4px 0 var(--text);
+}
+/* Active nav is a filled block with an outline — never colour alone. */
+html[data-style='neobrutalism'] .side-link-active,
+html[data-style='neobrutalism'] .app-nav-link-active {
+  background: var(--accent);
+  border: 2px solid var(--text);
+  color: var(--accent-contrast);
+}
+
+/* ---- 5. layout rhythm (density tokens are read, never written) ---- */
+html[data-style='neobrutalism'] .page {
+  gap: calc(var(--density-gap) + 6px);
+}
+html[data-style='neobrutalism'] .page-head {
+  padding-bottom: 10px;
+  border-bottom: 3px solid var(--text);
+}
+html[data-style='neobrutalism'] .section-head {
+  padding-bottom: 7px;
+  border-bottom: 3px solid var(--text);
+}
+html[data-style='neobrutalism'] .stat-grid {
+  gap: calc(var(--density-gap) + 4px);
+}
+
+/* Sticker tags on the stat tiles: one poster colour per tile, black ink. */
+html[data-style='neobrutalism'] .stat-grid .stat-tile .stat-tile-label {
+  display: inline-block;
+  width: fit-content;
+  padding: 2px 7px;
+  background: var(--style-neo-tag, var(--surface-3));
+  border: 2px solid var(--text);
+  color: #0a0a0a;
+}
+html[data-style='neobrutalism'] .stat-grid .stat-tile:nth-child(1) {
+  --style-neo-tag: #fde047;
+}
+html[data-style='neobrutalism'] .stat-grid .stat-tile:nth-child(2) {
+  --style-neo-tag: #f9a8d4;
+}
+html[data-style='neobrutalism'] .stat-grid .stat-tile:nth-child(3) {
+  --style-neo-tag: #a5f3fc;
+}
+html[data-style='neobrutalism'] .stat-grid .stat-tile:nth-child(4) {
+  --style-neo-tag: #bbf7d0;
+}
+
+/* ---- 6. effects: instant, no easing ---- */
+html[data-style='neobrutalism'] .abtn,
+html[data-style='neobrutalism'] .chip,
+html[data-style='neobrutalism'] .row-item,
+html[data-style='neobrutalism'] .stat-tile,
+html[data-style='neobrutalism'] .bar-fill {
+  transition: none;
+}
+
+@media (hover: hover) {
+  /* Hover swaps colour, never position. */
+  html[data-style='neobrutalism'] .row-item:hover {
+    background: var(--accent-soft);
+  }
+  html[data-style='neobrutalism'] .chip:hover,
+  html[data-style='neobrutalism'] .badge:hover {
+    background: var(--accent-soft);
+  }
+  html[data-style='neobrutalism'] .abtn-primary:hover {
+    background: var(--accent-tint);
+  }
+  html[data-style='neobrutalism'] .abtn-neutral:hover,
+  html[data-style='neobrutalism'] .abtn-ghost:hover {
+    background: var(--accent);
+    border-color: var(--text);
+    color: var(--accent-contrast);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Press shoves the button into its own shadow. */
+  html[data-style='neobrutalism'] .abtn:active:not(.abtn-disabled),
+  html[data-style='neobrutalism'] .chip:active {
+    transform: translate(3px, 3px);
+    box-shadow: 2px 2px 0 var(--text);
+  }
+  html[data-style='neobrutalism'] .row-item:active {
+    transform: translate(2px, 2px);
+  }
+}
+
+/* ---- 7. charts ---- */
+html[data-style='neobrutalism'] .line-chart,
+html[data-style='neobrutalism'] .donut-chart,
+html[data-style='neobrutalism'] .bar-chart {
+  --chart-c0: #ec4899;
+  --chart-c1: var(--success);
+  --chart-c2: var(--warning);
+  --chart-c3: #22d3ee;
+  --chart-c4: #fde047;
+  --chart-c5: #f9a8d4;
+  --chart-c6: #c4b5fd;
+  --chart-c7: var(--danger);
+}
+
+html[data-style='neobrutalism'] .chart-grid {
+  stroke: var(--border);
+  stroke-width: 2;
+  stroke-dasharray: 6 6;
+}
+html[data-style='neobrutalism'] .chart-zero {
+  stroke: var(--text);
+  stroke-width: 2.5;
+  stroke-dasharray: none;
+}
+html[data-style='neobrutalism'] .chart-axis-text {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 10px;
+  fill: var(--text);
+}
+/* Hard joins, flat caps, outlined fills — no glow anywhere. */
+html[data-style='neobrutalism'] .line-path {
+  stroke-width: 3;
+  stroke-linecap: butt;
+  stroke-linejoin: miter;
+}
+html[data-style='neobrutalism'] .line-area {
+  opacity: 0.3;
+}
+html[data-style='neobrutalism'] .donut-track {
+  stroke: var(--surface-3);
+}
+html[data-style='neobrutalism'] .bar-mark {
+  opacity: 1;
+  stroke: var(--text);
+  stroke-width: 2;
+  stroke-linejoin: miter;
+}
+html[data-style='neobrutalism'] .heat-cell {
+  rx: 0;
+  stroke: var(--text);
+  stroke-width: 1;
+}
+html[data-style='neobrutalism'] .ring-value {
+  stroke-linecap: butt;
+}
+html[data-style='neobrutalism'] .ring-track {
+  stroke: var(--surface-3);
+}
+html[data-style='neobrutalism'] .donut-center-value,
+html[data-style='neobrutalism'] .ring-value-text {
+  font-family: var(--font-mono);
+  font-weight: 700;
+}

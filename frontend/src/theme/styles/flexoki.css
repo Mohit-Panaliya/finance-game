@@ -1,0 +1,225 @@
+/* ============================================================
+   Style preset — flexoki (default)
+   ------------------------------------------------------------
+   Fonts:  Fraunces (display) · Inter (body) · IBM Plex Mono (labels/mono)
+   Signature: warm-paper editorial. Ruled hero, mono section labels,
+              ink-on-cream hierarchy, hairline warm borders, no neon.
+   Accent: the only preset that leaves --accent to the user's palette
+           picker — every other preset pins its own.
+   ============================================================ */
+
+/* ---- 1. typography ---- */
+[data-style='flexoki'] {
+  --font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+html[data-style='flexoki'] .page-title {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+html[data-style='flexoki'] .page-subtitle {
+  font-weight: 500;
+}
+
+/* Ledger labels: tracked mono small caps read as bookkeeping, not chrome. */
+html[data-style='flexoki'] .section-title,
+html[data-style='flexoki'] .card-label,
+html[data-style='flexoki'] .stat-tile-label {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  font-size: calc(0.7rem * var(--density-font-scale));
+}
+
+html[data-style='flexoki'] .card-value {
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+html[data-style='flexoki'] .section-note,
+html[data-style='flexoki'] .card-foot {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+}
+
+html[data-style='flexoki'] .row-title {
+  font-weight: 550;
+}
+
+html[data-style='flexoki'] .row-sub,
+html[data-style='flexoki'] .meta-key {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.01em;
+}
+
+/* ---- 2. geometry + shadows ---- */
+[data-style='flexoki'] {
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --shadow-sm: 0 1px 2px rgba(15, 12, 8, 0.16);
+  --shadow-md: 0 6px 18px rgba(15, 12, 8, 0.14);
+  --shadow-lg: 0 22px 54px rgba(15, 12, 8, 0.22);
+}
+
+/* ---- 3. palettes (restated so flipping back to flexoki is exact) ---- */
+[data-theme='light'][data-style='flexoki'] {
+  color-scheme: light;
+  --bg: #fffcf0;
+  --surface: #faf8eb;
+  --surface-2: #f2f0e3;
+  --surface-3: #e7e5da;
+  --border: #d9d8ce;
+  --border-strong: #cfcec4;
+  --text: #100c0c;
+  --text-muted: #6e6d68;
+  --text-faint: #94938c;
+  --success: #657f0b;
+  --success-soft: rgba(101, 127, 11, 0.12);
+  --danger: #ad2f29;
+  --danger-soft: rgba(173, 47, 41, 0.12);
+  --warning: #85690a;
+  --warning-soft: rgba(133, 105, 10, 0.14);
+  --info: #205ea6;
+  --info-soft: rgba(32, 94, 166, 0.12);
+  --ink: #100c0c;
+  --ink-rgb: 16, 12, 12;
+  --ink-contrast: #fffcf0;
+  --ink-contrast-rgb: 255, 252, 240;
+  --scrim: rgba(15, 20, 28, 0.42);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.07);
+  --shadow-md: 0 4px 14px rgba(15, 23, 42, 0.1);
+  --shadow-lg: 0 18px 48px rgba(15, 23, 42, 0.18);
+  --ion-text-color-rgb: 16, 12, 12;
+  --ion-background-color-rgb: 255, 252, 240;
+  --style-flexoki-rule: rgba(16, 12, 12, 0.05);
+}
+
+[data-theme='dark'][data-style='flexoki'] {
+  color-scheme: dark;
+  --bg: #0d0c0c;
+  --surface: #191817;
+  --surface-2: #201f1d;
+  --surface-3: #2a2927;
+  --border: #34322e;
+  --border-strong: #45423c;
+  --text: #fffcf0;
+  --text-muted: #b8b6ad;
+  --text-faint: #6e6d68;
+  --success: #98a827;
+  --success-soft: rgba(152, 168, 39, 0.15);
+  --danger: #d03b3b;
+  --danger-soft: rgba(208, 59, 59, 0.15);
+  --warning: #d4a827;
+  --warning-soft: rgba(212, 168, 39, 0.15);
+  --info: #4385be;
+  --info-soft: rgba(67, 133, 190, 0.15);
+  --ink: #fffcf0;
+  --ink-rgb: 255, 252, 240;
+  --ink-contrast: #0d0c0c;
+  --ink-contrast-rgb: 13, 12, 12;
+  --scrim: rgba(6, 8, 12, 0.66);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.5);
+  --ion-text-color-rgb: 255, 252, 240;
+  --ion-background-color-rgb: 13, 12, 12;
+  --style-flexoki-rule: rgba(255, 252, 240, 0.05);
+}
+
+/* ---- 4. component signatures ---- */
+
+/* The hero is a ledger page: ruled paper under the net-worth figure. */
+html[data-style='flexoki'] .card-hero {
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0 30px,
+      var(--style-flexoki-rule) 30px 31px
+    ),
+    linear-gradient(160deg, var(--surface-2) 0%, var(--surface) 72%);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+}
+
+html[data-style='flexoki'] .card,
+html[data-style='flexoki'] .row-list,
+html[data-style='flexoki'] .stat-tile {
+  border-color: var(--border);
+}
+
+html[data-style='flexoki'] .row-item {
+  transition: background 0.16s ease;
+}
+html[data-style='flexoki'] .row-item:active {
+  background: var(--surface-2);
+}
+
+html[data-style='flexoki'] .row-icon {
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+
+/* Badges and chips read as stamped labels: mono, tracked, pill. */
+html[data-style='flexoki'] .badge,
+html[data-style='flexoki'] .chip {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+html[data-style='flexoki'] .empty {
+  border-style: dashed;
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+}
+
+/* ---- 5. layout rhythm (density tokens are read, never written) ---- */
+html[data-style='flexoki'] .page {
+  gap: calc(var(--density-gap) + 4px);
+}
+
+html[data-style='flexoki'] .page-head {
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--border);
+}
+
+html[data-style='flexoki'] .section-head {
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ---- 6. effects ---- */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-style='flexoki'] .row-item,
+  html[data-style='flexoki'] .chip {
+    transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+  }
+}
+
+/* ---- 7. charts ---- */
+html[data-style='flexoki'] .chart-grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+html[data-style='flexoki'] .chart-axis-text {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+}
+
+html[data-style='flexoki'] .line-path {
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+html[data-style='flexoki'] .bar-mark {
+  rx: 3;
+}

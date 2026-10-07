@@ -1,0 +1,397 @@
+/* ============================================================
+   Style preset — y2k
+   ------------------------------------------------------------
+   Fonts:  Press Start 2P (display/headings — pixel retro)
+           VT323 (body/data — terminal/arcade)
+   Signature: pixel-retro Y2K: 8/16-bit, blocky, arcade accents,
+              bright neons on dark slate, pixelated corners, frame
+              transitions, minimal blur. Both light and dark modes
+              provided; 4.5:1 contrast enforced.
+   Accent: arcade red (#DC2626) with high-contrast.
+   ============================================================ */
+
+/* ---- 1. typography ---- */
+[data-style='y2k'] {
+  --font-display: 'Press Start 2P', 'Courier New', monospace;
+  --font-body: 'VT323', 'Courier New', monospace;
+  --font-mono: 'VT323', 'Courier New', monospace;
+}
+
+html[data-style='y2k'] .page-title {
+  font-family: var(--font-display);
+  font-size: calc(1.1rem * var(--density-font-scale));
+  line-height: 1.8;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+html[data-style='y2k'] .page-subtitle {
+  font-family: var(--font-body);
+  font-size: calc(1.25rem * var(--density-font-scale));
+  line-height: 1.4;
+}
+
+html[data-style='y2k'] .section-title,
+html[data-style='y2k'] .card-label,
+html[data-style='y2k'] .stat-tile-label {
+  font-family: var(--font-display);
+  font-size: calc(0.6rem * var(--density-font-scale));
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+html[data-style='y2k'] .card-value {
+  font-family: var(--font-display);
+  font-size: calc(0.9rem * var(--density-font-scale));
+  line-height: 1.8;
+  letter-spacing: 0.02em;
+}
+
+html[data-style='y2k'] .row-title {
+  font-family: var(--font-body);
+  font-size: calc(1.2rem * var(--density-font-scale));
+}
+
+html[data-style='y2k'] .row-value,
+html[data-style='y2k'] .stat-tile-value,
+html[data-style='y2k'] .meta-val {
+  font-family: var(--font-mono);
+  font-size: calc(1.15rem * var(--density-font-scale));
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-style='y2k'] .section-note,
+html[data-style='y2k'] .row-sub,
+html[data-style='y2k'] .meta-key,
+html[data-style='y2k'] .card-foot {
+  font-family: var(--font-body);
+  font-size: calc(1rem * var(--density-font-scale));
+}
+
+html[data-style='y2k'] .badge,
+html[data-style='y2k'] .chip {
+  font-family: var(--font-display);
+  font-size: calc(0.5rem * var(--density-font-scale));
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ---- 2. geometry ---- */
+[data-style='y2k'] {
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 2px;
+}
+
+/* ---- 3. palettes ---- */
+[data-theme='light'][data-style='y2k'] {
+  color-scheme: light;
+  --bg: #f1f5f9;
+  --surface: #ffffff;
+  --surface-2: #e2e8f0;
+  --surface-3: #cbd5f5;
+  --border: #1e293b;
+  --border-strong: #0f172a;
+  --text: #0f172a;
+  --text-muted: #1e293b;
+  --text-faint: #334155;
+  --accent: #dc2626;
+  --accent-rgb: 220, 38, 38;
+  --accent-soft: rgba(220, 38, 38, 0.12);
+  --accent-ink: #b91c1c;
+  --accent-contrast: #ffffff;
+  --accent-contrast-rgb: 255, 255, 255;
+  --accent-shade: #b91c1c;
+  --accent-tint: #fca5a5;
+  --on-accent: var(--accent-contrast);
+  --success: #16a34a;
+  --success-soft: rgba(22, 163, 74, 0.12);
+  --danger: #dc2626;
+  --danger-soft: rgba(220, 38, 38, 0.12);
+  --warning: #b45309;
+  --warning-soft: rgba(180, 83, 9, 0.14);
+  --info: #2563eb;
+  --info-soft: rgba(37, 99, 235, 0.12);
+  --ink: #dc2626;
+  --ink-rgb: 220, 38, 38;
+  --scrim: rgba(15, 23, 42, 0.48);
+  --shadow-sm: 2px 2px 0 #0f172a;
+  --shadow-md: 3px 3px 0 #0f172a;
+  --shadow-lg: 4px 4px 0 #0f172a;
+  --ion-text-color-rgb: 15, 23, 42;
+  --ion-background-color-rgb: 241, 245, 249;
+  --ion-color-primary: var(--accent);
+  --ion-color-primary-rgb: var(--accent-rgb);
+  --ion-color-primary-contrast: var(--accent-contrast);
+  --ion-color-primary-contrast-rgb: var(--accent-contrast-rgb);
+  --ion-color-primary-shade: var(--accent-shade);
+  --ion-color-primary-tint: var(--accent-tint);
+  --ion-focus-color: var(--accent);
+}
+
+[data-theme='dark'][data-style='y2k'] {
+  color-scheme: dark;
+  --bg: #0f172a;
+  --surface: #192134;
+  --surface-2: #1f2937;
+  --surface-3: #111827;
+  --border: rgba(255, 255, 255, 0.12);
+  --border-strong: #38bdf8;
+  --text: #ffffff;
+  --text-muted: #cbd5f5;
+  --text-faint: #94a3b8;
+  --accent: #dc2626;
+  --accent-rgb: 220, 38, 38;
+  --accent-soft: rgba(220, 38, 38, 0.18);
+  --accent-ink: #fca5a5;
+  --accent-contrast: #ffffff;
+  --accent-contrast-rgb: 255, 255, 255;
+  --accent-shade: #b91c1c;
+  --accent-tint: #f87171;
+  --on-accent: var(--accent-contrast);
+  --success: #22c55e;
+  --success-soft: rgba(34, 197, 94, 0.18);
+  --danger: #dc2626;
+  --danger-soft: rgba(220, 38, 38, 0.18);
+  --warning: #fbbf24;
+  --warning-soft: rgba(251, 191, 36, 0.18);
+  --info: #2563eb;
+  --info-soft: rgba(37, 99, 235, 0.18);
+  --ink: #dc2626;
+  --ink-rgb: 220, 38, 38;
+  --scrim: rgba(15, 23, 42, 0.64);
+  --shadow-sm: 2px 2px 0 #38bdf8;
+  --shadow-md: 3px 3px 0 #38bdf8;
+  --shadow-lg: 4px 4px 0 #38bdf8;
+  --ion-text-color-rgb: 255, 255, 255;
+  --ion-background-color-rgb: 15, 23, 42;
+  --ion-color-primary: var(--accent);
+  --ion-color-primary-rgb: var(--accent-rgb);
+  --ion-color-primary-contrast: var(--accent-contrast);
+  --ion-color-primary-contrast-rgb: var(--accent-contrast-rgb);
+  --ion-color-primary-shade: var(--accent-shade);
+  --ion-color-primary-tint: var(--accent-tint);
+  --ion-focus-color: var(--accent);
+}
+
+/* ---- 4. components ---- */
+html[data-style='y2k'] .card,
+html[data-style='y2k'] .row-list,
+html[data-style='y2k'] .stat-tile {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  image-rendering: pixelated;
+}
+
+html[data-style='y2k'] .card-hero {
+  background: linear-gradient(180deg, rgba(37, 99, 235, 0.18) 0%, var(--surface) 100%);
+  border: 2px solid var(--border-strong);
+  box-shadow: var(--shadow-lg);
+}
+
+html[data-style='y2k'] .row-item {
+  border-bottom: 1px solid var(--border);
+}
+
+html[data-style='y2k'] .row-item:last-child {
+  border-bottom: none;
+}
+
+html[data-style='y2k'] .row-icon {
+  background: var(--surface-2);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-style='y2k'] .abtn {
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-display);
+  font-size: calc(0.55rem * var(--density-font-scale));
+  text-transform: uppercase;
+  box-shadow: var(--shadow-md);
+  transition: transform 100ms steps(2), box-shadow 100ms steps(2);
+}
+
+html[data-style='y2k'] .abtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+html[data-style='y2k'] .abtn-primary {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-color: var(--border-strong);
+}
+
+html[data-style='y2k'] .abtn-success {
+  background: var(--success);
+  color: #ffffff;
+}
+
+html[data-style='y2k'] .abtn-danger {
+  background: var(--danger);
+  color: #ffffff;
+}
+
+html[data-style='y2k'] .ainput-shell,
+html[data-style='y2k'] .asel-trigger,
+html[data-style='y2k'] .adp-shell,
+html[data-style='y2k'] .adp-nav,
+html[data-style='y2k'] .adp-foot-btn,
+html[data-style='y2k'] .asel-x,
+html[data-style='y2k'] .amd-x {
+  background: var(--surface-2);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.18);
+}
+
+html[data-style='y2k'] .ainput-focused .ainput-shell,
+html[data-style='y2k'] .asel-trigger-open {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft), var(--shadow-md);
+}
+
+html[data-style='y2k'] .amd-panel,
+html[data-style='y2k'] .asel-sheet,
+html[data-style='y2k'] .adp-panel {
+  background: var(--surface);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+html[data-style='y2k'] .adp-day-selected {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-style='y2k'] .badge {
+  background: var(--surface-2);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+html[data-style='y2k'] .badge-accent {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+html[data-style='y2k'] .badge-success {
+  background: var(--success);
+  color: #ffffff;
+}
+
+html[data-style='y2k'] .badge-danger {
+  background: var(--danger);
+  color: #ffffff;
+}
+
+html[data-style='y2k'] .badge-warning {
+  background: var(--warning);
+  color: #ffffff;
+}
+
+html[data-style='y2k'] .badge-info {
+  background: var(--info);
+  color: #ffffff;
+}
+
+/* ---- 5. motion ---- */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-style='y2k'] .abtn:active:not(.abtn-disabled) {
+    transform: translate(2px, 2px);
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-style='y2k'] * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---- 6. density ---- */
+html[data-style='y2k'][data-density='comfortable'] {
+  --density-gap: 1rem;
+  --density-card-pad: 1rem 1rem;
+}
+
+html[data-style='y2k'][data-density='compact'] {
+  --density-gap: 0.75rem;
+  --density-card-pad: 0.75rem 0.75rem;
+}
+
+/* ---- 7. charts ---- */
+html[data-style='y2k'] .line-chart,
+html[data-style='y2k'] .donut-chart,
+html[data-style='y2k'] .bar-chart {
+  --chart-c0: #dc2626;
+  --chart-c1: #22c55e;
+  --chart-c2: #2563eb;
+  --chart-c3: #fbbf24;
+  --chart-c4: #38bdf8;
+  --chart-c5: #a78bfa;
+  --chart-c6: #34d399;
+  --chart-c7: #f87171;
+}
+
+html[data-style='y2k'] .chart-grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+html[data-style='y2k'] .chart-zero {
+  stroke: var(--border-strong);
+  stroke-width: 2;
+}
+
+html[data-style='y2k'] .chart-axis-text {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  fill: var(--text);
+}
+
+html[data-style='y2k'] .line-path {
+  stroke-width: 3;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+}
+
+html[data-style='y2k'] .line-area {
+  opacity: 0.12;
+}
+
+html[data-style='y2k'] .donut-track {
+  stroke: var(--surface-3);
+}
+
+html[data-style='y2k'] .bar-mark {
+  stroke: var(--border-strong);
+  stroke-width: 1;
+}
+
+html[data-style='y2k'] .heat-cell {
+  rx: 0;
+  stroke: var(--border);
+}
+
+html[data-style='y2k'] .ring-track {
+  stroke: var(--surface-3);
+}
+
+html[data-style='y2k'] .donut-center-value,
+html[data-style='y2k'] .ring-value-text {
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+}
