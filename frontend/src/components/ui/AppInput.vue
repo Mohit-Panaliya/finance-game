@@ -111,7 +111,6 @@ function onInput(e: Event) {
   border: none;
   outline: none;
   color: var(--text);
-  font-family: var(--font-body);
   font-size: 1rem;
   padding: var(--density-row-pad-y) var(--density-row-pad-x);
   -webkit-user-select: text;

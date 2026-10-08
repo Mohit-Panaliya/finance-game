@@ -90,7 +90,7 @@
           </div>
           <div class="row-item" v-if="form.kind === 'text'">
             <div class="row-main">
-              <textarea v-model="form.body_text" placeholder="Take a note..." style="width: 100%; min-height: 120px; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--density-row-pad-y) var(--density-row-pad-x); font-family: var(--font-body)"></textarea>
+              <textarea v-model="form.body_text" placeholder="Take a note..." style="width: 100%; min-height: 120px; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--density-row-pad-y) var(--density-row-pad-x)"></textarea>
             </div>
           </div>
           <div class="row-item" v-if="form.kind === 'list'">

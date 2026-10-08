@@ -5,9 +5,10 @@ import { IonContent, IonIcon, IonPage } from '@ionic/vue'
 import { addOutline, chevronForwardOutline, walletOutline } from 'ionicons/icons'
 import { useFinanceStore } from '@/stores/financeStore'
 import { useSyncStore } from '@/stores/syncStore'
-import { ACCOUNT_ENTITIES, entityConfig, summaryHead } from '@/entityConfig'
+import { ACCOUNT_ENTITIES, entityConfig, rowTitle, rowValue, summaryHead } from '@/entityConfig'
 import type { EntityConfig } from '@/entityConfig'
-import { formatMoney } from '@/utils/money'
+import type { AccountEntityType, FinanceRow } from '@/types'
+import { formatMoney, rowCurrency } from '@/utils/money'
 import AppButton from '@/components/ui/AppButton.vue'
 import SyncChip from '@/components/ui/SyncChip.vue'
 
@@ -22,6 +23,14 @@ interface Group {
   count: number
 }
 
+/** One bank/card account row, linked straight to its full statement page. */
+interface AccountRow {
+  id: string
+  name: string
+  value: number
+  currency: string
+}
+
 const groups = computed<Group[]>(() =>
   ACCOUNT_ENTITIES.map((key) => {
     const cfg = entityConfig(key)
@@ -29,6 +38,9 @@ const groups = computed<Group[]>(() =>
     return { key, cfg, total: head.total, count: head.count }
   })
 )
+
+/** Banks and cards are statement accounts — the ledger trail lives behind each id. */
+const STATEMENT_KEYS: AccountEntityType[] = ['banks', 'credit-cards']
 
 /** Share of the money total, used for the allocation bar. */
 const moneyTotal = computed(() =>
@@ -49,6 +61,15 @@ const loading = computed(() => ACCOUNT_ENTITIES.some((key) => finance.lists[key]
 
 function open(entity: string) {
   router.push(`/accounts/${entity}`)
+}
+
+function accountRows(key: AccountEntityType): AccountRow[] {
+  return (finance.rows(key) as FinanceRow[]).map((r) => ({
+    id: String(r.id ?? ''),
+    name: rowTitle(entityConfig(key), r),
+    value: rowValue(entityConfig(key), r),
+    currency: rowCurrency(r)
+  }))
 }
 
 function add() {
@@ -91,23 +112,40 @@ onMounted(() => {
         </section>
 
         <div class="row-list">
-          <button v-for="g in groups" :key="g.key" class="row-item" type="button" @click="open(g.key)">
-            <span class="row-icon"><ion-icon :icon="g.cfg.icon" /></span>
-            <span class="row-main">
-              <span class="row-title">{{ g.cfg.label }}</span>
-              <span class="row-sub">
-                {{ g.count }} {{ g.count === 1 ? 'record' : 'records' }}
-                <template v-if="g.key === 'credit-cards'"> · {{ formatMoney(g.total) }} outstanding</template>
+          <template v-for="g in groups" :key="g.key">
+            <button class="row-item" type="button" @click="open(g.key)">
+              <span class="row-icon"><ion-icon :icon="g.cfg.icon" /></span>
+              <span class="row-main">
+                <span class="row-title">{{ g.cfg.label }}</span>
+                <span class="row-sub">
+                  {{ g.count }} {{ g.count === 1 ? 'record' : 'records' }}
+                  <template v-if="g.key === 'credit-cards'"> · {{ formatMoney(g.total) }} outstanding</template>
+                </span>
               </span>
-            </span>
-            <span class="row-value">
-              {{ formatMoney(g.total, 'INR', { compact: true }) }}
-              <span class="row-extra" v-if="g.key !== 'credit-cards'">
-                {{ moneyTotal > 0 ? `${((g.total / moneyTotal) * 100).toFixed(0)}%` : '—' }}
+              <span class="row-value">
+                {{ formatMoney(g.total, 'INR', { compact: true }) }}
+                <span class="row-extra" v-if="g.key !== 'credit-cards'">
+                  {{ moneyTotal > 0 ? `${((g.total / moneyTotal) * 100).toFixed(0)}%` : '—' }}
+                </span>
               </span>
-            </span>
-            <ion-icon class="text-faint" :icon="chevronForwardOutline" />
-          </button>
+              <ion-icon class="text-faint" :icon="chevronForwardOutline" />
+            </button>
+            <!-- Each bank/card links to its full statement: the trail is per account. -->
+            <router-link
+              v-for="a in accountRows(g.key as AccountEntityType)"
+              :key="`${g.key}-${a.id}`"
+              class="row-item row-item-stmt"
+              :to="`/accounts/${g.key}/${a.id}`"
+            >
+              <span class="row-icon row-icon-stmt"><ion-icon :icon="walletOutline" /></span>
+              <span class="row-main">
+                <span class="row-title clamp-1">{{ a.name }}</span>
+                <span class="row-sub">View statement</span>
+              </span>
+              <span class="row-value">{{ formatMoney(a.value, a.currency, { compact: true }) }}</span>
+              <ion-icon class="text-faint" :icon="chevronForwardOutline" />
+            </router-link>
+          </template>
         </div>
 
         <section v-if="cardTotal > 0" class="card">
@@ -142,5 +180,15 @@ onMounted(() => {
 }
 .alloc-seg {
   height: 100%;
+}
+/* statement sub-rows sit under their group row, visually nested */
+.row-item-stmt {
+  padding-left: calc(var(--density-row-pad-x) + 38px);
+  border-top: 1px dashed var(--border);
+}
+.row-icon-stmt {
+  width: 26px;
+  height: 26px;
+  font-size: 14px;
 }
 </style>

@@ -42,6 +42,34 @@ interface Entry {
   income: boolean
   /** The underlying list row, kept so edit/delete can address the real id. */
   row: FinanceRow
+  /**
+   * Bank/card this entry moved, when one is linked. It jumps straight to the
+   * account's full statement so the trail is one tap away from the entry.
+   */
+  linked?: { label: string; to: string }
+}
+
+/** id → "Statement" link for every bank/card the user tracks. */
+const statementRef = computed<Record<string, string>>(() => {
+  const out: Record<string, string> = {}
+  for (const b of finance.rows('banks')) out[String(b.id)] = `/accounts/banks/${String(b.id)}`
+  for (const c of finance.rows('credit-cards')) out[String(c.id)] = `/accounts/credit-cards/${String(c.id)}`
+  return out
+})
+
+const accountNames = computed<Record<string, string>>(() => {
+  const out: Record<string, string> = {}
+  for (const b of finance.rows('banks')) out[String(b.id)] = String(b.name ?? 'Bank')
+  for (const c of finance.rows('credit-cards')) out[String(c.id)] = String(c.name ?? 'Card')
+  return out
+})
+
+/** Text label for a linked account, e.g. "HDFC Salary". */
+function linkedAccount(of: Entry): Entry['linked'] {
+  const key = of.entity === 'expenses' ? String(of.row.credit_card_id || of.row.bank_id || '') : String(of.row.bank_id || '')
+  const label = key ? accountNames.value[key] : ''
+  const to = key ? statementRef.value[key] : ''
+  return key && label && to ? { label, to } : undefined
 }
 
 function monthShift(delta: number): string {
@@ -116,7 +144,7 @@ const allEntries = computed<Entry[]>(() => {
     income: false,
     row: r
   }))
-  return [...income, ...expense]
+  return [...income, ...expense].map((e) => ({ ...e, linked: linkedAccount(e) }))
 })
 
 const categories = computed(() => {
@@ -229,6 +257,9 @@ watch(
 onMounted(() => {
   void finance.fetchList('incomes')
   void finance.fetchList('expenses')
+  // The subtitle links name the linked bank/card; their lists must be loaded too.
+  void finance.fetchList('banks')
+  void finance.fetchList('credit-cards')
 })
 </script>
 
@@ -334,7 +365,15 @@ onMounted(() => {
                 </span>
                 <span class="row-main">
                   <span class="row-title clamp-1">{{ e.title }}</span>
-                  <span class="row-sub clamp-1">{{ e.subtitle || '—' }}</span>
+                  <span class="row-sub clamp-1">
+                  <template v-if="e.subtitle || e.linked">
+                    {{ e.subtitle }}<template v-if="e.subtitle && e.linked"> · </template>
+                    <router-link v-if="e.linked" class="sub-link" :to="e.linked.to" @click.stop>
+                      {{ e.linked.label }}
+                    </router-link>
+                  </template>
+                  <template v-else>—</template>
+                </span>
                 </span>
                 <span class="row-value">
                   <span :class="e.income ? 'text-success' : 'text-danger'">
@@ -419,7 +458,6 @@ onMounted(() => {
   gap: 3px;
   width: 74px;
   border: none;
-  font-family: var(--font-body);
   font-size: 0.7rem;
   font-weight: 600;
   cursor: pointer;
@@ -461,5 +499,10 @@ onMounted(() => {
 }
 .fab-row > * {
   flex: 1;
+}
+.sub-link {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 </style>

@@ -38,3 +38,6 @@
 @import './liquidglass.css';
 @import './y2k.css';
 @import './cyberpunk.css';
+/* User font override must load last: at equal specificity it has to beat the
+   base stack and every per-theme body assignment above. */
+@import './fonts.css';

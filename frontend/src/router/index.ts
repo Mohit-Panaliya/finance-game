@@ -29,6 +29,21 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/AccountDetailPage.vue'),
     meta: { tab: 'accounts', title: 'New record' }
   },
+  // Full statement pages. The backend generates UUID primary keys, so `:id` is
+  // pinned to that shape: it can never swallow the literal `new` segment of the
+  // create form (a plain `:id` loses that tie in vue-router's scoring).
+  {
+    path: '/accounts/banks/:id([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})',
+    name: 'bank-statement',
+    component: () => import('@/pages/AccountStatementPage.vue'),
+    meta: { tab: 'accounts', title: 'Statement' }
+  },
+  {
+    path: '/accounts/credit-cards/:id([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})',
+    name: 'card-statement',
+    component: () => import('@/pages/AccountStatementPage.vue'),
+    meta: { tab: 'accounts', title: 'Statement' }
+  },
   {
     path: '/transactions',
     name: 'transactions',

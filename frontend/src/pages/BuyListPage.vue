@@ -280,4 +280,9 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* Money appears inside the subtitle lines (Est / Book now); give those
+   numeric runs the same tabular treatment as every other money column. */
+.row-sub {
+  font-variant-numeric: tabular-nums;
+}
 </style>

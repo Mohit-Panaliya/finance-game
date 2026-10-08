@@ -348,16 +348,16 @@ const ariaLabel = computed(() => {
 }
 
 .line-tip-title {
+  font-variant-numeric: tabular-nums;
   fill: var(--text);
   font-size: 8.5px;
   font-weight: 700;
-  font-family: var(--font-body);
 }
 
 .line-tip-text {
+  font-variant-numeric: tabular-nums;
   fill: var(--text-muted);
   font-size: 8px;
-  font-family: var(--font-body);
 }
 
 .line-legend {

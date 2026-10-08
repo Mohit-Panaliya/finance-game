@@ -47,7 +47,6 @@ function onClick(e: MouseEvent) {
   border-radius: var(--radius-md);
   background: var(--accent);
   color: var(--on-accent);
-  font-family: var(--font-body);
   font-size: 0.95rem;
   font-weight: 600;
   line-height: 1.2;

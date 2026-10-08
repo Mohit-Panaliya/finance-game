@@ -37,6 +37,7 @@
         var accent = 'blue'
         var density = 'comfortable'
         var style = 'flexoki'
+        var font = 'system'
         var styles = [
           'flexoki',
           'minimalism',
@@ -52,6 +53,7 @@
           'y2k',
           'cyberpunk'
         ]
+        var fonts = ['system', 'inter', 'sans', 'serif', 'rounded']
         try {
           var raw = localStorage.getItem('fintrack:theme')
           var parsed = raw ? JSON.parse(raw) : null
@@ -68,6 +70,10 @@
             /* a bag saved before styles existed simply keeps the default */
             if (styles.indexOf(parsed.style) !== -1) {
               style = parsed.style
+            }
+            /* a bag saved before fonts existed keeps the system default */
+            if (fonts.indexOf(parsed.font) !== -1) {
+              font = parsed.font
             }
           }
         } catch (e) {
@@ -104,6 +110,8 @@
         el.setAttribute('data-accent', accent)
         el.setAttribute('data-density', density)
         el.setAttribute('data-style', style)
+        /* the font override mirrors useTheme: system = no attribute at all */
+        if (font !== 'system') el.setAttribute('data-font', font)
         el.style.setProperty('--boot-bg', bg)
         var meta = document.querySelector('meta[name="theme-color"]')
         if (meta) meta.setAttribute('content', bg)

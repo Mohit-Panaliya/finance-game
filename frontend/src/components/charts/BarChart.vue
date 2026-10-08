@@ -288,10 +288,10 @@ const ariaLabel = computed(() => {
 }
 
 .chart-value-text {
+  font-variant-numeric: tabular-nums;
   fill: var(--text);
   font-size: 8px;
   font-weight: 600;
-  font-family: var(--font-body);
   pointer-events: none;
 }
 </style>

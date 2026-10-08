@@ -115,12 +115,6 @@ async function submit() {
   color: var(--accent);
   font-size: 26px;
 }
-.auth-title {
-  margin: 0;
-  font-size: 1.6rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
 .auth-sub {
   margin: 5px 0 var(--density-section-gap);
   font-size: 0.88rem;
@@ -139,7 +133,6 @@ async function submit() {
   background: transparent;
   border: none;
   color: var(--text-muted);
-  font-family: var(--font-body);
   font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;

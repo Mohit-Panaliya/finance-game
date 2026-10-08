@@ -444,6 +444,18 @@ select,
   user-select: text;
 }
 
+/* Form controls do not inherit fonts by default, so every <input>/<select>/
+   <textarea>/<button> would fall back to the UA default and break both the
+   theme and the user font picker. One global rule keeps them on the body
+   stack, which lets pages and components drop their own `font-family`
+   declarations entirely. */
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+
 ion-content {
   --background: var(--bg);
   --color: var(--text);
@@ -547,6 +559,35 @@ ion-tab-bar {
 .section-note {
   font-size: calc(0.78rem * var(--density-font-scale));
   color: var(--text-faint);
+}
+
+/* Shared heading patterns used by auth screens and analytics: big hero title
+   and a wider rule-then-label group divider. Kept here so pages never need
+   their own one-off sizes/weights. */
+.auth-title {
+  margin: 0;
+  font-size: calc(1.6rem * var(--density-font-scale));
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.group-title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--density-gap);
+  font-size: calc(0.74rem * var(--density-font-scale));
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.group-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
 }
 
 /* ---- surfaces ---- */

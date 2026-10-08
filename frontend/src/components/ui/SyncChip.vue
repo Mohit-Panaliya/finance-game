@@ -49,7 +49,6 @@ const text = computed(() => {
   border: 1px solid var(--border);
   background: var(--surface-2);
   color: var(--text);
-  font-family: var(--font-body);
   font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;

@@ -177,7 +177,6 @@ function onKey(e: KeyboardEvent) {
   background: transparent;
   border: none;
   color: var(--text);
-  font-family: var(--font-body);
   font-size: 0.95rem;
   cursor: pointer;
   text-align: left;
@@ -268,7 +267,6 @@ function onKey(e: KeyboardEvent) {
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   color: var(--text);
-  font-family: var(--font-body);
   font-size: 0.86rem;
   cursor: pointer;
 }
@@ -299,7 +297,6 @@ function onKey(e: KeyboardEvent) {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text);
-  font-family: var(--font-body);
   font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;

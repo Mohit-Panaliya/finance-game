@@ -95,21 +95,19 @@ const ariaLabel = computed(() => `${props.label || 'Progress'} ${pctText.value}`
 }
 
 .ring-value-text {
+  font-variant-numeric: tabular-nums;
   fill: var(--text);
   font-size: 20px;
   font-weight: 700;
-  font-family: var(--font-body);
 }
 
 .ring-label {
   fill: var(--text-muted);
   font-size: 8px;
-  font-family: var(--font-body);
 }
 
 .ring-sublabel {
   fill: var(--text-faint);
   font-size: 7px;
-  font-family: var(--font-body);
 }
 </style>

@@ -553,7 +553,16 @@ onMounted(() => {
       <template v-if="detail">
         <!-- Derived statement: every row that moved this account, newest first -->
         <section v-if="isStatementAccount" class="stmt">
-          <p class="card-label">Statement</p>
+          <div class="stmt-head">
+            <p class="card-label">Statement</p>
+            <router-link
+              class="stmt-full"
+              :to="`/accounts/${entity}/${rowId(detail)}`"
+              @click="detail = null"
+            >
+              View full statement →
+            </router-link>
+          </div>
           <p v-if="statementLoading" class="text-sm text-muted">Loading statement…</p>
           <p v-else-if="statementError" class="form-error">{{ statementError }}</p>
           <p v-else-if="!statement.length" class="text-sm text-muted">
@@ -715,7 +724,6 @@ onMounted(() => {
   border: none;
   outline: none;
   color: var(--text);
-  font-family: var(--font-body);
   font-size: 0.95rem;
 }
 .search-input::placeholder {
@@ -788,7 +796,6 @@ onMounted(() => {
   gap: 3px;
   width: 74px;
   border: none;
-  font-family: var(--font-body);
   font-size: 0.7rem;
   font-weight: 600;
   cursor: pointer;
@@ -824,6 +831,22 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: var(--density-gap);
+}
+.stmt-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--density-gap);
+  flex-wrap: wrap;
+}
+.stmt-full {
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.stmt-full:hover {
+  text-decoration: underline;
 }
 .stmt-row .row-title,
 .stmt-row .row-value {

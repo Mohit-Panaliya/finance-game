@@ -140,7 +140,6 @@ onBeforeUnmount(() => {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text);
-  font-family: var(--font-body);
   font-size: 0.95rem;
   cursor: pointer;
   transition:
@@ -239,7 +238,6 @@ onBeforeUnmount(() => {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   color: var(--text);
-  font-family: var(--font-body);
   font-size: 0.95rem;
   cursor: pointer;
   text-align: left;

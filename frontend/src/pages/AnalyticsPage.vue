@@ -888,24 +888,6 @@ onMounted(() => {
   animation: an-group-in 0.26s ease both;
 }
 
-.group-title {
-  display: flex;
-  align-items: center;
-  gap: var(--density-gap);
-  font-size: 0.74rem;
-  font-weight: 700;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
-.group-title::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border);
-}
-
 .block {
   display: flex;
   flex-direction: column;

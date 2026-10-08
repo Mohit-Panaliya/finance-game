@@ -5,6 +5,15 @@ export type ResolvedTheme = 'light' | 'dark'
 export type AccentName = 'blue' | 'indigo' | 'violet' | 'sky' | 'rose' | 'amber'
 export type Density = 'comfortable' | 'compact'
 
+/**
+ * UI body-font id, mirrored by `html[data-font=…]` rules in
+ * `src/theme/styles/fonts.css`. The user font overrides the BODY/UI stack in
+ * every style preset; each preset's DISPLAY face (`--font-display`) is
+ * untouched so a theme keeps its identity. `system` is the default and means
+ * no `data-font` override is active.
+ */
+export type FontId = 'system' | 'inter' | 'sans' | 'serif' | 'rounded'
+
 /** Visual style ids, mirrored by `[data-style=…]` rules in `src/theme/app.css`. */
 export type StyleId =
   | 'flexoki'
@@ -38,17 +47,30 @@ export interface ThemeFamily {
   themes: ThemeStyle[]
 }
 
+export interface ThemeFont {
+  value: FontId
+  label: string
+  /** Full body stack for this option, previewed live in the settings picker. */
+  stack: string
+}
+
+export interface FontFamily {
+  label: string
+  fonts: ThemeFont[]
+}
+
 /** One namespaced key holding one JSON object, so state can never be half-written. */
 export const THEME_STORAGE_KEY = 'fintrack:theme'
 
 /**
- * These four must stay in sync with the inline bootstrap in `index.html`, which
+ * These five must stay in sync with the inline bootstrap in `index.html`, which
  * has to apply the theme before the first paint and cannot import this file.
  */
 export const DEFAULT_MODE: ThemeMode = 'system'
 export const DEFAULT_ACCENT: AccentName = 'blue'
 export const DEFAULT_DENSITY: Density = 'comfortable'
 export const DEFAULT_STYLE: StyleId = 'flexoki'
+export const DEFAULT_FONT: FontId = 'system'
 
 export const THEME_MODES: { value: ThemeMode; label: string }[] = [
   { value: 'system', label: 'System' },
@@ -111,10 +133,68 @@ export const ACCENT_PALETTES: AccentPalette[] = [
   { name: 'amber', label: 'Amber', swatch: '#e5a13a' }
 ]
 
+export const SYSTEM_STACK =
+  "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+
+/**
+ * Curated UI body-font options. Purely typographic: every face is already
+ * loaded by the single Google Fonts request in `index.html`, so picking one
+ * never costs a new network round-trip. `stack` is the value `fonts.css`
+ * assigns to `--font-body` under `html[data-font='…']` — keep the two in sync.
+ */
+export const FONT_FAMILIES: FontFamily[] = [
+  {
+    label: 'Default',
+    fonts: [{ value: 'system', label: 'System', stack: SYSTEM_STACK }]
+  },
+  {
+    label: 'Sans / Grotesque',
+    fonts: [
+      {
+        value: 'inter',
+        label: 'Inter',
+        stack: `'Inter', ${SYSTEM_STACK}`
+      },
+      {
+        value: 'sans',
+        label: 'Sans',
+        stack: `'Karla', ${SYSTEM_STACK}`
+      }
+    ]
+  },
+  {
+    label: 'Serif / Editorial',
+    fonts: [
+      {
+        value: 'serif',
+        label: 'Serif',
+        stack: "'Fraunces', 'Iowan Old Style', Georgia, 'Times New Roman', serif"
+      }
+    ]
+  },
+  {
+    label: 'Rounded',
+    fonts: [
+      {
+        value: 'rounded',
+        label: 'Rounded',
+        stack: "'Varela Round', 'Nunito Sans', ui-rounded, system-ui, sans-serif"
+      }
+    ]
+  }
+]
+
+export const FLAT_FONTS: ThemeFont[] = FONT_FAMILIES.flatMap((f) => f.fonts)
+
+export const FONT_LABELS: Record<FontId, string> = Object.fromEntries(
+  FLAT_FONTS.map((f) => [f.value, f.label])
+) as Record<FontId, string>
+
 const MODES: ThemeMode[] = ['system', 'light', 'dark']
 const ACCENTS: AccentName[] = ACCENT_PALETTES.map((p) => p.name)
 const DENSITY_VALUES: Density[] = ['comfortable', 'compact']
 const STYLES: StyleId[] = FLAT_STYLES.map((s) => s.value)
+const FONTS: FontId[] = FLAT_FONTS.map((f) => f.value)
 
 /**
  * Matches `--bg` per style in `src/theme/styles/*.css`; drives the pre-paint
@@ -142,6 +222,7 @@ interface StoredTheme {
   accent: AccentName
   density: Density
   style: StyleId
+  font: FontId
 }
 
 function defaults(): StoredTheme {
@@ -149,7 +230,8 @@ function defaults(): StoredTheme {
     mode: DEFAULT_MODE,
     accent: DEFAULT_ACCENT,
     density: DEFAULT_DENSITY,
-    style: DEFAULT_STYLE
+    style: DEFAULT_STYLE,
+    font: DEFAULT_FONT
   }
 }
 
@@ -173,6 +255,8 @@ function readStored(): StoredTheme {
     // A bag written before styles existed has no `style` key: it fails this
     // check and keeps the default, which is exactly what we want.
     if (STYLES.includes(bag.style as StyleId)) out.style = bag.style as StyleId
+    // Same for the font preference: old bags simply keep the system default.
+    if (FONTS.includes(bag.font as FontId)) out.font = bag.font as FontId
   } catch {
     return defaults()
   }
@@ -184,6 +268,7 @@ const mode = ref<ThemeMode>(stored.mode)
 const accent = ref<AccentName>(stored.accent)
 const density = ref<Density>(stored.density)
 const style = ref<StyleId>(stored.style)
+const font = ref<FontId>(stored.font)
 const systemDark = ref(prefersDark())
 
 const resolvedTheme = computed<ResolvedTheme>(() =>
@@ -204,6 +289,15 @@ function apply(): void {
   setAttr('data-accent', accent.value)
   setAttr('data-density', density.value)
   setAttr('data-style', style.value)
+  // No `data-font` attribute means "system": omitted, the browser keeps every
+  // theme's own body stack. `system` is therefore not an attribute, so the
+  // default theme is byte-identical to how it behaved before fonts existed.
+  const el0 = document.documentElement
+  if (font.value === 'system') {
+    if (el0.hasAttribute('data-font')) el0.removeAttribute('data-font')
+  } else {
+    setAttr('data-font', font.value)
+  }
   const el = document.documentElement
   const bg = PAGE_BG[style.value][theme]
   if (el.style.getPropertyValue('--boot-bg') !== bg) {
@@ -223,7 +317,8 @@ function persist(): void {
         mode: mode.value,
         accent: accent.value,
         density: density.value,
-        style: style.value
+        style: style.value,
+        font: font.value
       })
     )
   } catch {
@@ -282,12 +377,19 @@ function setStyle(next: StyleId): void {
   persist()
 }
 
+function setFont(next: FontId): void {
+  if (!FONTS.includes(next) || next === font.value) return
+  font.value = next
+  persist()
+}
+
 function reset(): void {
   const fresh = defaults()
   mode.value = fresh.mode
   accent.value = fresh.accent
   density.value = fresh.density
   style.value = fresh.style
+  font.value = fresh.font
   try {
     localStorage.removeItem(THEME_STORAGE_KEY)
   } catch {
@@ -303,10 +405,12 @@ export interface ThemeControls {
   accent: AccentName
   density: Density
   style: StyleId
+  font: FontId
   setMode: (next: ThemeMode) => void
   setAccent: (next: AccentName) => void
   setDensity: (next: Density) => void
   setStyle: (next: StyleId) => void
+  setFont: (next: FontId) => void
   reset: () => void
 }
 
@@ -329,18 +433,22 @@ const controls: ThemeControls = {
   get style() {
     return style.value
   },
+  get font() {
+    return font.value
+  },
   setMode,
   setAccent,
   setDensity,
   setStyle,
+  setFont,
   reset
 }
 
 /**
  * Shared appearance state, mirrored onto `<html>` as `data-theme`,
- * `data-accent`, `data-density` and `data-style`. Singleton, so any number of
- * components can call it without duplicating listeners or fighting over the DOM
- * attributes.
+ * `data-accent`, `data-density`, `data-style` and `data-font`. Singleton, so
+ * any number of components can call it without duplicating listeners or
+ * fighting over the DOM attributes.
  */
 export function useTheme(): Readonly<ThemeControls> {
   // Only scope-bound callers are counted, otherwise a call from a store or a
@@ -354,6 +462,6 @@ export function useTheme(): Readonly<ThemeControls> {
   return readonly(controls) as Readonly<ThemeControls>
 }
 
-watch([resolvedTheme, accent, density, style], apply)
+watch([resolvedTheme, accent, density, style, font], apply)
 startSync()
 apply()

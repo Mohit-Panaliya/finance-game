@@ -196,16 +196,15 @@ const ariaLabel = computed(() => {
 }
 
 .donut-center-value {
+  font-variant-numeric: tabular-nums;
   fill: var(--text);
   font-size: 26px;
   font-weight: 700;
-  font-family: var(--font-body);
 }
 
 .donut-center-label {
   fill: var(--text-muted);
   font-size: 11px;
-  font-family: var(--font-body);
 }
 
 .donut-legend {

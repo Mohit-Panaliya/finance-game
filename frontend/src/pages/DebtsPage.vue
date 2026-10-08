@@ -907,7 +907,6 @@ onMounted(() => {
   gap: 3px;
   width: 74px;
   border: none;
-  font-family: var(--font-body);
   font-size: 0.7rem;
   font-weight: 600;
   cursor: pointer;

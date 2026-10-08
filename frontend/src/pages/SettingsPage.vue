@@ -20,6 +20,8 @@ import {
   ACCENT_PALETTES,
   DEFAULT_STYLE,
   DENSITIES,
+  FONT_FAMILIES,
+  FONT_LABELS,
   STYLE_LABELS,
   THEME_FAMILIES,
   THEME_MODES,
@@ -40,6 +42,8 @@ const accentLabel = computed(
 )
 
 const styleLabel = computed(() => STYLE_LABELS[theme.style] ?? theme.style)
+
+const fontLabel = computed(() => FONT_LABELS[theme.font] ?? theme.font)
 
 /** Family groups for the picker; the default option carries its own caption. */
 const styleGroups = computed(() =>
@@ -251,6 +255,28 @@ async function queueSize() {
                 {{ d.label }}
               </button>
             </div>
+
+            <p class="card-label spaced">Font</p>
+            <p class="hint-text">Sets the body/UI type. Each theme keeps its own display face.</p>
+            <div class="style-families" role="group" aria-label="UI font">
+              <div v-for="family in FONT_FAMILIES" :key="family.label" class="style-family">
+                <p class="style-family-label">{{ family.label }}</p>
+                <div class="style-chips">
+                  <button
+                    v-for="f in family.fonts"
+                    :key="f.value"
+                    type="button"
+                    class="chip font-option"
+                    :class="{ 'chip-active': theme.font === f.value }"
+                    :aria-pressed="theme.font === f.value"
+                    :style="{ fontFamily: f.stack }"
+                    @click="theme.setFont(f.value)"
+                  >
+                    {{ f.label }}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="card meta-list">
@@ -273,6 +299,10 @@ async function queueSize() {
             <div class="meta-row">
               <span class="meta-key">Theme style</span>
               <span class="meta-val">{{ styleLabel }}</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-key">UI font</span>
+              <span class="meta-val">{{ fontLabel }}</span>
             </div>
           </div>
 
@@ -405,6 +435,14 @@ async function queueSize() {
 .spaced {
   margin-top: 16px;
 }
+.hint-text {
+  margin: -4px 0 8px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.font-option {
+  font-variant-numeric: tabular-nums;
+}
 .style-families {
   display: flex;
   flex-direction: column;
@@ -442,7 +480,6 @@ async function queueSize() {
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  font-family: var(--font-body);
   cursor: pointer;
   transition:
     background 0.14s ease,
