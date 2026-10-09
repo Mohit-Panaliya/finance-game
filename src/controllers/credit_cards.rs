@@ -1,18 +1,205 @@
 use chrono::Utc;
 use loco_rs::prelude::*;
-use sea_orm::{ColumnTrait, Condition, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, Set};
-
-use crate::models::credit_cards::{
-    self, CreateCreditCardRequest, CreditCardSummary, UpdateCreditCardRequest,
+use sea_orm::{
+    ColumnTrait, Condition, ConnectionTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder,
+    Set, TransactionSession, TransactionTrait,
 };
+
+use crate::ledger;
+use crate::models::credit_cards::{
+    self, CreateCreditCardRequest, CreditCardResponse, CreditCardSummary, UpdateCreditCardRequest,
+};
+use crate::models::{banks, expenses};
 
 pub fn routes() -> Routes {
     Routes::new()
         .prefix("/api/credit-cards")
         .add("/summary", get(summary))
         .add("/{id}/statement", get(statement))
+        .add("/{id}/repay", post(repay))
         .add("/", get(list).post(create))
         .add("/{id}", get(show).put(update).delete(remove))
+}
+
+/// Money is `f64` in the schema, so round at every boundary.
+fn round2(v: f64) -> f64 {
+    let r = (v * 100.0).round() / 100.0;
+    if r == 0.0 {
+        0.0
+    } else {
+        r
+    }
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct RepayCardRequest {
+    /// Amount to pay towards the card. Clamped to the amount owed.
+    pub amount: f64,
+    /// Bank the repayment is drawn from. Absent or blank means a cash repayment,
+    /// which leaves every bank balance untouched.
+    pub bank_id: Option<String>,
+}
+
+/// Pay down a card's outstanding balance.
+///
+/// The two movements the money actually makes — out of the bank (when one is
+/// named) and off the card — are applied exactly once here. The `expenses` row
+/// this writes is deliberately *unlinked*: it records the repayment in the
+/// activity trail for the user to see, but carries no `bank_id` or
+/// `credit_card_id`, so the expense ledger hooks leave it alone and the money is
+/// not moved a second time.
+#[debug_handler]
+async fn repay(
+    auth: auth::JWT,
+    State(ctx): State<AppContext>,
+    Path(id): Path<String>,
+    Json(params): Json<RepayCardRequest>,
+) -> Result<Response> {
+    let db = ctx
+        .shared_store
+        .get_ref::<sea_orm_turso::TursoConnection>()
+        .unwrap();
+    let uid = super::uid(&ctx, &auth).await?;
+
+    if !params.amount.is_finite() || params.amount <= 0.0 {
+        return Err(Error::BadRequest(
+            "amount must be greater than zero".to_string(),
+        ));
+    }
+
+    let Some(card) = credit_cards::Entity::find_by_id(&id)
+        .filter(credit_cards::Column::UserId.eq(uid))
+        .one(&*db)
+        .await?
+    else {
+        return not_found();
+    };
+
+    // Blank and "0" ids mean "not linked", the same rule the ledger applies.
+    let bank_id = params
+        .bank_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty() && *s != "0")
+        .map(str::to_string);
+
+    if let Some(bank_id) = bank_id.as_deref() {
+        let owned = banks::Entity::find_by_id(bank_id)
+            .filter(banks::Column::UserId.eq(uid))
+            .one(&*db)
+            .await?;
+        if owned.is_none() {
+            return not_found();
+        }
+    }
+
+    // Never repay more than is owed, and never drive the balance below zero.
+    let applied = round2(params.amount.min(round2(card.current_balance)).max(0.0));
+    if applied <= 0.0 {
+        return Err(Error::BadRequest(
+            "card has no outstanding balance to repay".to_string(),
+        ));
+    }
+
+    let txn = db
+        .begin()
+        .await
+        .map_err(|e| Error::string(&e.to_string()))?;
+    let result = apply_repayment(&txn, uid, &card, applied, bank_id.as_ref()).await;
+    let (card_out, expense) = match result {
+        Ok(v) => {
+            if let Err(e) = txn.commit().await {
+                return Err(Error::string(&e.to_string()));
+            }
+            v
+        }
+        Err(e) => {
+            let _ = txn.rollback().await;
+            return Err(e);
+        }
+    };
+
+    let bank = match bank_id.as_deref() {
+        Some(bid) => {
+            banks::Entity::find_by_id(bid)
+                .filter(banks::Column::UserId.eq(uid))
+                .one(&*db)
+                .await?
+        }
+        None => None,
+    };
+
+    format::json(serde_json::json!({
+        "card": CreditCardResponse::from(card_out),
+        "bank": bank,
+        "expense": expense,
+        "amount_applied": applied,
+        "bank_id": bank_id,
+    }))
+}
+
+/// The write half of a repayment, run inside the caller's transaction so a
+/// failure leaves nothing half-applied.
+async fn apply_repayment(
+    db: &impl ConnectionTrait,
+    uid: i64,
+    card: &credit_cards::Model,
+    applied: f64,
+    bank_id: Option<&String>,
+) -> Result<(credit_cards::Model, expenses::Model)> {
+    let now = Utc::now();
+    let stamp = now.to_rfc3339();
+    let expense = expenses::ActiveModel {
+        id: Set(uuid::Uuid::new_v4().to_string()),
+        user_id: Set(uid),
+        title: Set(format!("Card repayment — {}", card.name)),
+        description: Set(Some(format!("Repayment applied to {}", card.name))),
+        amount: Set(applied),
+        currency: Set("INR".to_string()),
+        expense_type: Set("debt".to_string()),
+        category: Set("other".to_string()),
+        expense_date: Set(now.format("%Y-%m-%d").to_string()),
+        is_recurring: Set(false),
+        recurrence: Set(None),
+        recurrence_end_date: Set(None),
+        payment_method: Set(if bank_id.is_some() {
+            "bank_transfer".to_string()
+        } else {
+            "cash".to_string()
+        }),
+        // Deliberately unlinked, so the expense ledger hooks move nothing. The card
+        // id rides in `tags` so the card statement can still surface the repayment.
+        bank_id: Set(None),
+        credit_card_id: Set(None),
+        tags: Set(Some(format!("card-repayment:{}", card.id))),
+        receipt_url: Set(None),
+        location: Set(None),
+        is_fixed: Set(false),
+        priority: Set("medium".to_string()),
+        sync_status: Set("pending".to_string()),
+        last_synced_at: Set(None),
+        created_at: Set(Some(stamp.clone())),
+        updated_at: Set(Some(stamp)),
+    }
+    .insert(db)
+    .await
+    .map_err(|e| Error::string(&e.to_string()))?;
+
+    ledger::adjust_bank(db, uid, bank_id, -applied)
+        .await
+        .map_err(|e| Error::string(&e.to_string()))?;
+    ledger::adjust_card(db, uid, Some(&card.id), -applied)
+        .await
+        .map_err(|e| Error::string(&e.to_string()))?;
+
+    let card_out = credit_cards::Entity::find_by_id(&card.id)
+        .filter(credit_cards::Column::UserId.eq(uid))
+        .one(db)
+        .await
+        .map_err(|e| Error::string(&e.to_string()))?
+        .ok_or_else(|| Error::BadRequest("card no longer exists".to_string()))?;
+
+    Ok((card_out, expense))
 }
 
 #[debug_handler]

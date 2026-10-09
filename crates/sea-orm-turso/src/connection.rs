@@ -447,8 +447,13 @@ impl TransactionTrait for TursoConnection {
     type Transaction = TursoTransaction;
 
     async fn begin(&self) -> Result<Self::Transaction, sea_orm::DbErr> {
+        // NOTE: do NOT use `unchecked_transaction()` here: its returned guard
+        // carries DropBehavior::Rollback, and discarding it rolls the
+        // transaction back instantly (every later COMMIT then fails with
+        // "no transaction is active"). Raw BEGIN/COMMIT/ROLLBACK statements
+        // pair with the commit()/rollback() below, which use the same path.
         let conn = self.conn.lock().await;
-        conn.unchecked_transaction()
+        conn.execute("BEGIN DEFERRED", ())
             .await
             .map_err(|e| sea_orm::DbErr::Custom(format!("Failed to begin transaction: {}", e)))?;
         drop(conn);

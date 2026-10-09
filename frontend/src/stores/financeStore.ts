@@ -267,6 +267,27 @@ export const useFinanceStore = defineStore('finance', {
       void this.fetchAnalysis()
     },
 
+    async topUpDebt(id: string, amount: number): Promise<DebtRow> {
+      const res = await api.post<DebtRow>(`/debts/${id}/top-up`, { amount })
+      await Promise.all([this.fetchDebts(), this.fetchDebtSummary()])
+      void this.fetchAnalysis()
+      return res
+    },
+
+    async repayCard(id: string, amount: number, bankId?: string): Promise<any> {
+      const body: Record<string, unknown> = { amount }
+      if (bankId && bankId !== '') body.bank_id = bankId
+      const res = await api.post<any>(`/credit-cards/${id}/repay`, body)
+      await Promise.allSettled([
+        this.refreshLinkedBalances(),
+        this.fetchList('expenses'),
+        this.fetchSummary('expenses')
+      ])
+      void this.fetchOverview()
+      void this.fetchAnalysis()
+      return res
+    },
+
     async removeDebt(id: string): Promise<void> {
       await api.del(`/debts/${id}`)
       await Promise.all([this.fetchDebts(), this.fetchDebtSummary()])

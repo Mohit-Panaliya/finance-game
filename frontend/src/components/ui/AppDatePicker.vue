@@ -11,8 +11,12 @@ const props = withDefaults(
     placeholder?: string
     disabled?: boolean
     clearable?: boolean
+    /** Inline field error; also switches the shell to the invalid style. */
+    error?: string
+    /** Renders the mandatory `*` marker next to the label. */
+    required?: boolean
   }>(),
-  { modelValue: null, placeholder: 'Select date', disabled: false, clearable: true, label: '' }
+  { modelValue: null, placeholder: 'Select date', disabled: false, clearable: true, label: '', error: '', required: false }
 )
 
 const emit = defineEmits<{ 'update:modelValue': [value: string | null] }>()
@@ -85,8 +89,10 @@ function onKey(e: KeyboardEvent) {
 
 <template>
   <div class="adp" :class="{ 'adp-disabled': disabled }">
-    <span v-if="label" class="adp-label">{{ label }}</span>
-    <div class="adp-shell">
+    <span v-if="label" class="adp-label">
+      {{ label }}<span v-if="required" class="adp-req" aria-hidden="true">*</span>
+    </span>
+    <div class="adp-shell" :class="{ 'adp-shell-invalid': !!error }">
       <button class="adp-trigger" type="button" :disabled="disabled" @click="open = true">
         <ion-icon class="adp-icon" :icon="calendarOutline" />
         <span class="adp-text clamp-1">{{ selected ? formatDate(selected) : placeholder }}</span>
@@ -95,6 +101,7 @@ function onKey(e: KeyboardEvent) {
         &times;
       </button>
     </div>
+    <span v-if="error" class="adp-error">{{ error }}</span>
 
     <teleport to="body">
       <transition name="adp-fade">
@@ -158,6 +165,17 @@ function onKey(e: KeyboardEvent) {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text-muted);
+}
+.adp-req {
+  margin-left: 3px;
+  color: var(--danger);
+}
+.adp-error {
+  font-size: 0.72rem;
+  color: var(--danger);
+}
+.adp-shell-invalid {
+  border-color: var(--danger);
 }
 .adp-shell {
   display: flex;

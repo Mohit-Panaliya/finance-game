@@ -26,6 +26,8 @@ const finance = useFinanceStore()
 const sync = useSyncStore()
 
 const kind = ref<Kind>('all')
+/** When true, only recurring (fixed-cost) expenses are listed. */
+const fixedOnly = ref(false)
 /** Id of the Activity row currently swiped open, so only one opens at a time. */
 const openRow = ref<string | null>(null)
 const range = ref<RangeKey>('this-month')
@@ -160,6 +162,12 @@ const filtered = computed<Entry[]>(() => {
   const bounds = rangeBounds(range.value)
   return allEntries.value
     .filter((e) => (kind.value === 'all' ? true : e.entity === kind.value))
+    .filter((e) => {
+      if (!fixedOnly.value) return true
+      if (e.entity !== 'expenses') return false
+      const r = (e as { row?: Record<string, unknown> }).row
+      return r?.is_recurring === true || r?.is_recurring === 'true'
+    })
     .filter((e) => (category.value === 'all' ? true : e.subtitle.split(' · ')[0] === category.value))
     .filter((e) => (bounds ? e.date >= bounds.from && e.date <= bounds.to : true))
     .sort((a, b) => b.date.localeCompare(a.date))
@@ -317,6 +325,14 @@ onMounted(() => {
             @click="kind = k.value"
           >
             {{ k.label }}
+          </button>
+          <button
+            class="chip"
+            :class="{ 'chip-active': fixedOnly }"
+            type="button"
+            @click="fixedOnly = !fixedOnly"
+          >
+            Fixed
           </button>
           <button
             v-for="c in categories"

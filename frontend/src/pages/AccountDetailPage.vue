@@ -105,7 +105,17 @@ watch(
 const pendingDelete = ref<FinanceRow | null>(null)
 const saving = ref(false)
 const formError = ref('')
+/** Per-field validation messages, keyed by field key. Empty = field valid. */
+const fieldErrors = ref<Record<string, string>>({})
 const draft = ref<Record<string, string | number | null>>({})
+/** Quick-add mode (title + amount only) for incomes/expenses creates. */
+const quickMode = ref(false)
+/** Id of the row just created via quick-add (enables Undo). Null while editing. */
+const quickSavedId = ref<string | null>(null)
+/** Date column key for the active entity (income_date / expense_date / ...). */
+const quickDateKey = computed(
+  () => fields.value.find((f) => f.kind === 'date')?.key ?? 'date',
+)
 
 const dateColumn = computed(() => DATE_COLUMN[entity.value])
 
@@ -136,6 +146,12 @@ function loadDraft(row: FinanceRow) {
 
 function setDraft(key: string, value: string | number | null) {
   draft.value = { ...draft.value, [key]: value }
+  if (fieldErrors.value[key]) {
+    const next = { ...fieldErrors.value }
+    delete next[key]
+    fieldErrors.value = next
+    if (Object.keys(next).length === 0) formError.value = ''
+  }
 }
 
 /** Human name of a bank or card a row points at, or null when it no longer exists. */
@@ -348,6 +364,10 @@ function startCreate() {
   detail.value = null
   closeSwipe()
   formError.value = ''
+  fieldErrors.value = {}
+  quickSavedId.value = null
+  quickMode.value = entity.value === 'incomes' || entity.value === 'expenses'
+  if (quickMode.value) applyQuickDefaults()
   formOpen.value = true
 }
 
@@ -371,16 +391,117 @@ function coerce(field: FieldDef, raw: string | number | null): unknown {
   return typeof raw === 'string' ? raw.trim() : raw
 }
 
+function lastUsed(key: string): string {
+  try {
+    return localStorage.getItem(`fg-last-${entity.value}-${key}`) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+function rememberUsed(key: string, value: unknown) {
+  if (value === null || value === undefined || value === '') return
+  try {
+    localStorage.setItem(`fg-last-${entity.value}-${key}`, String(value))
+  } catch {
+    /* storage unavailable - defaults simply won't persist */
+  }
+}
+
+/** Prefill date + last-used bank/category/source so quick-add is one tap. */
+function applyQuickDefaults() {
+  const d = { ...draft.value }
+  if (quickDateKey.value) d[quickDateKey.value] = todayISO()
+  for (const k of ['bank_id', 'credit_card_id', 'category', 'source']) {
+    if (k in d && (d[k] === '' || d[k] === null)) {
+      const v = lastUsed(k)
+      if (v) d[k] = v
+    }
+  }
+  draft.value = d
+}
+
+/** Fields shown in quick-add mode: title, amount, plus source (incomes) or bank (expenses). */
+const quickFields = computed(() => {
+  const byKey = new Map(fields.value.map((f) => [f.key, f]))
+  const keys =
+    entity.value === 'incomes'
+      ? ['title', 'amount', 'source']
+      : ['title', 'amount', 'bank_id']
+  return keys.map((k) => byKey.get(k)).filter((f) => f !== undefined)
+})
+
+async function quickSave() {
+  formError.value = ''
+  const errs: Record<string, string> = {}
+  const payload: Record<string, unknown> = {}
+  for (const f of quickFields.value) {
+    const value = coerce(f, draft.value[f.key] ?? null)
+    if (f.required && (value === null || value === '')) {
+      errs[f.key] = `${f.label} is required`
+    } else if (value !== null) {
+      payload[f.key] = value
+    }
+  }
+  // date default is always applied for quick-add
+  if (quickDateKey.value) payload[quickDateKey.value] = todayISO()
+  fieldErrors.value = errs
+  const n = Object.keys(errs).length
+  if (n > 0) {
+    formError.value =
+      n === 1 ? '1 field needs attention' : `${n} fields need attention`
+    return
+  }
+  saving.value = true
+  try {
+    const created = (await finance.create(entity.value, payload)) as unknown as {
+      id?: string
+    }
+    for (const k of ['bank_id', 'credit_card_id', 'category', 'source']) {
+      if (payload[k] !== undefined) rememberUsed(k, payload[k])
+    }
+    quickSavedId.value = (created && created.id ? String(created.id) : null) as string | null
+    seedDraft()
+    applyQuickDefaults()
+    fieldErrors.value = {}
+  } catch {
+    formError.value = 'You appear to be offline. The change is queued and will sync automatically.'
+  } finally {
+    saving.value = false
+  }
+}
+
+async function quickUndo() {
+  if (!quickSavedId.value) return
+  saving.value = true
+  try {
+    await finance.remove(entity.value, quickSavedId.value)
+  } catch {
+    /* best effort - row stays if offline delete fails */
+  } finally {
+    quickSavedId.value = null
+    saving.value = false
+  }
+}
+
 async function save() {
   formError.value = ''
   const payload: Record<string, unknown> = {}
+  const errs: Record<string, string> = {}
   for (const f of fields.value) {
     const value = coerce(f, draft.value[f.key] ?? null)
     if (f.required && (value === null || value === '')) {
-      formError.value = `${f.label} is required`
-      return
+      errs[f.key] = `${f.label} is required`
+    } else if (value !== null) {
+      payload[f.key] = value
     }
-    if (value !== null) payload[f.key] = value
+  }
+  fieldErrors.value = errs
+  const n = Object.keys(errs).length
+  if (n > 0) {
+    formError.value =
+      n === 1 ? '1 field needs attention' : `${n} fields need attention`
+    return
   }
 
   saving.value = true
@@ -616,7 +737,67 @@ onMounted(() => {
       :subtitle="cfg.label"
       @close="formOpen = false"
     >
-      <div class="form-grid">
+      <div v-if="!editingId && (entity === 'incomes' || entity === 'expenses')" class="entry-mode">
+        <AppButton
+          variant="neutral"
+          size="sm"
+          :class="{ 'entry-mode-active': quickMode }"
+          @click="quickMode = true"
+          >Quick</AppButton
+        >
+        <AppButton
+          variant="neutral"
+          size="sm"
+          :class="{ 'entry-mode-active': !quickMode }"
+          @click="quickMode = false"
+          >Full</AppButton
+        >
+      </div>
+
+      <div v-if="quickMode && !editingId" class="form-grid">
+        <p v-if="formError" class="form-error">{{ formError }}</p>
+
+        <AppInput
+          v-for="f in quickFields.filter((x) => x.kind !== 'select')"
+          :key="'q-' + f.key"
+          :model-value="draftValue(f) as string | number"
+          :type="f.kind === 'money' || f.kind === 'number' ? 'number' : 'text'"
+          :label="f.label"
+          :placeholder="f.placeholder"
+          :required="f.required"
+          :error="fieldErrors[f.key] ?? ''"
+          @update:model-value="(v) => setDraft(f.key, v)"
+        />
+
+        <AppSelect
+          v-for="f in quickFields.filter((x) => x.kind === 'select')"
+          :key="'q-' + f.key"
+          :options="optionsFor(f)"
+          :model-value="draftValue(f)"
+          :label="f.label"
+          :required="f.required"
+          :error="fieldErrors[f.key] ?? ''"
+          @update:model-value="(v) => setDraft(f.key, v as string)"
+        />
+
+        <div v-if="quickSavedId" class="quick-saved">
+          <span>Saved ✓</span>
+          <AppButton variant="neutral" size="sm" :disabled="saving" @click="quickUndo"
+            >Undo</AppButton
+          >
+          <AppButton
+            variant="neutral"
+            size="sm"
+            @click="quickSavedId = null"
+            >Add another</AppButton
+          >
+          <AppButton variant="primary" size="sm" @click="formOpen = false"
+            >Done</AppButton
+          >
+        </div>
+      </div>
+
+      <div v-if="!quickMode || editingId" class="form-grid">
         <p v-if="formError" class="form-error">{{ formError }}</p>
 
         <AppDatePicker
@@ -624,6 +805,8 @@ onMounted(() => {
           :key="f.key"
           :model-value="draftValue(f) === '' ? null : String(draftValue(f))"
           :label="f.label"
+          :required="f.required"
+          :error="fieldErrors[f.key] ?? ''"
           @update:model-value="(v) => setDraft(f.key, v)"
         />
 
@@ -633,6 +816,8 @@ onMounted(() => {
           :options="optionsFor(f)"
           :model-value="draftValue(f)"
           :label="f.label"
+          :required="f.required"
+          :error="fieldErrors[f.key] ?? ''"
           @update:model-value="(v) => setDraft(f.key, v as string)"
         />
 
@@ -645,12 +830,23 @@ onMounted(() => {
           :suffix="f.suffix"
           :hint="f.hint"
           :placeholder="f.placeholder"
+          :required="f.required"
+          :error="fieldErrors[f.key] ?? ''"
           @update:model-value="(v) => setDraft(f.key, v)"
         />
       </div>
       <template #footer>
         <AppButton variant="neutral" size="md" @click="formOpen = false">Cancel</AppButton>
-        <AppButton variant="primary" size="md" :disabled="saving" @click="save">
+        <AppButton
+          v-if="quickMode && !editingId"
+          variant="primary"
+          size="md"
+          :disabled="saving"
+          @click="quickSave"
+        >
+          {{ saving ? 'Saving…' : 'Save' }}
+        </AppButton>
+        <AppButton v-else variant="primary" size="md" :disabled="saving" @click="save">
           {{ saving ? 'Saving…' : 'Save' }}
         </AppButton>
       </template>
@@ -676,6 +872,24 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.entry-mode {
+  display: flex;
+  gap: var(--density-gap);
+  margin-bottom: var(--density-gap);
+}
+.entry-mode-active {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.quick-saved {
+  display: flex;
+  align-items: center;
+  gap: var(--density-gap);
+  padding: var(--density-card-pad);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
 .head-left {
   display: flex;
   align-items: center;

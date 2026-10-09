@@ -9,6 +9,10 @@ const props = withDefaults(
     placeholder?: string
     suffix?: string
     hint?: string
+    /** Inline field error; also switches the shell to the invalid style. */
+    error?: string
+    /** Renders the mandatory `*` marker next to the label. */
+    required?: boolean
     disabled?: boolean
     min?: number
     max?: number
@@ -21,6 +25,8 @@ const props = withDefaults(
     placeholder: '',
     suffix: '',
     hint: '',
+    error: '',
+    required: false,
     disabled: false
   }
 )
@@ -49,8 +55,10 @@ function onInput(e: Event) {
 </script>
 
 <template>
-  <label class="ainput" :class="{ 'ainput-focused': focused, 'ainput-disabled': disabled }">
-    <span v-if="label" class="ainput-label">{{ label }}</span>
+  <label class="ainput" :class="{ 'ainput-focused': focused, 'ainput-disabled': disabled, 'ainput-invalid': !!error }">
+    <span v-if="label" class="ainput-label">
+      {{ label }}<span v-if="required" class="ainput-req" aria-hidden="true">*</span>
+    </span>
     <span class="ainput-shell">
       <input
         class="ainput-field"
@@ -71,7 +79,8 @@ function onInput(e: Event) {
       />
       <span v-if="suffix" class="ainput-suffix">{{ suffix }}</span>
     </span>
-    <span v-if="hint" class="ainput-hint">{{ hint }}</span>
+    <span v-if="error" class="ainput-error">{{ error }}</span>
+    <span v-else-if="hint" class="ainput-hint">{{ hint }}</span>
   </label>
 </template>
 
@@ -88,6 +97,10 @@ function onInput(e: Event) {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text-muted);
+}
+.ainput-req {
+  margin-left: 3px;
+  color: var(--danger);
 }
 .ainput-shell {
   display: flex;
@@ -133,6 +146,16 @@ function onInput(e: Event) {
 .ainput-hint {
   font-size: 0.72rem;
   color: var(--text-faint);
+}
+.ainput-invalid .ainput-shell {
+  border-color: var(--danger);
+}
+.ainput-invalid.ainput-focused .ainput-shell {
+  box-shadow: 0 0 0 3px var(--danger-soft);
+}
+.ainput-error {
+  font-size: 0.72rem;
+  color: var(--danger);
 }
 .ainput-disabled {
   opacity: 0.55;

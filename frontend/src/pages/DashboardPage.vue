@@ -75,6 +75,33 @@ function accountRows(key: string): AccountRow[] {
   }))
 }
 
+/** Monthly equivalent factor per recurrence value (see RECURRENCE_OPTIONS). */
+const RECURRENCE_MONTHLY: Record<string, number> = {
+  weekly: 52 / 12,
+  biweekly: 26 / 12,
+  monthly: 1,
+  quarterly: 1 / 3,
+  yearly: 1 / 12,
+}
+
+/** Fixed costs this month = recurring expenses (as monthly equivalent, honouring
+ * frequency_multiplier) + EMI outflow across open borrowed loans. */
+const fixedCosts = computed(() => {
+  let fromBills = 0
+  for (const r of finance.rows('expenses')) {
+    if (!(r.is_recurring === true || r.is_recurring === 'true')) continue
+    const factor = RECURRENCE_MONTHLY[String(r.recurrence ?? 'monthly')] ?? 1
+    const mult = Number(r.frequency_multiplier) || 1
+    fromBills += (Number(r.amount) || 0) * factor * mult
+  }
+  const emi = Number(finance.debtSummary?.monthly_emi_outflow) || 0
+  return {
+    bills: Math.round(fromBills * 100) / 100,
+    emi: Math.round(emi * 100) / 100,
+    total: Math.round((fromBills + emi) * 100) / 100,
+  }
+})
+
 const totalCardBalance = computed(() =>
   groups.value.filter((g) => g.key === 'credit-cards').reduce((acc: number, g) => acc + g.total, 0)
 )
@@ -142,7 +169,7 @@ function money(value: number, currency?: string): string {
 }
 
 onMounted(async () => {
-  await Promise.allSettled([finance.fetchOverview(), finance.fetchAll()])
+  await Promise.allSettled([finance.fetchOverview(), finance.fetchAll(), finance.fetchDebtSummary()])
 })
 </script>
 
@@ -187,6 +214,13 @@ onMounted(async () => {
           <div class="stat-tile">
             <span class="stat-tile-label">Card balance</span>
             <span class="stat-tile-value">{{ money(totalCardBalance) }}</span>
+          </div>
+          <div class="stat-tile">
+            <span class="stat-tile-label">Fixed costs / mo</span>
+            <span class="stat-tile-value">{{ money(fixedCosts.total) }}</span>
+            <span class="text-sm text-muted"
+              >{{ money(fixedCosts.bills) }} bills + {{ money(fixedCosts.emi) }} EMI</span
+            >
           </div>
         </div>
 

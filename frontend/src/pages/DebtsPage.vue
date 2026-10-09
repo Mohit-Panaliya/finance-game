@@ -24,6 +24,7 @@ import AppInput from '@/components/ui/AppInput.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import SyncChip from '@/components/ui/SyncChip.vue'
+import DebtTopUpModal from '@/components/DebtTopUpModal.vue'
 
 const finance = useFinanceStore()
 const sync = useSyncStore()
@@ -156,10 +157,14 @@ const summary = computed<DebtSummary>(() => {
   const iOwe = debts.value
     .filter((r) => r.direction === 'borrowed')
     .reduce((acc, r) => acc + num(r.outstanding), 0)
+  const loans = debts.value.filter((r) => !r.is_settled && r.is_loan)
   return {
     owed_to_me: owedToMe,
     i_owe: iOwe,
     net: owedToMe - iOwe,
+    total_owed: iOwe,
+    monthly_emi_outflow: loans.reduce((acc, r) => acc + num(r.emi_amount), 0),
+    loan_count: loans.length,
     lent_count: debts.value.filter((r) => r.direction === 'lent').length,
     borrowed_count: debts.value.filter((r) => r.direction === 'borrowed').length,
     settled_count: debts.value.filter((r) => r.is_settled).length,
@@ -180,6 +185,26 @@ const netTone = computed(() => (net.value > 0 ? 'text-success' : net.value < 0 ?
 const netNote = computed(() =>
   net.value > 0 ? 'in your favour' : net.value < 0 ? 'you owe more' : 'all square'
 )
+
+/** Liabilities roll-up: everything owed plus the monthly instalments on open loans. */
+const totalOwed = computed(() => num(summary.value.total_owed))
+const monthlyEmi = computed(() => num(summary.value.monthly_emi_outflow))
+const loanCount = computed(() => num(summary.value.loan_count))
+
+/** True when a row carries any loan detail (borrowed loans only). */
+function isLoanRow(row: DebtRow): boolean {
+  return row.is_loan === true
+}
+
+/** Monthly instalment / interest line shown under a loan row. */
+function loanExtra(row: DebtRow): string | null {
+  if (!isLoanRow(row) || row.is_settled) return null
+  const parts: string[] = []
+  if (num(row.emi_amount) > 0) parts.push(`EMI ${formatMoney(row.emi_amount, row.currency)}/mo`)
+  if (num(row.interest_rate) > 0) parts.push(`${num(row.interest_rate)}%`)
+  if (num(row.tenure_months) > 0) parts.push(`${num(row.tenure_months)} mo`)
+  return parts.length ? parts.join(' · ') : null
+}
 
 function matches(row: DebtRow, key: DebtFilter): boolean {
   switch (key) {
@@ -257,7 +282,15 @@ const formOpen = ref(false)
 const editingId = ref<string | null>(null)
 const saving = ref(false)
 const formError = ref('')
+const formErrors = ref<Record<string, string>>({})
 const draft = ref<Record<string, string | number>>({})
+
+/** Loan detail only means anything on money the user borrowed. */
+const showLoanFields = computed(
+  () => String(draft.value.direction ?? '') === 'borrowed' && String(draft.value.kind ?? '') === 'loan'
+)
+
+const fieldError = (key: string): string => formErrors.value[key] ?? ''
 
 const bankOptions = computed(() => [
   { value: '', label: 'Not linked' },

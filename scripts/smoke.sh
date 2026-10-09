@@ -464,6 +464,106 @@ expect_status 404 "another user cannot read this statement" \
 expect_status 404 "another user cannot read this card statement" \
   -H "Authorization: Bearer $OTHER_TOKEN" "$BASE/api/credit-cards/$LEDGER_CARD_ID/statement"
 
+head_ "17. card repayment (R-044 A)"
+
+# Dedicated bank + card: a repayment must debit the bank exactly once and reduce the
+# card's amount owed exactly once, so the assertions start from known balances.
+REPAY_BANK="$(post banks '{"name":"Repay Bank","bank_type":"Savings","account_number":"REP0001","ifsc_code":"REPAY001","branch":"Test","current_balance":10000,"currency":"INR"}')"
+REPAY_BANK_ID="$(printf '%s' "$REPAY_BANK" | py "import json,sys;print(json.load(sys.stdin).get('id',''))" 2>/dev/null)"
+REPAY_CARD="$(post credit-cards '{"name":"Repay Card","bank_name":"Repay Bank","card_type":"Credit","last_four_digits":"9001","credit_limit":100000,"current_balance":3000}')"
+REPAY_CARD_ID="$(printf '%s' "$REPAY_CARD" | py "import json,sys;print(json.load(sys.stdin).get('id',''))" 2>/dev/null)"
+
+# cash path: no bank named, so no bank balance moves
+CASH_REPAY="$(body -X POST "$BASE/api/credit-cards/$REPAY_CARD_ID/repay" "${AUTH[@]}" "${JSON[@]}" -d '{"amount":500}')"
+printf '%s' "$CASH_REPAY" | jq_has 'd["amount_applied"] == 500 and d["card"]["current_balance"] == 2500' >/dev/null \
+  && ok "cash repayment reduces the card owed (3000 -> 2500)" || bad "cash repayment reduces the card" "${CASH_REPAY:0:200}"
+expect_bal 10000 "$(bal_of "$REPAY_BANK_ID")" "cash repayment moves no bank balance"
+printf '%s' "$CASH_REPAY" | jq_has 'd.get("bank") is None' >/dev/null \
+  && ok "cash repayment reports no bank" || bad "cash repayment reports no bank" "${CASH_REPAY:0:160}"
+
+expect_status 400 "repay of zero is rejected" -X POST "$BASE/api/credit-cards/$REPAY_CARD_ID/repay" "${AUTH[@]}" "${JSON[@]}" -d '{"amount":0}'
+expect_status 400 "repay of a negative amount is rejected" -X POST "$BASE/api/credit-cards/$REPAY_CARD_ID/repay" "${AUTH[@]}" "${JSON[@]}" -d '{"amount":-5}'
+
+# bank path: exactly one debit at the bank and one reduction at the card
+BANK_REPAY="$(body -X POST "$BASE/api/credit-cards/$REPAY_CARD_ID/repay" "${AUTH[@]}" "${JSON[@]}" -d "{\"amount\":1000,\"bank_id\":\"$REPAY_BANK_ID\"}")"
+printf '%s' "$BANK_REPAY" | jq_has 'd["amount_applied"] == 1000 and d["card"]["current_balance"] == 1500 and d["bank"]["current_balance"] == 9000' >/dev/null \
+  && ok "bank repayment moves the bank and card once each" || bad "bank repayment moves both once" "${BANK_REPAY:0:240}"
+expect_bal 9000 "$(bal_of "$REPAY_BANK_ID")" "the bank is debited exactly once (-1000)"
+expect_bal 1500 "$(card_bal_of "$REPAY_CARD_ID")" "the card owed is reduced exactly once (1000)"
+
+# clamp: asking for more than is owed applies only what is owed
+CLAMP_REPAY="$(body -X POST "$BASE/api/credit-cards/$REPAY_CARD_ID/repay" "${AUTH[@]}" "${JSON[@]}" -d "{\"amount\":99999,\"bank_id\":\"$REPAY_BANK_ID\"}")"
+printf '%s' "$CLAMP_REPAY" | jq_has 'd["amount_applied"] == 1500 and d["card"]["current_balance"] == 0' >/dev/null \
+  && ok "a repayment larger than the debt is clamped to it" || bad "repayment clamp" "${CLAMP_REPAY:0:200}"
+expect_bal 7500 "$(bal_of "$REPAY_BANK_ID")" "the clamp debits the bank by the applied amount only"
+expect_bal 0 "$(card_bal_of "$REPAY_CARD_ID")" "the card is paid off, never below zero"
+expect_status 400 "repaying a cleared card is a 400" -X POST "$BASE/api/credit-cards/$REPAY_CARD_ID/repay" "${AUTH[@]}" "${JSON[@]}" -d '{"amount":10}'
+
+expect_status 404 "repay an unknown card -> 404" -X POST "$BASE/api/credit-cards/no-such-card/repay" "${AUTH[@]}" "${JSON[@]}" -d '{"amount":10}'
+expect_status 404 "another user cannot repay this card" -X POST "$BASE/api/credit-cards/$REPAY_CARD_ID/repay" -H "Authorization: Bearer $OTHER_TOKEN" "${JSON[@]}" -d '{"amount":10}'
+
+# the repayment appears on the card statement without moving the money twice
+REPAY_STMT="$(stmt_of credit-cards "$REPAY_CARD_ID")"
+printf '%s' "$REPAY_STMT" | jq_has "any(e['title'].startswith('Card repayment') for e in d)" >/dev/null \
+  && ok "the card statement shows the repayment entry" || bad "card statement shows the repayment" "$(printf '%s' "$REPAY_STMT" | head -c 260)"
+printf '%s' "$REPAY_STMT" | jq_has "len([e for e in d if e['title'].startswith('Card repayment')]) == 3" >/dev/null \
+  && ok "all three repayments appear on the trail" || bad "repayment trail count" "$(printf '%s' "$REPAY_STMT" | head -c 260)"
+printf '%s' "$REPAY_STMT" | jq_has "all(e['signed_amount'] <= 0 for e in d if e['title'].startswith('Card repayment'))" >/dev/null \
+  && ok "a repayment lowers the amount owed (negative signed amount)" || bad "repayment sign"
+
+head_ "18. liabilities / loans (R-045 A)"
+
+# A plain person-to-person debt is untouched by the new loan columns.
+PLAIN_DEBT="$(post debts '{"direction":"borrowed","counterparty":"Uncle","amount":500,"kind":"other","occurred_date":"2026-09-01","currency":"INR"}')"
+printf '%s' "$PLAIN_DEBT" | jq_has "d.get('is_loan') is False and d.get('interest_rate') == 0 and d.get('emi_amount') == 0 and d.get('tenure_months') == 0" >/dev/null \
+  && ok "a plain borrowed debt is not a loan" || bad "plain debt is not a loan" "${PLAIN_DEBT:0:200}"
+
+# A loan carries lender/interest/EMI/tenure.
+LOAN="$(post debts '{"direction":"borrowed","counterparty":"Car Finance","amount":300000,"kind":"loan","lender":"HDFC Bank","interest_rate":9.5,"emi_amount":7500,"tenure_months":48,"occurred_date":"2026-09-01","currency":"INR"}')"
+LOAN_ID="$(printf '%s' "$LOAN" | py "import json,sys;print(json.load(sys.stdin).get('id',''))" 2>/dev/null)"
+printf '%s' "$LOAN" | jq_has "d.get('is_loan') is True and d.get('lender') == 'HDFC Bank' and d.get('emi_amount') == 7500 and d.get('tenure_months') == 48 and abs(d.get('interest_rate') - 9.5) < 0.001" >/dev/null \
+  && ok "a loan create keeps lender/interest/EMI/tenure" || bad "loan create fields" "${LOAN:0:240}"
+
+# Loan figures on a lent row never make it a loan (loans are money the user owes).
+LENT_LOAN="$(post debts '{"direction":"lent","counterparty":"Lent Loan","amount":1000,"kind":"loan","interest_rate":5,"emi_amount":100,"tenure_months":12,"occurred_date":"2026-09-01","currency":"INR"}')"
+printf '%s' "$LENT_LOAN" | jq_has "d.get('is_loan') is False" >/dev/null \
+  && ok "a lent row is never a loan even with loan figures" || bad "lent row is not a loan" "${LENT_LOAN:0:200}"
+
+expect_status 400 "negative interest is rejected" -X POST "$BASE/api/debts" "${AUTH[@]}" "${JSON[@]}" -d '{"direction":"borrowed","counterparty":"Bad","amount":100,"interest_rate":-1}'
+expect_status 400 "negative EMI is rejected" -X POST "$BASE/api/debts" "${AUTH[@]}" "${JSON[@]}" -d '{"direction":"borrowed","counterparty":"Bad","amount":100,"emi_amount":-1}'
+expect_status 400 "negative tenure is rejected" -X POST "$BASE/api/debts" "${AUTH[@]}" "${JSON[@]}" -d '{"direction":"borrowed","counterparty":"Bad","amount":100,"tenure_months":-1}'
+expect_status 400 "update with a negative EMI is rejected" -X PUT "$BASE/api/debts/$LOAN_ID" "${AUTH[@]}" "${JSON[@]}" -d '{"emi_amount":-5}'
+
+# The liabilities summary reports total owed, monthly EMI outflow and loan count.
+LIAB="$(body "$BASE/api/debts/summary" "${AUTH[@]}")"
+printf '%s' "$LIAB" | jq_has "d['loan_count'] == 1 and abs(d['monthly_emi_outflow'] - 7500) < 0.01" >/dev/null \
+  && ok "the summary counts open loans and their monthly EMI outflow" || bad "summary loan count/EMI" "${LIAB:0:240}"
+printf '%s' "$LIAB" | jq_has "d['total_owed'] >= 300500" >/dev/null \
+  && ok "the summary total_owed includes the loan principal" || bad "summary total_owed" "${LIAB:0:240}"
+
+expect_status 404 "another user cannot read this loan" -H "Authorization: Bearer $OTHER_TOKEN" "$BASE/api/debts/$LOAN_ID"
+
+head_ "19. debt top-up (R-044 B)"
+
+TOPUP="$(post debts '{"direction":"borrowed","counterparty":"Top Up Test","amount":100,"occurred_date":"2026-09-01","currency":"INR"}')"
+TOPUP_ID="$(printf '%s' "$TOPUP" | py "import json,sys;print(json.load(sys.stdin).get('id',''))" 2>/dev/null)"
+TOPUP1="$(body -X POST "$BASE/api/debts/$TOPUP_ID/top-up" "${AUTH[@]}" "${JSON[@]}" -d '{"amount":100}')"
+printf '%s' "$TOPUP1" | jq_has "d['amount'] == 200 and d['settled_amount'] == 0 and d['outstanding'] == 200" >/dev/null \
+  && ok "100 + 100 top-up grows the principal to 200" || bad "top-up principal" "${TOPUP1:0:200}"
+
+# Settle it, then top up: the debt reopens and the settlement date clears.
+body -X POST "$BASE/api/debts/$TOPUP_ID/settle" "${AUTH[@]}" "${JSON[@]}" -d '{}' >/dev/null
+printf '%s' "$(body "$BASE/api/debts/$TOPUP_ID" "${AUTH[@]}")" | jq_has "d['is_settled'] is True" >/dev/null \
+  && ok "the debt settles to zero before the top-up" || bad "top-up precondition"
+REOPEN="$(body -X POST "$BASE/api/debts/$TOPUP_ID/top-up" "${AUTH[@]}" "${JSON[@]}" -d '{"amount":50}')"
+printf '%s' "$REOPEN" | jq_has "d['amount'] == 250 and d['settled_amount'] == 200 and d['is_settled'] is False and d['settled_date'] is None" >/dev/null \
+  && ok "topping up a settled debt reopens it (settled_amount untouched)" || bad "top-up reopens" "${REOPEN:0:240}"
+
+expect_status 400 "top-up of zero is rejected" -X POST "$BASE/api/debts/$TOPUP_ID/top-up" "${AUTH[@]}" "${JSON[@]}" -d '{"amount":0}'
+expect_status 400 "top-up of a negative amount is rejected" -X POST "$BASE/api/debts/$TOPUP_ID/top-up" "${AUTH[@]}" "${JSON[@]}" -d '{"amount":-20}'
+expect_status 404 "top-up an unknown debt -> 404" -X POST "$BASE/api/debts/no-such-debt/top-up" "${AUTH[@]}" "${JSON[@]}" -d '{"amount":10}'
+expect_status 404 "another user cannot top up this debt" -X POST "$BASE/api/debts/$TOPUP_ID/top-up" -H "Authorization: Bearer $OTHER_TOKEN" "${JSON[@]}" -d '{"amount":10}'
+
 printf '\n%s%d passed%s, %s%d failed%s\n' "$c_g" "$PASS" "$c_0" \
   "$([ "$FAIL" -gt 0 ] && printf '%s' "$c_r" || printf '%s' "$c_d")" "$FAIL" "$c_0"
 [ "$FAIL" -eq 0 ]

@@ -15,8 +15,12 @@ const props = withDefaults(
     placeholder?: string
     disabled?: boolean
     label?: string
+    /** Inline field error; also switches the trigger to the invalid style. */
+    error?: string
+    /** Renders the mandatory `*` marker next to the label. */
+    required?: boolean
   }>(),
-  { modelValue: null, placeholder: 'Choose…', disabled: false, label: '' }
+  { modelValue: null, placeholder: 'Choose…', disabled: false, label: '', error: '', required: false }
 )
 
 const emit = defineEmits<{ 'update:modelValue': [value: string | number]; open: []; close: [] }>()
@@ -61,11 +65,13 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="asel" :class="{ 'asel-disabled': disabled }">
-    <span v-if="label" class="asel-label">{{ label }}</span>
+    <span v-if="label" class="asel-label">
+      {{ label }}<span v-if="required" class="asel-req" aria-hidden="true">*</span>
+    </span>
 
     <button
       class="asel-trigger"
-      :class="{ 'asel-trigger-open': open }"
+      :class="{ 'asel-trigger-open': open, 'asel-trigger-invalid': !!error }"
       type="button"
       :disabled="disabled"
       :aria-expanded="open"
@@ -76,6 +82,7 @@ onBeforeUnmount(() => {
       </span>
       <ion-icon class="asel-caret" :class="{ 'asel-caret-up': open }" :icon="chevronDownOutline" />
     </button>
+    <span v-if="error" class="asel-error">{{ error }}</span>
 
     <teleport to="body">
       <transition name="asel-fade">
@@ -129,6 +136,10 @@ onBeforeUnmount(() => {
   text-transform: uppercase;
   color: var(--text-muted);
 }
+.asel-req {
+  margin-left: 3px;
+  color: var(--danger);
+}
 .asel-trigger {
   display: flex;
   align-items: center;
@@ -149,6 +160,13 @@ onBeforeUnmount(() => {
 .asel-trigger-open {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.asel-trigger-invalid {
+  border-color: var(--danger);
+}
+.asel-error {
+  font-size: 0.72rem;
+  color: var(--danger);
 }
 .asel-text {
   flex: 1;

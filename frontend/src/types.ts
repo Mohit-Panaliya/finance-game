@@ -277,6 +277,16 @@ export interface DebtRow extends FinanceRow {
   outstanding: number
   currency: string
   kind: string
+  /** Annual interest % on a borrowed loan. Zero means not a loan. */
+  interest_rate: number
+  /** Monthly instalment on a borrowed loan. Zero means no instalment. */
+  emi_amount: number
+  /** Agreed number of instalments. Zero means not a loan. */
+  tenure_months: number
+  /** Institution that lent the money, distinct from the person `counterparty`. */
+  lender: string | null
+  /** True when this borrowed row carries any loan detail. */
+  is_loan: boolean
   account_id: string | null
   occurred_date: string
   due_date: string | null
@@ -291,6 +301,12 @@ export interface DebtSummary {
   owed_to_me: number
   i_owe: number
   net: number
+  /** Every outstanding amount the user owes, loans included (same as `i_owe`). */
+  total_owed: number
+  /** Monthly instalments across all still-open borrowed loans. */
+  monthly_emi_outflow: number
+  /** How many borrowed rows carry loan detail. */
+  loan_count: number
   lent_count: number
   borrowed_count: number
   settled_count: number

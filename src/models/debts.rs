@@ -31,6 +31,14 @@ pub struct Model {
     pub currency: String,
     /// `loan`, `advance`, `shared` or `other`.
     pub kind: String,
+    /// Annual interest percentage for a loan. Zero means "not a loan".
+    pub interest_rate: f64,
+    /// Monthly instalment for a loan. Zero means no instalment tracked.
+    pub emi_amount: f64,
+    /// Number of instalments agreed for a loan. Zero means not a loan.
+    pub tenure_months: i64,
+    /// Institution that lent or borrowed the money, distinct from `counterparty`.
+    pub lender: Option<String>,
     /// The account this debt was booked against, when it is known.
     pub account_id: Option<String>,
     pub occurred_date: String,
@@ -60,6 +68,21 @@ impl Model {
     pub fn is_settled(&self) -> bool {
         self.outstanding() <= f64::EPSILON
     }
+
+    /// A borrowed row that carries any loan detail. Loan fields are only
+    /// meaningful on money the user owes, so a lent row never counts as a loan
+    /// even if stale loan values were left on it.
+    pub fn is_loan(&self) -> bool {
+        !self.is_lent()
+            && (self.interest_rate > 0.0
+                || self.emi_amount > 0.0
+                || self.tenure_months > 0
+                || self
+                    .lender
+                    .as_deref()
+                    .map(|s| !s.trim().is_empty())
+                    .unwrap_or(false))
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
@@ -73,6 +96,10 @@ pub struct CreateDebtRequest {
     pub settled_amount: Option<f64>,
     pub currency: Option<String>,
     pub kind: Option<String>,
+    pub interest_rate: Option<f64>,
+    pub emi_amount: Option<f64>,
+    pub tenure_months: Option<i64>,
+    pub lender: Option<String>,
     pub account_id: Option<String>,
     pub occurred_date: Option<String>,
     pub due_date: Option<String>,
@@ -93,6 +120,10 @@ impl CreateDebtRequest {
             settled_amount: Set(self.settled_amount.unwrap_or(0.0)),
             currency: Set(self.currency.unwrap_or_else(|| "INR".to_string())),
             kind: Set(self.kind.unwrap_or_else(|| "loan".to_string())),
+            interest_rate: Set(self.interest_rate.unwrap_or(0.0)),
+            emi_amount: Set(self.emi_amount.unwrap_or(0.0)),
+            tenure_months: Set(self.tenure_months.unwrap_or(0)),
+            lender: Set(self.lender),
             account_id: Set(self.account_id),
             occurred_date: Set(self
                 .occurred_date
@@ -117,6 +148,10 @@ pub struct UpdateDebtRequest {
     pub settled_amount: Option<f64>,
     pub currency: Option<String>,
     pub kind: Option<String>,
+    pub interest_rate: Option<f64>,
+    pub emi_amount: Option<f64>,
+    pub tenure_months: Option<i64>,
+    pub lender: Option<String>,
     pub account_id: Option<String>,
     pub occurred_date: Option<String>,
     pub due_date: Option<String>,
@@ -146,6 +181,18 @@ impl UpdateDebtRequest {
         }
         if let Some(v) = self.kind {
             am.kind = Set(v);
+        }
+        if let Some(v) = self.interest_rate {
+            am.interest_rate = Set(v);
+        }
+        if let Some(v) = self.emi_amount {
+            am.emi_amount = Set(v);
+        }
+        if let Some(v) = self.tenure_months {
+            am.tenure_months = Set(v);
+        }
+        if let Some(v) = self.lender {
+            am.lender = Set(Some(v));
         }
         if let Some(v) = self.account_id {
             am.account_id = Set(Some(v));
@@ -185,6 +232,12 @@ pub struct DebtResponse {
     pub outstanding: f64,
     pub currency: String,
     pub kind: String,
+    pub interest_rate: f64,
+    pub emi_amount: f64,
+    pub tenure_months: i64,
+    pub lender: Option<String>,
+    /// True when this borrowed row carries any loan detail.
+    pub is_loan: bool,
     pub account_id: Option<String>,
     pub occurred_date: String,
     pub due_date: Option<String>,
@@ -209,6 +262,7 @@ impl From<Model> for DebtResponse {
     fn from(m: Model) -> Self {
         let today = chrono::Utc::now().date_naive();
         let open = m.outstanding();
+        let is_loan = m.is_loan();
         Self {
             outstanding: open,
             is_settled: open <= f64::EPSILON,
@@ -221,6 +275,11 @@ impl From<Model> for DebtResponse {
             settled_amount: m.settled_amount,
             currency: m.currency,
             kind: m.kind,
+            interest_rate: m.interest_rate,
+            emi_amount: m.emi_amount,
+            tenure_months: m.tenure_months,
+            lender: m.lender,
+            is_loan,
             account_id: m.account_id,
             occurred_date: m.occurred_date,
             due_date: m.due_date,
@@ -242,6 +301,13 @@ pub struct DebtSummary {
     pub owed_to_me: f64,
     pub i_owe: f64,
     pub net: f64,
+    /// Every outstanding amount the user owes, loans included. Same figure as
+    /// `i_owe`, surfaced under a name the liabilities view reads directly.
+    pub total_owed: f64,
+    /// Monthly instalments across all still-open borrowed loans.
+    pub monthly_emi_outflow: f64,
+    /// How many borrowed rows carry loan detail.
+    pub loan_count: i64,
     pub lent_count: i64,
     pub borrowed_count: i64,
     pub settled_count: i64,
@@ -257,6 +323,8 @@ impl DebtSummary {
         let mut borrowed_count = 0;
         let mut settled_count = 0;
         let mut overdue_count = 0;
+        let mut monthly_emi_outflow = 0.0;
+        let mut loan_count = 0;
 
         for row in rows {
             let open = row.outstanding();
@@ -269,6 +337,12 @@ impl DebtSummary {
             } else {
                 borrowed_count += 1;
                 i_owe += open;
+                if row.is_loan() {
+                    loan_count += 1;
+                    if open > f64::EPSILON {
+                        monthly_emi_outflow += row.emi_amount;
+                    }
+                }
             }
             if open > f64::EPSILON {
                 if let Some(days) = row.due_date.as_deref().and_then(|d| days_between(d, today)) {
@@ -283,6 +357,9 @@ impl DebtSummary {
             owed_to_me,
             i_owe,
             net: owed_to_me - i_owe,
+            total_owed: i_owe,
+            monthly_emi_outflow,
+            loan_count,
             lent_count,
             borrowed_count,
             settled_count,

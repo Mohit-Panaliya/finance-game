@@ -226,8 +226,13 @@ pub async fn for_bank(
     Ok(walk(current_balance, rows))
 }
 
-/// Full trail for a credit card, newest first. Only expenses carry a card id, and a
-/// charge raises the amount owed, so every signed amount here is positive.
+/// Full trail for a credit card, newest first. A charge raises the amount owed, so its
+/// signed amount is positive; a repayment lowers it, so its signed amount is negative.
+///
+/// Repayments are deliberately *not* linked to the card (see `credit_cards::repay`) so
+/// the expense ledger hooks do not move the money a second time. They still belong on
+/// the statement, so the card id is carried in the expense `tags` as
+/// `card-repayment:{card_id}` and matched back here.
 pub async fn for_card(
     db: &impl ConnectionTrait,
     user_id: i64,
@@ -252,6 +257,26 @@ pub async fn for_card(
             e.title,
             e.amount,
             e.amount,
+            e.expense_date,
+            e.created_at,
+        );
+    }
+
+    let tag = format!("card-repayment:{card_id}");
+    for e in expenses::Entity::find()
+        .filter(expenses::Column::UserId.eq(user_id))
+        .filter(expenses::Column::CreditCardId.is_null())
+        .filter(expenses::Column::Tags.contains(&tag))
+        .all(db)
+        .await?
+    {
+        Row::push(
+            &mut rows,
+            "expense",
+            e.id,
+            e.title,
+            e.amount,
+            -e.amount,
             e.expense_date,
             e.created_at,
         );
