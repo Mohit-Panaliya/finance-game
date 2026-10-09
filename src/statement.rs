@@ -183,6 +183,29 @@ pub async fn for_bank(
         );
     }
 
+    // Card repayments drawn from this bank: the trail row is deliberately
+    // unlinked (linking it would move the money twice), so the bank id rides
+    // in tags as bank-repayment:{bank_id} (see credit_cards repay).
+    let bank_tag = format!("bank-repayment:{bank_id}");
+    for e in expenses::Entity::find()
+        .filter(expenses::Column::UserId.eq(user_id))
+        .filter(expenses::Column::BankId.is_null())
+        .filter(expenses::Column::Tags.contains(&bank_tag))
+        .all(db)
+        .await?
+    {
+        Row::push(
+            &mut rows,
+            "expense",
+            e.id,
+            e.title,
+            e.amount,
+            -e.amount,
+            e.expense_date,
+            e.created_at,
+        );
+    }
+
     let converted = converted_asset_ids(db, user_id).await?;
     for a in assets::Entity::find()
         .filter(assets::Column::UserId.eq(user_id))

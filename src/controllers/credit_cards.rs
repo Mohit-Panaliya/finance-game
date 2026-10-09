@@ -171,7 +171,10 @@ async fn apply_repayment(
         // id rides in `tags` so the card statement can still surface the repayment.
         bank_id: Set(None),
         credit_card_id: Set(None),
-        tags: Set(Some(format!("card-repayment:{}", card.id))),
+        tags: Set(Some(match bank_id {
+            Some(bid) => format!("card-repayment:{}/bank-repayment:{}", card.id, bid),
+            None => format!("card-repayment:{}", card.id),
+        })),
         receipt_url: Set(None),
         location: Set(None),
         is_fixed: Set(false),
