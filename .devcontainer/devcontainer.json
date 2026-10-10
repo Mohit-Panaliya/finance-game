@@ -1,0 +1,22 @@
+{
+  "name": "finance-game",
+  "features": {
+    "ghcr.io/devcontainers/features/sshd:1": {
+      "version": "latest"
+    }
+  },
+  "forwardPorts": [5155, 8000, 8099, 4173],
+  "portsAttributes": {
+    "5155": { "label": "finance-game", "onAutoForward": "notify" },
+    "8000": { "label": "smoke", "onAutoForward": "silent" },
+    "8099": { "label": "verify", "onAutoForward": "silent" },
+    "4173": { "label": "frontend", "onAutoForward": "silent" }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["bradlc.vscode-tailwindcss", "rust-lang.rust-analyzer"]
+    }
+  },
+  "postCreateCommand": "echo devcontainer-ready",
+  "shutdownAction": "stopContainer"
+}
