@@ -11,56 +11,86 @@
         </header>
 
         <section class="section">
-          <div class="row-list">
-            <div class="row-item" style="padding: var(--density-card-pad)">
-              <div class="row-main" style="display: flex; justify-content: space-between; align-items: center; gap: var(--density-gap); flex-wrap: wrap">
-                <div class="chips">
-                  <button class="chip" :class="{ 'chip-active': filter === 'all' }" @click="setFilter('all')">All</button>
-                  <button class="chip" :class="{ 'chip-active': filter === 'planned' }" @click="setFilter('planned')">Pending</button>
-                  <button class="chip" :class="{ 'chip-active': filter === 'purchased' }" @click="setFilter('purchased')">Purchased</button>
-                </div>
-                <app-button @click="openCreate">New item</app-button>
-              </div>
-            </div>
+          <div class="chips ff-hide-scrollbar">
+            <button
+              v-for="opt in FILTERS"
+              :key="opt.key"
+              class="chip"
+              type="button"
+              :class="{ 'chip-active': filter === opt.key }"
+              @click="setFilter(opt.key)"
+            >
+              {{ opt.label }}
+            </button>
           </div>
         </section>
 
         <section class="section">
-          <div class="row-list">
+          <div v-if="items.length" class="row-list">
             <div v-for="item in items" :key="item.id" class="row-item">
               <div class="row-main">
-                <div class="row-title">
-                  {{ item.title }}
-                  <span class="badge">{{ item.asset_type }}</span>
-                  <span class="badge">{{ item.priority }}</span>
+                <div class="row-title-row">
+                  <span class="row-title clamp-1">{{ item.title }}</span>
+                  <span v-if="statusBadge(item)" class="badge" :class="statusBadge(item)?.cls">
+                    {{ statusBadge(item)?.label }}
+                  </span>
                 </div>
-                <div class="row-sub">
-                  Est: {{ formatMoney(item.estimated_cost) }} | Shop: {{ item.shop || '-' }} | Status: {{ item.status }}
+                <div class="row-sub clamp-1">
+                  {{ item.asset_type }} · {{ item.shop || 'No shop' }} · {{ item.priority }} priority
                 </div>
-                <div class="row-sub" v-if="item.converted_at">
-                  Converted at: {{ item.converted_at }} | Asset:
-                  <a v-if="item.converted_asset_id" :href="assetLink(item.converted_asset_id)">{{ item.converted_asset_id }}</a>
-                </div>
-                <div class="row-sub" v-if="depr[item.id]">
-                  Depreciation: {{ depr[item.id].method }} | Book now: {{ formatMoney(depr[item.id].book_value_now) }}
+                <div v-if="item.converted_at" class="row-sub clamp-1">
+                  Converted {{ item.converted_at }}
+                  <template v-if="item.converted_asset_id">
+                    ·
+                    <a :href="assetLink(item.converted_asset_id)">View asset</a>
+                  </template>
                 </div>
               </div>
-              <div class="row-extra" style="display: flex; gap: var(--density-gap); align-items: center; flex-wrap: wrap">
-                <app-button v-if="item.status !== 'purchased'" size="sm" @click="openConvert(item)">Convert</app-button>
+              <div class="row-value">
+                {{ formatMoney(item.estimated_cost) }}
+                <span v-if="depr[item.id]" class="row-extra">
+                  Book {{ formatMoney(depr[item.id].book_value_now) }}
+                </span>
+              </div>
+              <div class="row-actions">
+                <app-button v-if="item.status !== 'purchased'" size="sm" @click="openConvert(item)">
+                  Convert
+                </app-button>
                 <app-button size="sm" variant="ghost" @click="openEdit(item)">Edit</app-button>
-                <app-button size="sm" variant="danger" @click="remove(item)">Delete</app-button>
               </div>
-            </div>
-            <div v-if="items.length === 0" class="empty">
-              <div class="empty-title">No items</div>
-              <div class="empty-text">Add items to your buy list.</div>
             </div>
           </div>
+
+          <div v-else-if="allItems.length" class="empty">
+            <ion-icon class="empty-icon" :icon="searchOutline" />
+            <p class="empty-title">Nothing in this view</p>
+            <p class="empty-text">No items match the “{{ activeFilterLabel }}” filter.</p>
+            <app-button variant="neutral" size="sm" @click="setFilter('all')">Show all items</app-button>
+          </div>
+
+          <div v-else class="empty">
+            <ion-icon class="empty-icon" :icon="cartOutline" />
+            <p class="empty-title">Nothing on the buy list</p>
+            <p class="empty-text">
+              Add what you plan to buy — with an estimate and a shop — then convert it to an asset once
+              you have paid.
+            </p>
+            <app-button variant="primary" size="sm" @click="openCreate">New item</app-button>
+          </div>
         </section>
+
+        <app-button variant="primary" size="md" block @click="openCreate">
+          <ion-icon :icon="addOutline" /> New item
+        </app-button>
       </div>
 
-      <app-modal :open="editorOpen" :title="editingId ? 'Edit buy item' : 'New buy item'" :sheet="true" @close="closeEditor">
-        <div class="form-grid" style="padding: var(--density-card-pad)">
+      <app-modal
+        :open="editorOpen"
+        :title="editingId ? 'Edit buy item' : 'New buy item'"
+        :sheet="true"
+        @close="closeEditor"
+      >
+        <div class="form-grid">
           <app-input v-model="form.title" label="Title" placeholder="Title" />
           <app-input v-model="form.description" label="Description" placeholder="Description" />
           <app-input v-model="form.asset_type" label="Asset type" placeholder="Asset type" />
@@ -70,14 +100,15 @@
           <app-input v-model="form.shop" label="Shop" placeholder="Shop" />
           <app-input v-model="form.url" label="URL" placeholder="URL" />
           <app-select v-model="form.bank_id" label="Bank" :options="bankOptions" placeholder="Select bank" />
-          <div class="form-actions">
-            <app-button @click="save">Save</app-button>
-          </div>
         </div>
+        <template #footer>
+          <app-button v-if="editingId" variant="danger" size="md" @click="askDelete">Delete</app-button>
+          <app-button variant="primary" size="md" @click="save">Save</app-button>
+        </template>
       </app-modal>
 
       <app-modal :open="convertOpen" :title="'Convert to asset'" :sheet="true" @close="closeConvert">
-        <div class="form-grid" style="padding: var(--density-card-pad)">
+        <div class="form-grid">
           <app-input v-model.number="cform.actual_cost" type="number" label="Actual cost" placeholder="Actual cost" />
           <app-input v-model="cform.purchase_date" label="Purchase date (YYYY-MM-DD)" placeholder="YYYY-MM-DD" />
           <app-select v-model="cform.bank_id" label="Bank" :options="bankOptions" placeholder="Select bank" />
@@ -89,10 +120,28 @@
           <app-input v-model.number="cform.useful_life_months" type="number" label="Useful life months" placeholder="Useful life months" :min="1" />
           <app-input v-model.number="cform.salvage_value" type="number" label="Salvage value" placeholder="Salvage value" />
           <div v-if="convertError" class="form-error">{{ convertError }}</div>
-          <div class="form-actions">
-            <app-button @click="doConvert">Convert</app-button>
-          </div>
         </div>
+        <template #footer>
+          <app-button variant="neutral" size="md" @click="closeConvert">Cancel</app-button>
+          <app-button variant="primary" size="md" @click="doConvert">Convert</app-button>
+        </template>
+      </app-modal>
+
+      <app-modal
+        :open="pendingDelete !== null"
+        title="Delete item"
+        :subtitle="pendingDelete ? pendingDelete.title : ''"
+        :sheet="false"
+        @close="pendingDelete = null"
+      >
+        <p class="confirm-text">
+          This removes the item from your buy list. Anything already converted to an asset stays where it
+          is.
+        </p>
+        <template #footer>
+          <app-button variant="neutral" size="md" @click="pendingDelete = null">Keep</app-button>
+          <app-button variant="danger" size="md" @click="doDelete">Delete</app-button>
+        </template>
       </app-modal>
     </ion-content>
   </ion-page>
@@ -100,7 +149,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { IonPage, IonContent } from '@ionic/vue'
+import { IonPage, IonContent, IonIcon } from '@ionic/vue'
+import { addOutline, cartOutline, searchOutline } from 'ionicons/icons'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
@@ -110,11 +160,20 @@ import { request, ApiError } from '@/api/client'
 import { useFinanceStore } from '@/stores/financeStore'
 import { formatMoney } from '@/utils/money'
 
-const filter = ref<'all' | 'planned' | 'purchased'>('all')
-const items = ref<any[]>([])
+const FILTERS = [
+  { key: 'all', label: 'All' },
+  { key: 'planned', label: 'Pending' },
+  { key: 'purchased', label: 'Purchased' }
+] as const
+
+type BuyFilter = (typeof FILTERS)[number]['key']
+
+const filter = ref<BuyFilter>('all')
+const allItems = ref<any[]>([])
 const banks = ref<any[]>([])
 const editorOpen = ref(false)
 const editingId = ref<string | null>(null)
+const pendingDelete = ref<{ id: string; title: string } | null>(null)
 const form = ref<any>({
   title: '',
   description: '',
@@ -156,18 +215,36 @@ const deprOptions = [
 ]
 const bankOptions = computed(() => banks.value.map((b: any) => ({ value: b.id, label: b.name })))
 
-function setFilter(f: any) {
+const items = computed<any[]>(() => {
+  if (filter.value === 'planned') return allItems.value.filter((x: any) => x.status === 'planned')
+  if (filter.value === 'purchased') return allItems.value.filter((x: any) => x.status === 'purchased')
+  return allItems.value
+})
+
+const activeFilterLabel = computed(
+  () => FILTERS.find((f) => f.key === filter.value)?.label ?? 'All'
+)
+
+function setFilter(f: BuyFilter) {
   filter.value = f
-  load()
+}
+
+/** Status only earns a badge when the current filter does not already say it. */
+function statusBadge(item: any): { label: string; cls: string } | null {
+  if (item.status === 'purchased') {
+    if (filter.value === 'purchased') return null
+    return { label: 'Purchased', cls: 'badge-success' }
+  }
+  if (item.status === 'dropped') return { label: 'Dropped', cls: '' }
+  return null
 }
 
 async function load() {
   const res: any = await request('/api/buy-list', { method: 'GET' })
-  let list = res || []
-  if (filter.value === 'planned') list = list.filter((x: any) => x.status === 'planned')
-  if (filter.value === 'purchased') list = list.filter((x: any) => x.status === 'purchased')
-  items.value = list
-  for (const it of items.value) {
+  // The endpoint answers `{ items, planned_count, planned_total }`; older builds
+  // answered a bare array. Normalise so filtering never sees a wrapper object.
+  allItems.value = Array.isArray(res) ? res : res?.items || res?.data || []
+  for (const it of allItems.value) {
     if (it.converted_asset_id) {
       try {
         const d = await request(`/api/assets/${it.converted_asset_id}/depreciation`, { method: 'GET' })
@@ -221,6 +298,20 @@ async function save() {
   await load()
 }
 
+function askDelete() {
+  if (!editingId.value) return
+  pendingDelete.value = { id: editingId.value, title: form.value.title || '(Untitled)' }
+}
+
+async function doDelete() {
+  const target = pendingDelete.value
+  if (!target) return
+  await request(`/api/buy-list/${target.id}`, { method: 'DELETE' })
+  pendingDelete.value = null
+  closeEditor()
+  await load()
+}
+
 function openConvert(item: any) {
   convertingId.value = item.id
   cform.value = {
@@ -264,11 +355,6 @@ async function doConvert() {
   }
 }
 
-async function remove(item: any) {
-  await request(`/api/buy-list/${item.id}`, { method: 'DELETE' })
-  await load()
-}
-
 function assetLink(id: string) {
   return `/accounts/assets/${id}`
 }
@@ -280,9 +366,38 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* Money appears inside the subtitle lines (Est / Book now); give those
-   numeric runs the same tabular treatment as every other money column. */
+.row-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--density-gap);
+  min-width: 0;
+}
+.row-title-row .badge {
+  flex-shrink: 0;
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--density-gap);
+  flex-shrink: 0;
+}
+
+.row-sub a {
+  color: var(--accent-ink);
+}
+
+/* Money and identifiers inside the sub-lines keep the same tabular
+   treatment as the `.row-value` column. */
 .row-sub {
   font-variant-numeric: tabular-nums;
+}
+
+/* ---- delete confirmation ---- */
+.confirm-text {
+  margin: 0;
+  font-size: calc(0.9rem * var(--density-font-scale));
+  line-height: var(--density-leading);
+  color: var(--text-muted);
 }
 </style>

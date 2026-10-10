@@ -11,113 +11,188 @@
         </header>
 
         <section class="section">
-          <div class="row-list" style="padding: var(--density-card-pad)">
-            <div class="row-item">
-              <div class="row-main">
-                <app-input v-model="search" placeholder="Search notes..." @update:model-value="debouncedSearch" />
-              </div>
-            </div>
-            <div class="row-item">
-              <div class="row-main" style="display: flex; gap: var(--density-gap); flex-wrap: wrap; align-items: center">
-                <div class="chips">
-                  <button class="chip" :class="{ 'chip-active': filter === 'all' }" @click="setFilter('all')">All</button>
-                  <button class="chip" :class="{ 'chip-active': filter === 'pinned' }" @click="setFilter('pinned')">Pinned</button>
-                  <button class="chip" :class="{ 'chip-active': filter === 'archived' }" @click="setFilter('archived')">Archived</button>
-                  <button class="chip" :class="{ 'chip-active': filter === 'trashed' }" @click="setFilter('trashed')">Trash</button>
-                </div>
-                <app-select v-model="colorFilter" placeholder="All colors" :options="colorOptions" @update:model-value="loadNotes" />
-                <app-select v-model="labelFilter" placeholder="All labels" :options="labelOptions" @update:model-value="loadNotes" />
-                <app-button @click="openCreate">New note</app-button>
-              </div>
-            </div>
+          <app-input v-model="search" placeholder="Search notes" @update:model-value="debouncedSearch" />
+
+          <div class="chips ff-hide-scrollbar">
+            <button
+              v-for="opt in FILTERS"
+              :key="opt.key"
+              class="chip"
+              type="button"
+              :class="{ 'chip-active': filter === opt.key }"
+              @click="setFilter(opt.key)"
+            >
+              {{ opt.label }}
+            </button>
+          </div>
+
+          <div class="form-row-2">
+            <app-select
+              v-model="colorFilter"
+              placeholder="All colors"
+              :options="colorOptions"
+              @update:model-value="loadNotes"
+            />
+            <app-select
+              v-model="labelFilter"
+              placeholder="All labels"
+              :options="labelOptions"
+              @update:model-value="loadNotes"
+            />
           </div>
         </section>
 
         <section class="section">
-          <div class="notes-grid">
-            <article v-for="note in notes" :key="note.id" class="card note-card" :class="noteCardClass(note)">
-              <div class="card-tight" style="display: flex; justify-content: space-between; align-items: flex-start; gap: var(--density-gap)">
-                <div class="card-label clamp-1">{{ note.title || '(Untitled)' }}</div>
-                <ion-icon v-if="note.pinned" name="pin" style="font-size: 20px; color: var(--accent)" />
+          <div v-if="notes.length" class="notes-grid">
+            <article
+              v-for="note in notes"
+              :key="note.id"
+              class="card note-card"
+              :class="noteCardClass(note)"
+            >
+              <div class="note-head">
+                <p class="note-title clamp-1">{{ note.title || '(Untitled)' }}</p>
+                <span v-if="note.archived && filter !== 'archived'" class="badge">Archived</span>
               </div>
-              <div class="card-tight" v-if="note.kind === 'text' && note.body_text">
-                <div class="text-muted" style="white-space: pre-wrap">{{ note.body_text }}</div>
+
+              <p v-if="note.kind === 'text' && note.body_text" class="note-body text-muted">
+                {{ note.body_text }}
+              </p>
+
+              <ul v-else-if="note.kind === 'list' && note.items && note.items.length" class="note-list">
+                <li
+                  v-for="it in note.items.slice(0, 10)"
+                  :key="it.id"
+                  class="note-check"
+                  :class="{ 'note-check-done': it.checked }"
+                >
+                  <input type="checkbox" :checked="!!it.checked" disabled tabindex="-1" />
+                  <span class="clamp-1">{{ it.text }}</span>
+                </li>
+              </ul>
+
+              <div v-if="note.labels && note.labels.length" class="chips note-labels">
+                <span v-for="lbl in note.labels" :key="lbl.id" class="chip">{{ lbl.name }}</span>
               </div>
-              <div class="card-tight" v-if="note.kind === 'list' && note.items">
-                <div v-for="it in note.items.slice(0, 10)" :key="it.id" style="display: flex; align-items: center; gap: var(--density-gap); margin-bottom: 4px">
-                  <input type="checkbox" :checked="!!it.checked" disabled />
-                  <span :class="{ 'text-faint': it.checked }" style="text-decoration: line-through" v-if="it.checked">{{ it.text }}</span>
-                  <span v-else>{{ it.text }}</span>
-                </div>
-              </div>
-              <div class="card-tight" v-if="note.labels && note.labels.length">
-                <div class="chips">
-                  <span v-for="lbl in note.labels" :key="lbl.id" class="chip">{{ lbl.name }}</span>
-                </div>
-              </div>
-              <div class="card-foot" style="display: flex; gap: var(--density-gap); flex-wrap: wrap; font-size: 18px; color: var(--text-muted)">
-                <ion-icon name="color-palette-outline" style="cursor: pointer" @click.stop="toggleColorPicker(note)" />
-                <ion-icon :name="note.pinned ? 'pin' : 'pin-outline'" style="cursor: pointer" @click.stop="togglePin(note)" />
-                <ion-icon :name="note.archived ? 'archive' : 'archive-outline'" style="cursor: pointer" @click.stop="toggleArchive(note)" />
-                <ion-icon v-if="!note.trashed_at" name="trash-outline" style="cursor: pointer" @click.stop="trash(note)" />
-                <ion-icon v-else name="arrow-undo-outline" style="cursor: pointer" @click.stop="restore(note)" />
-                <ion-icon v-if="note.trashed_at" name="close-outline" style="cursor: pointer" @click.stop="remove(note)" />
-                <ion-icon name="create-outline" style="cursor: pointer" @click.stop="openEdit(note)" />
-              </div>
-              <div v-if="showColorPickerFor === note.id" class="card-tight" style="display: flex; gap: 6px; flex-wrap: wrap">
-                <button v-for="c in colors" :key="c" class="swatch" :class="swatchClass(c)" @click="setColor(note, c)"></button>
+
+              <div class="card-foot note-foot">
+                <button
+                  class="icon-btn"
+                  :class="{ 'icon-btn-on': note.pinned }"
+                  type="button"
+                  :aria-label="note.pinned ? 'Unpin note' : 'Pin note'"
+                  @click="togglePin(note)"
+                >
+                  <ion-icon :icon="note.pinned ? pin : pinOutline" />
+                </button>
+                <button class="icon-btn" type="button" aria-label="Edit note" @click="openEdit(note)">
+                  <ion-icon :icon="createOutline" />
+                </button>
               </div>
             </article>
           </div>
-          <div v-if="notes.length === 0" class="empty">
-            <div class="empty-icon">🗒️</div>
-            <div class="empty-title">No notes yet</div>
-            <div class="empty-text">Create your first note to get started.</div>
+
+          <div v-else class="empty">
+            <ion-icon class="empty-icon" :icon="documentTextOutline" />
+            <p class="empty-title">{{ hasActiveQuery ? 'No notes match' : 'No notes yet' }}</p>
+            <p class="empty-text">
+              {{
+                hasActiveQuery
+                  ? 'Nothing here for the current search and filters.'
+                  : 'Capture a reminder, a list or an idea — it stays private to your account.'
+              }}
+            </p>
+            <app-button v-if="hasActiveQuery" variant="neutral" size="sm" @click="clearFilters">
+              Show all notes
+            </app-button>
+            <app-button variant="primary" size="sm" @click="openCreate">New note</app-button>
           </div>
         </section>
+
+        <app-button variant="primary" size="md" block @click="openCreate">
+          <ion-icon :icon="addOutline" /> New note
+        </app-button>
       </div>
 
-      <app-modal :open="editorOpen" :title="editingId ? 'Edit note' : 'New note'" :sheet="true" @close="closeEditor">
-        <div class="form-grid" style="padding: var(--density-card-pad)">
-          <div class="form-row-2">
-            <app-input v-model="form.title" label="Title" placeholder="Title" />
+      <app-modal
+        :open="editorOpen"
+        :title="editingId ? 'Edit note' : 'New note'"
+        :sheet="true"
+        @close="closeEditor"
+      >
+        <div class="form-grid">
+          <app-input v-model="form.title" label="Title" placeholder="Title" />
+
+          <div class="chips ff-hide-scrollbar">
+            <button
+              class="chip"
+              type="button"
+              :class="{ 'chip-active': form.kind === 'text' }"
+              @click="form.kind = 'text'"
+            >
+              Text
+            </button>
+            <button
+              class="chip"
+              type="button"
+              :class="{ 'chip-active': form.kind === 'list' }"
+              @click="form.kind = 'list'"
+            >
+              List
+            </button>
           </div>
-          <div class="row-item">
-            <div class="row-main" style="display: flex; gap: var(--density-gap)">
-              <button class="chip" :class="{ 'chip-active': form.kind === 'text' }" @click="form.kind = 'text'">Text</button>
-              <button class="chip" :class="{ 'chip-active': form.kind === 'list' }" @click="form.kind = 'list'">List</button>
+
+          <textarea
+            v-if="form.kind === 'text'"
+            v-model="form.body_text"
+            class="note-textarea"
+            placeholder="Take a note..."
+          />
+
+          <div v-else class="note-items">
+            <div v-for="(it, idx) in form.items" :key="idx" class="note-item-row">
+              <input v-model="it.checked" type="checkbox" />
+              <app-input v-model="it.text" placeholder="List item" />
+              <button class="chip" type="button" @click="removeItem(idx)">Remove</button>
             </div>
+            <app-button size="sm" variant="neutral" @click="addItem">Add item</app-button>
           </div>
-          <div class="row-item" v-if="form.kind === 'text'">
-            <div class="row-main">
-              <textarea v-model="form.body_text" placeholder="Take a note..." style="width: 100%; min-height: 120px; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--density-row-pad-y) var(--density-row-pad-x)"></textarea>
-            </div>
-          </div>
-          <div class="row-item" v-if="form.kind === 'list'">
-            <div class="row-main" style="display: flex; flex-direction: column; gap: var(--density-gap)">
-              <div v-for="(it, idx) in form.items" :key="idx" style="display: flex; gap: var(--density-gap); align-items: center">
-                <input type="checkbox" v-model="it.checked" />
-                <app-input v-model="it.text" placeholder="List item" />
-                <button class="chip" @click="removeItem(idx)">Remove</button>
-              </div>
-              <app-button size="sm" @click="addItem">Add item</app-button>
-            </div>
-          </div>
+
           <div class="form-row-2">
             <app-select v-model="form.color" label="Color" :options="colorOptions" />
-            <div style="display: flex; flex-direction: column; gap: var(--density-gap); padding-top: 20px">
-              <label style="display: flex; align-items: center; gap: 8px"><input type="checkbox" v-model="form.pinned" /> Pinned</label>
-              <label style="display: flex; align-items: center; gap: 8px"><input type="checkbox" v-model="form.archived" /> Archived</label>
+            <div class="check-group">
+              <label class="check-label"><input v-model="form.pinned" type="checkbox" /> <span>Pinned</span></label>
+              <label class="check-label"><input v-model="form.archived" type="checkbox" /> <span>Archived</span></label>
             </div>
           </div>
-          <div class="form-row-2">
-            <app-select v-model="form.label_ids" label="Labels" :options="labelOptions" multiple />
-          </div>
+
+          <app-select v-model="form.label_ids" label="Labels" :options="labelOptions" multiple />
+
           <div v-if="formError" class="form-error">{{ formError }}</div>
+
           <div class="form-actions">
-            <app-button @click="saveNote">Save</app-button>
+            <app-button v-if="editingTrashed" variant="neutral" @click="restoreEditing">Restore</app-button>
+            <app-button v-else-if="editingId" variant="neutral" @click="trashEditing">Move to trash</app-button>
+            <app-button v-if="editingTrashed" variant="danger" @click="askDelete">Delete forever</app-button>
+            <app-button variant="primary" @click="saveNote">Save</app-button>
           </div>
         </div>
+      </app-modal>
+
+      <app-modal
+        :open="pendingDelete !== null"
+        title="Delete note"
+        :subtitle="pendingDelete ? pendingDelete.title : ''"
+        :sheet="false"
+        @close="pendingDelete = null"
+      >
+        <p class="confirm-text">
+          This permanently removes the note and its checklist items. It cannot be undone.
+        </p>
+        <template #footer>
+          <app-button variant="neutral" size="md" @click="pendingDelete = null">Keep</app-button>
+          <app-button variant="danger" size="md" @click="doDelete">Delete</app-button>
+        </template>
       </app-modal>
     </ion-content>
   </ion-page>
@@ -126,6 +201,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { IonPage, IonContent, IonIcon } from '@ionic/vue'
+import { addOutline, createOutline, documentTextOutline, pin, pinOutline } from 'ionicons/icons'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
@@ -135,15 +211,25 @@ import { request, ApiError } from '@/api/client'
 
 const colors = ['DEFAULT', 'WHITE', 'RED', 'ORANGE', 'YELLOW', 'GREEN', 'TEAL', 'BLUE', 'DARKBLUE', 'PURPLE', 'PINK', 'BROWN', 'GRAY']
 
+const FILTERS = [
+  { key: 'all', label: 'All' },
+  { key: 'pinned', label: 'Pinned' },
+  { key: 'archived', label: 'Archived' },
+  { key: 'trashed', label: 'Trash' }
+] as const
+
+type NoteFilter = (typeof FILTERS)[number]['key']
+
 const notes = ref<any[]>([])
 const labels = ref<any[]>([])
 const search = ref('')
-const filter = ref<'all' | 'pinned' | 'archived' | 'trashed'>('all')
+const filter = ref<NoteFilter>('all')
 const colorFilter = ref('')
 const labelFilter = ref('')
-const showColorPickerFor = ref<string | null>(null)
 const editorOpen = ref(false)
 const editingId = ref<string | null>(null)
+const editingTrashed = ref(false)
+const pendingDelete = ref<{ id: string; title: string } | null>(null)
 const form = ref<any>({
   title: '',
   body_text: '',
@@ -163,7 +249,7 @@ const debouncedSearch = () => {
   debounce = setTimeout(loadNotes, 250)
 }
 
-const setFilter = (f: any) => {
+const setFilter = (f: NoteFilter) => {
   filter.value = f
   loadNotes()
 }
@@ -171,15 +257,22 @@ const setFilter = (f: any) => {
 const colorOptions = colors.map((c) => ({ value: c, label: c }))
 const labelOptions = computed(() => labels.value.map((l: any) => ({ value: l.id, label: l.name })))
 
+const hasActiveQuery = computed(
+  () => !!(search.value || colorFilter.value || labelFilter.value || filter.value !== 'all')
+)
+
+function clearFilters() {
+  search.value = ''
+  colorFilter.value = ''
+  labelFilter.value = ''
+  filter.value = 'all'
+  loadNotes()
+}
+
 const noteCardClass = (note: any) => {
   const c = note.color
   if (c && c !== 'DEFAULT') return `notecard note-${String(c).toLowerCase()}`
   return 'notecard'
-}
-
-const swatchClass = (c: string) => {
-  const cls = String(c).toLowerCase()
-  return cls === 'default' ? 'notecard' : `note-${cls}`
 }
 
 async function loadNotes() {
@@ -201,6 +294,7 @@ async function loadLabels() {
 
 function openCreate() {
   editingId.value = null
+  editingTrashed.value = false
   form.value = {
     title: '',
     body_text: '',
@@ -218,6 +312,7 @@ function openCreate() {
 
 function openEdit(note: any) {
   editingId.value = note.id
+  editingTrashed.value = !!note.trashed_at
   form.value = {
     title: note.title,
     body_text: note.body_text || '',
@@ -319,38 +414,37 @@ async function saveNote() {
   }
 }
 
-function toggleColorPicker(note: any) {
-  showColorPickerFor.value = showColorPickerFor.value === note.id ? null : note.id
-}
-
-async function setColor(note: any, c: string) {
-  await request(`/api/notes/${note.id}`, { method: 'PUT', body: { color: c } })
-  showColorPickerFor.value = null
-  await loadNotes()
-}
-
 async function togglePin(note: any) {
   await request(`/api/notes/${note.id}`, { method: 'PUT', body: { pinned: note.pinned ? 0 : 1 } })
   await loadNotes()
 }
 
-async function toggleArchive(note: any) {
-  await request(`/api/notes/${note.id}`, { method: 'PUT', body: { archived: note.archived ? 0 : 1 } })
+async function trashEditing() {
+  if (!editingId.value) return
+  await request(`/api/notes/${editingId.value}/trash`, { method: 'PUT', body: {} })
+  closeEditor()
   await loadNotes()
 }
 
-async function trash(note: any) {
-  await request(`/api/notes/${note.id}/trash`, { method: 'PUT', body: {} })
+async function restoreEditing() {
+  if (!editingId.value) return
+  await request(`/api/notes/${editingId.value}`, { method: 'PUT', body: { trashed_at: '' } })
+  closeEditor()
   await loadNotes()
 }
 
-async function restore(note: any) {
-  await request(`/api/notes/${note.id}`, { method: 'PUT', body: { trashed_at: '' } })
-  await loadNotes()
+function askDelete() {
+  const note = notes.value.find((n: any) => n.id === editingId.value)
+  if (!note) return
+  pendingDelete.value = { id: note.id, title: note.title || '(Untitled)' }
 }
 
-async function remove(note: any) {
-  await request(`/api/notes/${note.id}`, { method: 'DELETE' })
+async function doDelete() {
+  const target = pendingDelete.value
+  if (!target) return
+  await request(`/api/notes/${target.id}`, { method: 'DELETE' })
+  pendingDelete.value = null
+  closeEditor()
   await loadNotes()
 }
 
@@ -361,6 +455,133 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* ---- list ---- */
+.notes-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--density-gap);
+}
+
+/* ---- note card ---- */
+.note-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--density-gap);
+}
+.note-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--density-gap);
+}
+.note-title {
+  margin: 0;
+  font-size: calc(0.95rem * var(--density-font-scale));
+  font-weight: 650;
+}
+.note-body {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: calc(0.86rem * var(--density-font-scale));
+}
+.note-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--density-gap);
+}
+.note-check {
+  display: flex;
+  align-items: center;
+  gap: var(--density-gap);
+  font-size: calc(0.86rem * var(--density-font-scale));
+}
+.note-check-done {
+  color: var(--text-faint);
+}
+.note-check-done span {
+  text-decoration: line-through;
+}
+.note-labels {
+  flex-wrap: wrap;
+}
+.note-foot {
+  display: flex;
+  align-items: center;
+  margin-top: 0;
+}
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--density-gap);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: calc(1.1rem * var(--density-font-scale));
+  line-height: 1;
+  cursor: pointer;
+}
+.icon-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.icon-btn-on {
+  color: var(--accent);
+}
+
+/* ---- editor ---- */
+.note-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: var(--density-row-pad-y) var(--density-row-pad-x);
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: calc(0.9rem * var(--density-font-scale));
+  line-height: var(--density-leading);
+  resize: vertical;
+}
+.note-textarea:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.note-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--density-gap);
+}
+.note-item-row {
+  display: flex;
+  align-items: center;
+  gap: var(--density-gap);
+}
+.check-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--density-gap);
+  padding-top: var(--density-gap);
+}
+.check-label {
+  display: flex;
+  align-items: center;
+  gap: var(--density-gap);
+}
+
+/* ---- delete confirmation ---- */
+.confirm-text {
+  margin: 0;
+  font-size: calc(0.9rem * var(--density-font-scale));
+  line-height: var(--density-leading);
+  color: var(--text-muted);
+}
+
+/* ---- note colours ---- */
 .notecard { border: 1px solid var(--border-strong); }
 .note-red { --note-rgb: 210, 80, 70; }
 .note-orange { --note-rgb: 220, 140, 60; }

@@ -177,9 +177,9 @@ html[data-style='minimalism'] .row-title {
 html[data-style='minimalism'] .card-hero {
   background: var(--surface);
   border: 1px solid var(--border-strong);
-  border-top: 3px solid var(--ink);
   border-radius: var(--radius-sm);
-  box-shadow: none;
+  /* The heavy top rule is an inset edge, not a border: no radius clash. */
+  box-shadow: inset 0 3px 0 var(--ink);
 }
 
 html[data-style='minimalism'] .card,

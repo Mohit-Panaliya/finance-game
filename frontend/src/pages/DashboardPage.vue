@@ -11,7 +11,7 @@ import {
 import { useFinanceStore } from '@/stores/financeStore'
 import { useSyncStore } from '@/stores/syncStore'
 import { useAuthStore } from '@/stores/authStore'
-import { ACCOUNT_ENTITIES, entityConfig, rowTitle, rowValue, summaryHead } from '@/entityConfig'
+import { ACCOUNT_ENTITIES, entityConfig, summaryHead } from '@/entityConfig'
 import type { AccountEntityName, EntityConfig } from '@/entityConfig'
 import type { EntityType, FinanceRow } from '@/types'
 import { formatMoney, formatPercent, rowCurrency } from '@/utils/money'
@@ -57,24 +57,6 @@ const totalLiquid = computed(() =>
 
 const populatedGroups = computed(() => groups.value.filter((g) => g.count > 0).length)
 
-/** One bank/card account, linked straight to its full statement page. */
-interface AccountRow {
-  id: string
-  name: string
-  value: number
-  currency: string
-}
-
-function accountRows(key: string): AccountRow[] {
-  if (key !== 'banks' && key !== 'credit-cards') return []
-  return (finance.rows(key as EntityType) as FinanceRow[]).map((r) => ({
-    id: String(r.id ?? ''),
-    name: rowTitle(entityConfig(key), r),
-    value: rowValue(entityConfig(key), r),
-    currency: rowCurrency(r)
-  }))
-}
-
 /** Monthly equivalent factor per recurrence value (see RECURRENCE_OPTIONS). */
 const RECURRENCE_MONTHLY: Record<string, number> = {
   weekly: 52 / 12,
@@ -95,16 +77,8 @@ const fixedCosts = computed(() => {
     fromBills += (Number(r.amount) || 0) * factor * mult
   }
   const emi = Number(finance.debtSummary?.monthly_emi_outflow) || 0
-  return {
-    bills: Math.round(fromBills * 100) / 100,
-    emi: Math.round(emi * 100) / 100,
-    total: Math.round((fromBills + emi) * 100) / 100,
-  }
+  return Math.round((fromBills + emi) * 100) / 100
 })
-
-const totalCardBalance = computed(() =>
-  groups.value.filter((g) => g.key === 'credit-cards').reduce((acc: number, g) => acc + g.total, 0)
-)
 
 const thisMonth = new Date().toISOString().slice(0, 7)
 
@@ -212,15 +186,8 @@ onMounted(async () => {
             </span>
           </div>
           <div class="stat-tile">
-            <span class="stat-tile-label">Card balance</span>
-            <span class="stat-tile-value">{{ money(totalCardBalance) }}</span>
-          </div>
-          <div class="stat-tile">
             <span class="stat-tile-label">Fixed costs / mo</span>
-            <span class="stat-tile-value">{{ money(fixedCosts.total) }}</span>
-            <span class="text-sm text-muted"
-              >{{ money(fixedCosts.bills) }} bills + {{ money(fixedCosts.emi) }} EMI</span
-            >
+            <span class="stat-tile-value">{{ money(fixedCosts) }}</span>
           </div>
         </div>
 
@@ -239,34 +206,23 @@ onMounted(async () => {
             </span>
           </div>
           <div class="row-list">
-            <template v-for="g in groups" :key="g.key">
-              <button class="row-item" type="button" @click="router.push(`/accounts/${g.key}`)">
-                <span class="row-icon"><ion-icon :icon="g.cfg.icon" /></span>
-                <span class="row-main">
-                  <span class="row-title">{{ g.cfg.label }}</span>
-                  <span class="row-sub">
-                    {{ g.count }} {{ g.count === 1 ? g.cfg.singular.toLowerCase() : 'records' }}
-                  </span>
+            <button
+              v-for="g in groups"
+              :key="g.key"
+              class="row-item"
+              type="button"
+              @click="router.push(`/accounts/${g.key}`)"
+            >
+              <span class="row-icon"><ion-icon :icon="g.cfg.icon" /></span>
+              <span class="row-main">
+                <span class="row-title">{{ g.cfg.label }}</span>
+                <span class="row-sub">
+                  {{ g.count }} {{ g.count === 1 ? g.cfg.singular.toLowerCase() : 'records' }}
                 </span>
-                <span class="row-value">{{ money(g.total) }}</span>
-                <ion-icon class="text-faint" :icon="chevronForwardOutline" />
-              </button>
-              <!-- bank/card tiles link to the account's full statement -->
-              <router-link
-                v-for="a in accountRows(g.key)"
-                :key="`${g.key}-${a.id}`"
-                class="row-item row-item-stmt"
-                :to="`/accounts/${g.key}/${a.id}`"
-              >
-                <span class="row-icon row-icon-stmt"><ion-icon :icon="walletOutline" /></span>
-                <span class="row-main">
-                  <span class="row-title clamp-1">{{ a.name }}</span>
-                  <span class="row-sub">View statement</span>
-                </span>
-                <span class="row-value">{{ money(a.value, a.currency) }}</span>
-                <ion-icon class="text-faint" :icon="chevronForwardOutline" />
-              </router-link>
-            </template>
+              </span>
+              <span class="row-value">{{ money(g.total) }}</span>
+              <ion-icon class="text-faint" :icon="chevronForwardOutline" />
+            </button>
           </div>
         </section>
 
@@ -331,16 +287,5 @@ onMounted(async () => {
   font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
-}
-
-/* statement sub-rows sit under their group row, visually nested */
-.row-item-stmt {
-  padding-left: calc(var(--density-row-pad-x) + 38px);
-  border-top: 1px dashed var(--border);
-}
-.row-icon-stmt {
-  width: 26px;
-  height: 26px;
-  font-size: 14px;
 }
 </style>

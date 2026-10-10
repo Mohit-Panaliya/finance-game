@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { IonContent, IonIcon, IonPage } from '@ionic/vue'
-import { walletOutline } from 'ionicons/icons'
+import { IonContent, IonPage } from '@ionic/vue'
 import { useAuthStore } from '@/stores/authStore'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
@@ -13,15 +12,26 @@ const auth = useAuthStore()
 
 const username = ref('')
 const password = ref('')
+const usernameError = ref('')
+const passwordError = ref('')
 const showPassword = ref(false)
 const busy = ref(false)
 const error = ref('')
 
+function setUsername(value: string | number) {
+  username.value = String(value)
+  usernameError.value = ''
+}
+
+function setPassword(value: string | number) {
+  password.value = String(value)
+  passwordError.value = ''
+}
+
 async function submit() {
-  if (!username.value.trim() || !password.value) {
-    error.value = 'Enter your username and password.'
-    return
-  }
+  usernameError.value = username.value.trim() ? '' : 'Enter your username or email.'
+  passwordError.value = password.value ? '' : 'Enter your password.'
+  if (usernameError.value || passwordError.value) return
   busy.value = true
   error.value = ''
   try {
@@ -41,24 +51,27 @@ async function submit() {
     <ion-content :fullscreen="true" class="auth-bg">
       <div class="auth-wrap">
         <div class="auth-card">
-          <div class="auth-mark"><ion-icon :icon="walletOutline" /></div>
           <h1 class="auth-title">Fintrack</h1>
           <p class="auth-sub">Sign in to your accounts</p>
 
           <form class="form-grid" @submit.prevent="submit">
             <AppInput
-              v-model="username"
+              :model-value="username"
               label="Username"
               placeholder="Username or email"
               autocomplete="username"
+              :error="usernameError"
+              @update:model-value="setUsername"
             />
             <div class="pw">
               <AppInput
-                v-model="password"
+                :model-value="password"
                 :type="showPassword ? 'text' : 'password'"
                 label="Password"
                 placeholder="Your password"
                 autocomplete="current-password"
+                :error="passwordError"
+                @update:model-value="setPassword"
               />
               <button class="pw-toggle" type="button" @click="showPassword = !showPassword">
                 {{ showPassword ? 'Hide' : 'Show' }}
@@ -99,21 +112,9 @@ async function submit() {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: calc(var(--density-hero-pad) + 6px) var(--density-hero-pad) var(--density-hero-pad);
+  padding: var(--density-hero-pad);
   box-shadow: var(--shadow-md);
   text-align: center;
-}
-.auth-mark {
-  width: 52px;
-  height: 52px;
-  margin: 0 auto var(--density-gap);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-size: 26px;
 }
 .auth-sub {
   margin: 5px 0 var(--density-section-gap);

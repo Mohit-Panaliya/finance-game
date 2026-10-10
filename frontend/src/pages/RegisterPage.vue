@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { IonContent, IonIcon, IonPage } from '@ionic/vue'
-import { walletOutline } from 'ionicons/icons'
+import { IonContent, IonPage } from '@ionic/vue'
 import { useAuthStore } from '@/stores/authStore'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
@@ -13,26 +12,45 @@ const auth = useAuthStore()
 const name = ref('')
 const email = ref('')
 const password = ref('')
+const nameError = ref('')
+const emailError = ref('')
+const passwordError = ref('')
 const busy = ref(false)
 const error = ref('')
 
+function setName(value: string | number) {
+  name.value = String(value)
+  nameError.value = ''
+}
+
+function setEmail(value: string | number) {
+  email.value = String(value)
+  emailError.value = ''
+}
+
+function setPassword(value: string | number) {
+  password.value = String(value)
+  passwordError.value = ''
+}
+
 async function submit() {
-  if (!name.value.trim() || !email.value.trim() || !password.value) {
-    error.value = 'All three fields are required.'
-    return
-  }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim())) {
-    error.value = 'Enter a valid email address.'
-    return
-  }
-  if (password.value.length < 6) {
-    error.value = 'Password must be at least 6 characters.'
-    return
-  }
+  nameError.value = name.value.trim() ? '' : 'Enter your name.'
+  const trimmedEmail = email.value.trim()
+  emailError.value = !trimmedEmail
+    ? 'Enter your email address.'
+    : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)
+      ? ''
+      : 'Use a format like you@example.com.'
+  passwordError.value = !password.value
+    ? 'Create a password.'
+    : password.value.length < 6
+      ? 'Use at least 6 characters.'
+      : ''
+  if (nameError.value || emailError.value || passwordError.value) return
   busy.value = true
   error.value = ''
   try {
-    await auth.register(email.value.trim(), name.value.trim(), password.value)
+    await auth.register(trimmedEmail, name.value.trim(), password.value)
     await router.replace('/dashboard')
   } catch {
     error.value = auth.error ?? 'Registration failed'
@@ -47,19 +65,35 @@ async function submit() {
     <ion-content :fullscreen="true" class="reg-bg">
       <div class="auth-wrap">
         <div class="auth-card">
-          <div class="auth-mark"><ion-icon :icon="walletOutline" /></div>
           <h1 class="auth-title">Create your account</h1>
           <p class="auth-sub">Start tracking banks, deposits and investments</p>
 
           <form class="form-grid" @submit.prevent="submit">
-            <AppInput v-model="name" label="Name" placeholder="Your name" autocomplete="name" />
-            <AppInput v-model="email" type="email" label="Email" placeholder="you@example.com" autocomplete="email" />
             <AppInput
-              v-model="password"
+              :model-value="name"
+              label="Name"
+              placeholder="Your name"
+              autocomplete="name"
+              :error="nameError"
+              @update:model-value="setName"
+            />
+            <AppInput
+              :model-value="email"
+              type="email"
+              label="Email"
+              placeholder="you@example.com"
+              autocomplete="email"
+              :error="emailError"
+              @update:model-value="setEmail"
+            />
+            <AppInput
+              :model-value="password"
               type="password"
               label="Password"
               placeholder="At least 6 characters"
               autocomplete="new-password"
+              :error="passwordError"
+              @update:model-value="setPassword"
             />
 
             <p v-if="error" class="form-error">{{ error }}</p>
@@ -96,21 +130,9 @@ async function submit() {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: calc(var(--density-hero-pad) + 6px) var(--density-hero-pad) var(--density-hero-pad);
+  padding: var(--density-hero-pad);
   box-shadow: var(--shadow-md);
   text-align: center;
-}
-.auth-mark {
-  width: 52px;
-  height: 52px;
-  margin: 0 auto var(--density-gap);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-size: 26px;
 }
 .auth-sub {
   margin: 5px 0 var(--density-section-gap);

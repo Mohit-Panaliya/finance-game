@@ -194,9 +194,8 @@ html[data-style='neobrutalism'] .stat-tile {
 html[data-style='neobrutalism'] .card-hero {
   background: var(--surface);
   border: 3px solid var(--text);
-  border-top: 12px solid var(--accent);
   border-radius: 0;
-  box-shadow: 7px 7px 0 var(--text);
+  box-shadow: 7px 7px 0 var(--text), inset 0 9px 0 0 var(--accent);
 }
 
 html[data-style='neobrutalism'] .row-item {

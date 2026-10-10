@@ -4,9 +4,10 @@ import { useRouter } from 'vue-router'
 import { IonContent, IonIcon, IonPage } from '@ionic/vue'
 import {
   checkmarkCircleOutline,
+  chevronDownOutline,
+  chevronUpOutline,
   cloudDownloadOutline,
   cloudUploadOutline,
-  informationCircleOutline,
   logOutOutline,
   refreshOutline
 } from 'ionicons/icons'
@@ -14,20 +15,18 @@ import { useAuthStore } from '@/stores/authStore'
 import { useFinanceStore } from '@/stores/financeStore'
 import { useSyncStore } from '@/stores/syncStore'
 import { getQueue } from '@/services/offlineQueue'
-import { formatMoney, formatNumber } from '@/utils/money'
+import { formatNumber } from '@/utils/money'
 import { formatDateTime } from '@/utils/date'
 import {
   ACCENT_PALETTES,
   DEFAULT_STYLE,
   DENSITIES,
   FONT_FAMILIES,
-  FONT_LABELS,
-  STYLE_LABELS,
   THEME_FAMILIES,
   THEME_MODES,
   useTheme
 } from '@/composables/useTheme'
-import { ENTITY_LIST, entityConfig, summaryHead } from '@/entityConfig'
+import { ENTITY_LIST } from '@/entityConfig'
 import AppButton from '@/components/ui/AppButton.vue'
 import SyncChip from '@/components/ui/SyncChip.vue'
 
@@ -36,14 +35,6 @@ const finance = useFinanceStore()
 const sync = useSyncStore()
 const router = useRouter()
 const theme = useTheme()
-
-const accentLabel = computed(
-  () => ACCENT_PALETTES.find((p) => p.name === theme.accent)?.label ?? theme.accent
-)
-
-const styleLabel = computed(() => STYLE_LABELS[theme.style] ?? theme.style)
-
-const fontLabel = computed(() => FONT_LABELS[theme.font] ?? theme.font)
 
 /** Family groups for the picker; the default option carries its own caption. */
 const styleGroups = computed(() =>
@@ -78,6 +69,9 @@ function notify(message: string, tone: 'success' | 'warning' = 'success'): void 
   }, 2600)
 }
 const noticeTone = ref<'success' | 'warning'>('success')
+
+/** Rarely-used sync tools sit behind a local disclosure so the section stays quiet. */
+const showSyncTools = ref(false)
 
 /** Reactive connectivity flag — `navigator` is not available on the component instance. */
 const online = ref(typeof navigator !== 'undefined' ? navigator.onLine : true)
@@ -279,33 +273,6 @@ async function queueSize() {
             </div>
           </div>
 
-          <div class="card meta-list">
-            <div class="meta-row">
-              <span class="meta-key">Showing</span>
-              <span class="meta-val">{{ theme.resolvedTheme }}</span>
-            </div>
-            <div class="meta-row">
-              <span class="meta-key">Device preference</span>
-              <span class="meta-val">{{ theme.systemTheme }}</span>
-            </div>
-            <div class="meta-row">
-              <span class="meta-key">Accent palette</span>
-              <span class="meta-val">{{ accentLabel }}</span>
-            </div>
-            <div class="meta-row">
-              <span class="meta-key">Density</span>
-              <span class="meta-val">{{ theme.density }}</span>
-            </div>
-            <div class="meta-row">
-              <span class="meta-key">Theme style</span>
-              <span class="meta-val">{{ styleLabel }}</span>
-            </div>
-            <div class="meta-row">
-              <span class="meta-key">UI font</span>
-              <span class="meta-val">{{ fontLabel }}</span>
-            </div>
-          </div>
-
           <AppButton variant="neutral" size="md" @click="resetAppearance">
             <ion-icon :icon="refreshOutline" /> Reset to defaults
           </AppButton>
@@ -318,7 +285,7 @@ async function queueSize() {
               <span class="badge" :class="statusTone">{{ sync.status }}</span>
               <span class="text-sm text-muted">{{ sync.message || 'No pending changes' }}</span>
             </div>
-            <div class="meta-list" style="margin-top: 10px">
+            <div class="meta-list sync-meta">
               <div class="meta-row">
                 <span class="meta-key">Connection</span>
                 <span class="meta-val">{{ online ? 'Online' : 'Offline' }}</span>
@@ -345,59 +312,33 @@ async function queueSize() {
             <AppButton variant="neutral" size="md" @click="pullLatest">
               <ion-icon :icon="cloudDownloadOutline" /> Pull latest
             </AppButton>
-            <AppButton variant="neutral" size="md" :disabled="!sync.queueCount" @click="flushQueue">
-              Push queue
-            </AppButton>
-            <AppButton variant="neutral" size="md" @click="refreshAll">
-              <ion-icon :icon="refreshOutline" /> Reload data
-            </AppButton>
           </div>
 
-          <button class="link-row" type="button" @click="queueSize">
-            <span class="text-sm text-muted">Inspect offline queue</span>
-            <ion-icon class="text-faint" :icon="informationCircleOutline" />
+          <button
+            class="link-row"
+            type="button"
+            :aria-expanded="showSyncTools"
+            @click="showSyncTools = !showSyncTools"
+          >
+            <span class="text-sm text-muted">More sync tools</span>
+            <ion-icon class="text-faint" :icon="showSyncTools ? chevronUpOutline : chevronDownOutline" />
           </button>
-        </section>
 
-        <section class="section">
-          <h2 class="section-title">Tracked data</h2>
-          <div class="row-list">
-            <router-link
-              v-for="e in ENTITY_LIST"
-              :key="e"
-              class="row-item"
-              :to="`/accounts/${e}`"
-            >
-              <span class="row-icon"><ion-icon :icon="entityConfig(e).icon" /></span>
-              <span class="row-main">
-                <span class="row-title">{{ entityConfig(e).label }}</span>
-                <span class="row-sub">{{ finance.lists[e].total || finance.lists[e].items.length }} records</span>
-              </span>
-              <span class="row-value">
-                {{ formatMoney(summaryHead(e, finance.summaries[e]).total, 'INR', { compact: true }) }}
-                <span class="row-extra">total</span>
-              </span>
-            </router-link>
+          <div v-show="showSyncTools" class="sync-tools">
+            <AppButton variant="ghost" size="sm" :disabled="!sync.queueCount" @click="flushQueue">
+              Push queue
+            </AppButton>
+            <AppButton variant="ghost" size="sm" @click="refreshAll">
+              <ion-icon :icon="refreshOutline" /> Reload data
+            </AppButton>
+            <AppButton variant="ghost" size="sm" @click="queueSize">Inspect offline queue</AppButton>
           </div>
         </section>
 
         <section class="section">
           <h2 class="section-title">About</h2>
           <div class="card">
-            <div class="meta-list">
-              <div class="meta-row">
-                <span class="meta-key">App</span>
-                <span class="meta-val">Fintrack 1.0</span>
-              </div>
-              <div class="meta-row">
-                <span class="meta-key">Installable</span>
-                <span class="meta-val">Yes — add to home screen</span>
-              </div>
-              <div class="meta-row">
-                <span class="meta-key">Offline edits</span>
-                <span class="meta-val">Queued and replayed on reconnect</span>
-              </div>
-            </div>
+            <p class="text-sm text-muted">Fintrack 1.0</p>
           </div>
         </section>
 
@@ -413,27 +354,36 @@ async function queueSize() {
 .sync-head {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--density-gap);
   flex-wrap: wrap;
 }
 .action-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: var(--density-gap);
 }
 .link-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 11px 13px;
+  padding: var(--density-row-pad-y) var(--density-row-pad-x);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   cursor: pointer;
 }
+.sync-meta {
+  margin-top: var(--density-gap);
+}
+.sync-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--density-gap);
+}
 .spaced {
-  margin-top: 16px;
+  margin-top: var(--density-gap);
 }
 .hint-text {
   margin: -4px 0 8px;
@@ -468,7 +418,7 @@ async function queueSize() {
 .swatch-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: var(--density-gap);
 }
 .accent-swatch {
   position: relative;

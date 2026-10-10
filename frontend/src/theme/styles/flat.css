@@ -377,7 +377,7 @@ html[data-style='flat'] .section {
     transition: background 0.11s linear, color 0.11s linear, border-color 0.11s linear;
   }
   html[data-style='flat'] .bar-fill {
-    transition: width 0.12s linear;
+    transition: transform 0.12s linear;
   }
 }
 

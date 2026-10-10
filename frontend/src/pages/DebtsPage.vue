@@ -630,7 +630,7 @@ onMounted(() => {
                     <span class="row-sub clamp-1">{{ subtitleFor(row) }}</span>
                     <span class="debt-bar">
                       <span class="bar">
-                        <span class="bar-fill debt-bar-fill" :style="{ width: `${settledPct(row)}%` }" />
+                        <span class="bar-fill debt-bar-fill" :style="{ '--bar-fill': settledPct(row) / 100 }" />
                       </span>
                     </span>
                   </span>
