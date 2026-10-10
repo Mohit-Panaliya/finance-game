@@ -8,11 +8,7 @@
             <p class="page-subtitle">Capture ideas, lists and reminders</p>
           </div>
           <HeaderActions
-            :status="sync.status"
-            :pending="sync.queueCount"
-            :last-sync-at="sync.lastSyncAt"
             :actions="headerActions"
-            @sync="onSync"
           />
         </header>
 
@@ -76,6 +72,10 @@
                   <span class="clamp-1">{{ it.text }}</span>
                 </li>
               </ul>
+
+              <div v-if="note.remind_at" class="note-remind" :class="{ 'note-remind-overdue': note.is_overdue }">
+                ⏰ {{ formatRemind(note.remind_at) }}<span v-if="note.repeat && note.repeat !== 'none'"> · {{ note.repeat }}</span>
+              </div>
 
               <div v-if="note.labels && note.labels.length" class="chips note-labels">
                 <span v-for="lbl in note.labels" :key="lbl.id" class="chip">{{ lbl.name }}</span>
@@ -156,10 +156,33 @@
           />
 
           <div v-else class="note-items">
-            <div v-for="(it, idx) in form.items" :key="idx" class="note-item-row">
+            <div
+              v-for="(it, idx) in form.items"
+              :key="it.id ?? it._tmp ?? idx"
+              class="note-item-row"
+              :class="{ 'note-item-child': it.parent_id ?? it._parentTmp }"
+            >
               <input v-model="it.checked" type="checkbox" />
               <app-input v-model="it.text" placeholder="List item" />
-              <button class="chip" type="button" @click="removeItem(idx)">Remove</button>
+              <span class="item-ctl">
+                <button class="chip" type="button" title="Move up" @click="moveItem(idx, -1)">↑</button>
+                <button class="chip" type="button" title="Move down" @click="moveItem(idx, 1)">↓</button>
+                <button
+                  v-if="!(it.parent_id ?? it._parentTmp)"
+                  class="chip"
+                  type="button"
+                  title="Indent under previous item"
+                  @click="indentItem(idx)"
+                >→</button>
+                <button
+                  v-else
+                  class="chip"
+                  type="button"
+                  title="Back to top level"
+                  @click="outdentItem(idx)"
+                >←</button>
+                <button class="chip" type="button" @click="removeItem(idx)">Remove</button>
+              </span>
             </div>
             <app-button size="sm" variant="neutral" @click="addItem">Add item</app-button>
           </div>
@@ -172,6 +195,23 @@
             </div>
           </div>
 
+          <div class="form-row-2">
+            <app-input
+              v-model="form.remind_at"
+              label="Reminder"
+              type="datetime-local"
+              :hint="form.remind_at ? '' : 'Optional — alerts in the Reminders view'"
+            />
+            <app-select v-model="form.repeat" label="Repeat" :options="repeatOptions" />
+          </div>
+          <app-button
+            v-if="form.remind_at"
+            size="sm"
+            variant="ghost"
+            @click="form.remind_at = ''"
+            >Clear reminder</app-button
+          >
+
           <app-select v-model="form.label_ids" label="Labels" :options="labelOptions" multiple />
 
           <div v-if="formError" class="form-error">{{ formError }}</div>
@@ -180,6 +220,18 @@
             <app-button v-if="editingTrashed" variant="neutral" @click="restoreEditing">Restore</app-button>
             <app-button v-else-if="editingId" variant="neutral" @click="trashEditing">Move to trash</app-button>
             <app-button v-if="editingTrashed" variant="danger" @click="askDelete">Delete forever</app-button>
+            <app-button
+              v-if="!editingTrashed && form.kind === 'text'"
+              variant="neutral"
+              @click="sendToEntry('expenses')"
+              >Add as expense</app-button
+            >
+            <app-button
+              v-if="!editingTrashed && form.kind === 'text'"
+              variant="neutral"
+              @click="sendToEntry('incomes')"
+              >Add as income</app-button
+            >
             <app-button variant="primary" @click="saveNote">Save</app-button>
           </div>
         </div>
@@ -208,6 +260,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { IonPage, IonContent, IonIcon } from '@ionic/vue'
 import { addOutline, createOutline, documentTextOutline, pin, pinOutline } from 'ionicons/icons'
+import { useRouter } from 'vue-router'
 import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
@@ -236,7 +289,8 @@ const FILTERS = [
   { key: 'all', label: 'All' },
   { key: 'pinned', label: 'Pinned' },
   { key: 'archived', label: 'Archived' },
-  { key: 'trashed', label: 'Trash' }
+  { key: 'trashed', label: 'Trash' },
+  { key: 'reminders', label: 'Reminders' }
 ] as const
 
 type NoteFilter = (typeof FILTERS)[number]['key']
@@ -304,6 +358,7 @@ async function loadNotes() {
   if (filter.value === 'pinned') params.pinned = 1
   if (filter.value === 'archived') params.archived = 1
   if (filter.value === 'trashed') params.trashed = 1
+  if (filter.value === 'reminders') params.reminder = 'with'
   const res: any = await request('/api/notes', { method: 'GET', query: params })
   notes.value = res?.data || res || []
 }
@@ -323,6 +378,8 @@ function openCreate() {
     color: 'DEFAULT',
     pinned: false,
     archived: false,
+    remind_at: '',
+    repeat: 'none',
     label_ids: [],
     items: []
   }
@@ -341,6 +398,8 @@ function openEdit(note: any) {
     color: note.color,
     pinned: !!note.pinned,
     archived: !!note.archived,
+    remind_at: toLocalInput(note.remind_at || ''),
+    repeat: note.repeat || 'none',
     label_ids: (note.labels || []).map((l: any) => l.id),
     items: (note.items || []).map((it: any) => ({
       id: it.id,
@@ -365,12 +424,100 @@ function closeEditor() {
   editorOpen.value = false
 }
 
+let tmpSeq = 0
 function addItem() {
-  form.value.items.push({ text: '', checked: false })
+  tmpSeq += 1
+  form.value.items.push({ _tmp: `new-${Date.now()}-${tmpSeq}`, text: '', checked: false, parent_id: null })
+}
+
+function sibKey(it: any): string | null {
+  return (it.parent_id ?? it._parentTmp ?? null) as string | null
+}
+
+function moveItem(idx: number, dir: -1 | 1) {
+  const items = form.value.items
+  const key = sibKey(items[idx])
+  const sibs: number[] = []
+  items.forEach((it: any, i: number) => {
+    if (sibKey(it) === key) sibs.push(i)
+  })
+  const other = sibs[sibs.indexOf(idx) + dir]
+  if (other === undefined) return
+  const t = items[idx]
+  items[idx] = items[other]
+  items[other] = t
+}
+
+function indentItem(idx: number) {
+  // Child of the previous top-level sibling (depth cap 2: both sides top-level).
+  const items = form.value.items
+  const it = items[idx]
+  if (sibKey(it) !== null) return
+  for (let i = idx - 1; i >= 0; i--) {
+    const prev = items[i]
+    if (sibKey(prev) === null && (prev.id ?? prev._tmp) !== (it.id ?? it._tmp)) {
+      if (prev.id) it.parent_id = prev.id
+      else it._parentTmp = prev._tmp ?? null
+      return
+    }
+  }
+}
+
+function outdentItem(idx: number) {
+  form.value.items[idx].parent_id = null
+  form.value.items[idx]._parentTmp = null
 }
 
 function removeItem(idx: number) {
   form.value.items.splice(idx, 1)
+}
+
+const router = useRouter()
+
+/** First plausible amount in title/body/items (₹-prefixed or leading digits). */
+function extractAmount(): number | null {
+  const hay: string[] = [form.value.title || '', form.value.body_text || '']
+  for (const it of form.value.items || []) hay.push(it.text || '')
+  for (const h of hay) {
+    const m = h.replace(/,/g, '').match(/(?:₹|Rs\.?|INR)?\s*(\d+(?:\.\d{1,2})?)/i)
+    if (m) {
+      const v = Number(m[1])
+      if (Number.isFinite(v) && v > 0) return Math.round(v * 100) / 100
+    }
+  }
+  return null
+}
+
+function sendToEntry(kind: 'incomes' | 'expenses') {
+  try {
+    localStorage.setItem(
+      'fg-entry-prefill',
+      JSON.stringify({ entity: kind, title: (form.value.title || '').trim(), amount: extractAmount() }),
+    )
+  } catch {
+    /* handoff failed - entry form still opens blank */
+  }
+  closeEditor()
+  void router.push(`/accounts/${kind}/new`)
+}
+
+const repeatOptions = [
+  { value: 'none', label: 'Does not repeat' },
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'monthly', label: 'Monthly' }
+]
+
+function toLocalInput(v: string): string {
+  // RFC3339 -> datetime-local shape (drop seconds + offset)
+  return (v || '').slice(0, 16)
+}
+
+function formatRemind(v: string): string {
+  if (!v) return ''
+  const d = new Date(v)
+  if (Number.isNaN(d.getTime())) return v
+  return d.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
 async function saveNote() {
@@ -382,6 +529,8 @@ async function saveNote() {
       color: form.value.color,
       pinned: form.value.pinned ? 1 : 0,
       archived: form.value.archived ? 1 : 0,
+      remind_at: form.value.remind_at || '',
+      repeat: form.value.repeat || 'none',
       label_ids: form.value.label_ids
     }
     if (form.value.kind === 'text') {
@@ -395,19 +544,36 @@ async function saveNote() {
         const origById = new Map(orig.filter((i: any) => i.id).map((i: any) => [i.id, i]))
         const currIdsSet = new Set(curr.filter((i: any) => i.id).map((i: any) => i.id))
         const origIdsSet = new Set(origById.keys())
+        const tmpToId = new Map<string, string>()
         for (const it of curr) {
+          let parentId: string | null = (it.parent_id ?? null) as string | null
+          if (it._parentTmp) {
+            parentId = tmpToId.get(it._parentTmp) ?? parentId
+          }
+          const position = curr.indexOf(it)
           if (!it.id) {
-            await request(`/api/notes/${editingId.value}/items`, {
+            const created: any = await request(`/api/notes/${editingId.value}/items`, {
               method: 'POST',
-              body: { text: it.text, checked: it.checked ? 1 : 0 }
+              body: { text: it.text, checked: it.checked ? 1 : 0, parent_id: parentId, position }
             })
+            const nid = created?.id ?? created?.item?.id
+            if (nid) {
+              it.id = nid
+              if (it._tmp) tmpToId.set(it._tmp, nid)
+            }
             continue
           }
           const o = origById.get(it.id)
-          if (o && (o.text !== it.text || (!!o.checked) !== (!!it.checked))) {
+          if (
+            o &&
+            (o.text !== it.text ||
+              (!!o.checked) !== (!!it.checked) ||
+              (o.parent_id ?? null) !== (parentId ?? null) ||
+              o.position !== position)
+          ) {
             await request(`/api/notes/${editingId.value}/items/${it.id}`, {
               method: 'PUT',
-              body: { text: it.text, checked: it.checked ? 1 : 0 }
+              body: { text: it.text, checked: it.checked ? 1 : 0, parent_id: parentId ?? '', position }
             })
           }
         }
@@ -420,10 +586,11 @@ async function saveNote() {
     } else {
       const payloadNew: any = { ...payload }
       if (form.value.kind === 'list') {
-        payloadNew.items = form.value.items.map((it: any) => ({
+        payloadNew.items = form.value.items.map((it: any, i: number) => ({
           text: it.text,
           checked: it.checked ? 1 : 0,
-          parent_id: it.parent_id ?? null
+          parent_id: it.parent_id ?? null,
+          position: i
         }))
       }
       await request('/api/notes', { method: 'POST', body: payloadNew })
@@ -476,6 +643,16 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.note-item-child {
+  margin-left: calc(var(--density-gap) * 2);
+  border-left: 2px solid var(--border);
+  padding-left: var(--density-gap);
+}
+.item-ctl {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
 /* ---- list ---- */
 .notes-grid {
   display: flex;

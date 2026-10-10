@@ -179,10 +179,6 @@ async function queueSize() {
             <p class="page-subtitle">Sync, appearance and account</p>
           </div>
           <HeaderActions
-            :status="sync.status"
-            :pending="sync.queueCount"
-            :last-sync-at="sync.lastSyncAt"
-            @sync="syncNow"
           />
         </header>
 

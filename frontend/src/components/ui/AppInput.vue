@@ -4,7 +4,7 @@ import { computed, ref } from 'vue'
 const props = withDefaults(
   defineProps<{
     modelValue?: string | number
-    type?: 'text' | 'number' | 'password' | 'tel' | 'email'
+    type?: 'text' | 'number' | 'password' | 'tel' | 'email' | 'datetime-local'
     label?: string
     placeholder?: string
     suffix?: string

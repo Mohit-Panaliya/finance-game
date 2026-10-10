@@ -8,6 +8,8 @@ mod m20261001_000003_debts;
 mod m20261004_000005_asset_ledger_depreciation;
 mod m20261006_000006_notes;
 mod m20261008_000007_debt_loans;
+mod m20261010_000008_note_reminders;
+mod m20261010_000009_buy_actual;
 
 pub struct Migrator;
 
@@ -21,6 +23,8 @@ impl MigratorTrait for Migrator {
             Box::new(m20261004_000005_asset_ledger_depreciation::Migration),
             Box::new(m20261006_000006_notes::Migration),
             Box::new(m20261008_000007_debt_loans::Migration),
+            Box::new(m20261010_000008_note_reminders::Migration),
+            Box::new(m20261010_000009_buy_actual::Migration),
             // inject-above (do not remove this comment)
         ]
     }

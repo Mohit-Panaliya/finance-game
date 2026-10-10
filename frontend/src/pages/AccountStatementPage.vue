@@ -16,7 +16,6 @@ import type { EntityType, FinanceRow, StatementEntry } from '@/types'
 import { api, ApiError } from '@/api/client'
 import { formatMoney, formatSigned, rowCurrency } from '@/utils/money'
 import { formatDate } from '@/utils/date'
-import SyncChip from '@/components/ui/SyncChip.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -116,7 +115,6 @@ onMounted(async () => {
               <p class="page-subtitle">{{ cfg.label }}</p>
             </div>
           </div>
-          <SyncChip :status="sync.status" :pending="sync.queueCount" :last-sync-at="sync.lastSyncAt" @sync="finance.fetchList(entity)" />
         </header>
 
         <p v-if="!accountLoading && !account && !statementLoading" class="form-error">

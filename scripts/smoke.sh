@@ -564,6 +564,21 @@ expect_status 400 "top-up of a negative amount is rejected" -X POST "$BASE/api/d
 expect_status 404 "top-up an unknown debt -> 404" -X POST "$BASE/api/debts/no-such-debt/top-up" "${AUTH[@]}" "${JSON[@]}" -d '{"amount":10}'
 expect_status 404 "another user cannot top up this debt" -X POST "$BASE/api/debts/$TOPUP_ID/top-up" -H "Authorization: Bearer $OTHER_TOKEN" "${JSON[@]}" -d '{"amount":10}'
 
+head_ "note reminders (Keep parity)"
+
+REM="$(post notes '{"title":"Pay bill","remind_at":"2020-01-01T09:00:00+00:00","repeat":"monthly"}')"
+REM_ID="$(printf '%s' "$REM" | py "import json,sys;print(json.load(sys.stdin).get('id',''))" 2>/dev/null)"
+[ -n "$REM_ID" ] && ok "create note with reminder returns an id" || bad "create note with reminder returns an id" "${REM:0:160}"
+printf '%s' "$REM" | jq_has 'd.get("is_overdue") is True and d.get("repeat")=="monthly"' | grep -q yes \
+  && ok "past reminder flagged overdue" || bad "past reminder flagged overdue"
+expect_status 400 "bad repeat rejected" \
+  -X POST "$BASE/api/notes" "${AUTH[@]}" "${JSON[@]}" -d '{"title":"x","repeat":"yearly"}'
+printf '%s' "$(body "$BASE/api/notes?reminder=overdue" "${AUTH[@]}")" | jq_has "any(n.get('id')=='$REM_ID' for n in (d if isinstance(d,list) else d.get('data',[])))" | grep -q yes \
+  && ok "overdue filter finds the note" || bad "overdue filter finds the note"
+body -X PUT "$BASE/api/notes/$REM_ID" "${AUTH[@]}" "${JSON[@]}" -d '{"remind_at":""}' | jq_has 'd.get("remind_at") in (None,"") and d.get("is_overdue") is False' | grep -q yes \
+  && ok "clearing reminder works" || bad "clearing reminder works"
+
+
 printf '\n%s%d passed%s, %s%d failed%s\n' "$c_g" "$PASS" "$c_0" \
   "$([ "$FAIL" -gt 0 ] && printf '%s' "$c_r" || printf '%s' "$c_d")" "$FAIL" "$c_0"
 [ "$FAIL" -eq 0 ]

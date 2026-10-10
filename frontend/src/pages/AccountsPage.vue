@@ -109,11 +109,7 @@ onMounted(() => {
             <p class="page-subtitle">{{ formatMoney(moneyTotal) }} tracked in {{ groups.length }} groups</p>
           </div>
           <HeaderActions
-            :status="sync.status"
-            :pending="sync.queueCount"
-            :last-sync-at="sync.lastSyncAt"
             :actions="headerActions"
-            @sync="finance.refresh()"
           />
         </header>
 

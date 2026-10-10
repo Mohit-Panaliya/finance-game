@@ -297,11 +297,7 @@ onMounted(() => {
             <p class="page-subtitle">{{ filtered.length }} entries</p>
           </div>
           <HeaderActions
-            :status="sync.status"
-            :pending="sync.queueCount"
-            :last-sync-at="sync.lastSyncAt"
             :actions="headerActions"
-            @sync="finance.refresh()"
           />
         </header>
 

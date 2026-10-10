@@ -2,8 +2,6 @@
 import { useRouter } from 'vue-router'
 import { IonIcon } from '@ionic/vue'
 import AppButton from '@/components/ui/AppButton.vue'
-import SyncChip from '@/components/ui/SyncChip.vue'
-import type { SyncStatus } from '@/stores/syncStore'
 
 export interface HeaderAction {
   id: string
@@ -22,14 +20,9 @@ export interface HeaderAction {
 const props = withDefaults(
   defineProps<{
     actions?: HeaderAction[]
-    status?: SyncStatus
-    pending?: number
-    lastSyncAt?: number | null
   }>(),
-  { actions: () => [], status: 'online', pending: 0, lastSyncAt: null }
+  { actions: () => [] }
 )
-
-const emit = defineEmits<{ sync: [] }>()
 
 const router = useRouter()
 
@@ -56,7 +49,6 @@ function run(a: HeaderAction) {
     >
       <ion-icon :icon="a.icon" />
     </AppButton>
-    <SyncChip :status="status" :pending="pending" :last-sync-at="lastSyncAt" @sync="emit('sync')" />
   </div>
 </template>
 

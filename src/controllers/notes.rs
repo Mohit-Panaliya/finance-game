@@ -132,6 +132,23 @@ async fn list(
     if let Some(a) = archived {
         query = query.filter(notes::note::Column::Archived.eq(if a { 1i32 } else { 0i32 }));
     }
+    if let Some(rem) = params.get("reminder").and_then(|v| v.as_str()) {
+        match rem {
+            "with" => {
+                query = query.filter(notes::note::Column::RemindAt.is_not_null());
+            }
+            "overdue" => {
+                query = query.filter(notes::note::Column::RemindAt.is_not_null());
+                query = query.filter(notes::note::Column::RemindAt.lt(now()));
+            }
+            "today" => {
+                let day = now()[..10].to_string();
+                query = query.filter(notes::note::Column::RemindAt.gte(day.clone()));
+                query = query.filter(notes::note::Column::RemindAt.lt(day + "x"));
+            }
+            _ => {}
+        }
+    }
     if let Some(lbl) = label {
         if let Some(l) = notes::label::Entity::find_by_id(&lbl)
             .filter(notes::label::Column::OwnerId.eq(uid))
@@ -174,7 +191,9 @@ async fn list(
         items.push(serde_json::json!({
             "id": n.id, "owner_id": n.owner_id, "kind": n.kind, "title": n.title,
             "body_text": n.body_text, "color": n.color, "pinned": n.pinned, "archived": n.archived,
-            "trashed_at": n.trashed_at, "created_at": n.created_at, "updated_at": n.updated_at, "version": n.version,
+            "trashed_at": n.trashed_at, "remind_at": n.remind_at.clone(), "repeat": n.repeat.clone(),
+            "is_overdue": notes::note::is_overdue(&n.remind_at, &n.trashed_at),
+            "created_at": n.created_at, "updated_at": n.updated_at, "version": n.version,
             "labels": labels, "items": items_list
         }));
     }
@@ -202,7 +221,9 @@ async fn show(
             format::json(serde_json::json!({
                 "id": n.id, "owner_id": n.owner_id, "kind": n.kind, "title": n.title,
                 "body_text": n.body_text, "color": n.color, "pinned": n.pinned, "archived": n.archived,
-                "trashed_at": n.trashed_at, "created_at": n.created_at, "updated_at": n.updated_at, "version": n.version,
+                "trashed_at": n.trashed_at, "remind_at": n.remind_at.clone(), "repeat": n.repeat.clone(),
+                "is_overdue": notes::note::is_overdue(&n.remind_at, &n.trashed_at),
+                "created_at": n.created_at, "updated_at": n.updated_at, "version": n.version,
                 "labels": labels, "items": items_list
             }))
         }
@@ -217,6 +238,13 @@ async fn create(
     Json(params): Json<CreateNoteRequest>,
 ) -> Result<Response> {
     validator::Validate::validate(&params).map_err(|e| Error::BadRequest(e.to_string()))?;
+    if let Some(ref r) = params.repeat {
+        if !notes::note::valid_repeat(r) {
+            return Err(Error::BadRequest(
+                "repeat must be one of none|daily|weekly|monthly".to_string(),
+            ));
+        }
+    }
     let db = ctx.db.clone();
     let uid = super::uid(&ctx, &auth).await?;
     let txn = db.begin().await?;
@@ -279,6 +307,13 @@ async fn update(
     Path(id): Path<String>,
     Json(params): Json<UpdateNoteRequest>,
 ) -> Result<Response> {
+    if let Some(ref r) = params.repeat {
+        if !notes::note::valid_repeat(r) {
+            return Err(Error::BadRequest(
+                "repeat must be one of none|daily|weekly|monthly".to_string(),
+            ));
+        }
+    }
     let db = ctx.db.clone();
     let uid = super::uid(&ctx, &auth).await?;
     let txn = db.begin().await?;

@@ -365,10 +365,6 @@ onMounted(() => {
             <p class="page-subtitle">Computed from every account, deposit, investment and transaction</p>
           </div>
           <HeaderActions
-            :status="sync.status"
-            :pending="sync.queueCount"
-            :last-sync-at="sync.lastSyncAt"
-            @sync="reload()"
           />
         </header>
 

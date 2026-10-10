@@ -8,11 +8,7 @@
             <p class="page-subtitle">Track items you plan to purchase</p>
           </div>
           <HeaderActions
-            :status="sync.status"
-            :pending="sync.queueCount"
-            :last-sync-at="sync.lastSyncAt"
             :actions="headerActions"
-            @sync="onSync"
           />
         </header>
 
@@ -53,7 +49,13 @@
                 </div>
               </div>
               <div class="row-value">
-                {{ formatMoney(item.estimated_cost) }}
+                <template v-if="item.status === 'purchased' && item.actual_cost != null">
+                  {{ formatMoney(item.actual_cost) }}
+                  <span class="row-extra">est {{ formatMoney(item.estimated_cost) }}</span>
+                </template>
+                <template v-else>
+                  {{ formatMoney(item.estimated_cost) }}
+                </template>
                 <span v-if="depr[item.id]" class="row-extra">
                   Book {{ formatMoney(depr[item.id].book_value_now) }}
                 </span>
@@ -63,6 +65,13 @@
                   Convert
                 </app-button>
                 <app-button size="sm" variant="ghost" @click="openEdit(item)">Edit</app-button>
+                <app-button
+                  v-if="item.status === 'purchased'"
+                  size="sm"
+                  variant="ghost"
+                  @click="buyAgain(item)"
+                  >Buy again</app-button
+                >
               </div>
             </div>
           </div>
@@ -330,6 +339,23 @@ async function doDelete() {
   await request(`/api/buy-list/${target.id}`, { method: 'DELETE' })
   pendingDelete.value = null
   closeEditor()
+  await load()
+}
+
+async function buyAgain(item: any) {
+  const payload = {
+    title: item.title,
+    description: item.description ?? '',
+    asset_type: item.asset_type,
+    estimated_cost: item.estimated_cost,
+    priority: item.priority ?? 'medium',
+    target_date: null as string | null,
+    url: item.url ?? '',
+    shop: item.shop ?? '',
+    status: 'planned',
+    bank_id: item.bank_id ?? null
+  }
+  await request('/api/buy-list', { method: 'POST', body: payload })
   await load()
 }
 

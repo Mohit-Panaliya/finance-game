@@ -264,6 +264,7 @@ async fn create(
         bank_id: Set(params.bank_id),
         converted_asset_id: Set(None),
         converted_at: Set(None),
+        actual_cost: Set(None),
         sync_status: Set("pending".into()),
         last_synced_at: Set(None),
         created_at: Set(now.clone()),
@@ -482,6 +483,7 @@ async fn convert(
     am.status = Set(asset_buy_list::PURCHASED.into());
     am.converted_asset_id = Set(Some(asset.id.clone()));
     am.converted_at = Set(Some(now));
+    am.actual_cost = Set(Some(paid));
     am.sync_status = Set("pending".into());
     am.updated_at = Set(Some(Utc::now().to_rfc3339()));
     let saved = am.update(&*db).await?;

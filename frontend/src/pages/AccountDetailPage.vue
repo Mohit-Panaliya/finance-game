@@ -35,7 +35,6 @@ import AppDatePicker from '@/components/ui/AppDatePicker.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
-import SyncChip from '@/components/ui/SyncChip.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -358,6 +357,26 @@ function statementHref(entry: StatementEntry): string {
 
 /* ---------------- create / edit / delete ---------------- */
 
+function consumeNotePrefill() {
+  // One-shot handoff from NotesPage ("Add as expense/income"): prefill title
+  // and an extracted amount, then clear so it never double-applies.
+  try {
+    const raw = localStorage.getItem('fg-entry-prefill')
+    if (!raw) return
+    localStorage.removeItem('fg-entry-prefill')
+    const pre = JSON.parse(raw) as { entity?: string; title?: string; amount?: number | null }
+    if (!pre || pre.entity !== entity.value) return
+    const d = { ...draft.value }
+    if (typeof pre.title === 'string' && pre.title.trim()) d['title'] = pre.title.trim()
+    if (typeof pre.amount === 'number' && Number.isFinite(pre.amount) && pre.amount > 0) {
+      d['amount'] = pre.amount
+    }
+    draft.value = d
+  } catch {
+    /* corrupted handoff - ignore, the blank form still works */
+  }
+}
+
 function startCreate() {
   seedDraft()
   editingId.value = null
@@ -368,6 +387,7 @@ function startCreate() {
   quickSavedId.value = null
   quickMode.value = entity.value === 'incomes' || entity.value === 'expenses'
   if (quickMode.value) applyQuickDefaults()
+  consumeNotePrefill()
   formOpen.value = true
 }
 
@@ -585,7 +605,6 @@ onMounted(() => {
               </p>
             </div>
           </div>
-          <SyncChip :status="sync.status" :pending="sync.queueCount" :last-sync-at="sync.lastSyncAt" @sync="finance.refresh()" />
         </header>
 
         <div class="toolbar">

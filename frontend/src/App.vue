@@ -107,15 +107,23 @@ const online = ref(typeof navigator !== 'undefined' ? navigator.onLine : true)
 const setOnline = () => (online.value = true)
 const setOffline = () => (online.value = false)
 
+const goLoginOnExpiry = () => {
+  const here = router.currentRoute.value
+  if (here.name === 'login' || here.name === 'register') return
+  void router.replace({ name: 'login', query: { redirect: here.fullPath } })
+}
+
 onMounted(() => {
   window.addEventListener('online', setOnline)
   window.addEventListener('offline', setOffline)
+  window.addEventListener('auth:expired', goLoginOnExpiry)
   void sync.init()
 })
 
 onUnmounted(() => {
   window.removeEventListener('online', setOnline)
   window.removeEventListener('offline', setOffline)
+  window.removeEventListener('auth:expired', goLoginOnExpiry)
 })
 </script>
 

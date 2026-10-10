@@ -26,6 +26,8 @@ pub async fn uid(ctx: &AppContext, auth_jwt: &loco_rs::prelude::auth::JWT) -> Re
         .one(&ctx.db)
         .await
         .map_err(|e| Error::string(&e.to_string()))?
-        .ok_or_else(|| Error::NotFound)?;
+        .ok_or_else(|| Error::Unauthorized(
+            "session expired - please sign in again".to_string(),
+        ))?;
     Ok(user.id)
 }

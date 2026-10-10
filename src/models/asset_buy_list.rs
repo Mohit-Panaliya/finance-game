@@ -23,6 +23,7 @@ pub struct Model {
     pub bank_id: Option<String>,
     pub converted_asset_id: Option<String>,
     pub converted_at: Option<String>,
+    pub actual_cost: Option<f64>,
     pub sync_status: String,
     pub last_synced_at: Option<String>,
     pub created_at: String,

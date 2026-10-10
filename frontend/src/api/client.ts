@@ -30,7 +30,10 @@ export interface RequestOptions {
 }
 
 function buildUrl(path: string, query?: RequestOptions['query']): string {
-  let url = `${BASE}${path}`
+  // Call sites mix '/notes' and '/api/notes' styles; normalize so the prefix
+  // is never doubled (which 404s).
+  const clean = path.startsWith('/api/') ? path.slice(4) : path
+  let url = `${BASE}${clean}`
   if (query) {
     const params = new URLSearchParams()
     for (const [k, v] of Object.entries(query)) {
@@ -64,6 +67,9 @@ export async function request<T = unknown>(path: string, opts: RequestOptions = 
 
   if (res.status === 401 && auth) {
     setToken(null)
+    // App.vue listens once globally and routes to login (avoids a router
+    // import cycle here). Pages just surface the 401 message meanwhile.
+    window.dispatchEvent(new CustomEvent('auth:expired'))
   }
 
   if (!res.ok) {

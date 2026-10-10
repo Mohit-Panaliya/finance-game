@@ -546,11 +546,7 @@ onMounted(() => {
             <p class="page-subtitle">{{ headCounts }}</p>
           </div>
           <HeaderActions
-            :status="sync.status"
-            :pending="sync.queueCount"
-            :last-sync-at="sync.lastSyncAt"
             :actions="headerActions"
-            @sync="reload"
           />
         </header>
 

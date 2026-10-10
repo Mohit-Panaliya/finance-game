@@ -166,11 +166,7 @@ onMounted(async () => {
             <h1 class="page-title">Dashboard</h1>
           </div>
           <HeaderActions
-            :status="sync.status"
-            :pending="sync.queueCount"
-            :last-sync-at="sync.lastSyncAt"
             :actions="headerActions"
-            @sync="sync.syncAll()"
           />
         </header>
 
