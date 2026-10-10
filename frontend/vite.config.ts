@@ -7,8 +7,16 @@ export default defineConfig({
   plugins: [
     vue(),
     VitePWA({
-      registerType: 'autoUpdate',
-      includeAssets: ['icon.svg', 'icons/icon-192.png', 'icons/icon-512.png'],
+      registerType: 'prompt',
+      includeAssets: [
+        'icon.svg',
+        'favicon.ico',
+        'icons/icon-192.png',
+        'icons/icon-512.png',
+        'icons/icon-maskable-512.png',
+        'icons/apple-touch-icon.png',
+        'icons/favicon.ico'
+      ],
       manifest: {
         name: 'Fintrack',
         short_name: 'Fintrack',
@@ -20,9 +28,9 @@ export default defineConfig({
         start_url: '/',
         scope: '/',
         icons: [
-          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
-          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: '/icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
           { src: '/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }
         ]
       },
@@ -30,7 +38,10 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
-        skipWaiting: true,
+        // Prompt mode: a waiting worker is activated only when the user opts in
+        // (see usePwaUpdate → updateServiceWorker), so updates surface as a banner
+        // instead of silently reloading mid-task.
+        skipWaiting: false,
         navigateFallback: '/index.html',
         runtimeCaching: [
           {

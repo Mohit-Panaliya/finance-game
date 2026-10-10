@@ -8,12 +8,15 @@ import {
   chevronUpOutline,
   cloudDownloadOutline,
   cloudUploadOutline,
+  downloadOutline,
   logOutOutline,
-  refreshOutline
+  refreshOutline,
+  shareOutline
 } from 'ionicons/icons'
 import { useAuthStore } from '@/stores/authStore'
 import { useFinanceStore } from '@/stores/financeStore'
 import { useSyncStore } from '@/stores/syncStore'
+import { usePwaInstall } from '@/composables/usePwaInstall'
 import { getQueue } from '@/services/offlineQueue'
 import { formatNumber } from '@/utils/money'
 import { formatDateTime } from '@/utils/date'
@@ -35,6 +38,19 @@ const finance = useFinanceStore()
 const sync = useSyncStore()
 const router = useRouter()
 const theme = useTheme()
+const pwa = usePwaInstall()
+
+/** Offer the install prompt, or point iOS users at the manual flow. */
+async function installApp() {
+  const outcome = await pwa.promptInstall()
+  if (outcome === 'accepted') notify('Fintrack installed')
+  else if (outcome === 'unavailable') notify('Install from your browser menu', 'warning')
+  else notify('Install prompt dismissed', 'warning')
+}
+function hideInstall() {
+  pwa.dismiss()
+  notify('Install entry hidden')
+}
 
 /** Family groups for the picker; the default option carries its own caption. */
 const styleGroups = computed(() =>
@@ -340,6 +356,42 @@ async function queueSize() {
           </div>
         </section>
 
+        <section
+          v-if="pwa.isStandalone || ((pwa.isInstallable || pwa.showIosHint) && !pwa.isDismissed)"
+          class="section"
+        >
+          <h2 class="section-title">App</h2>
+          <div class="card">
+            <p class="card-label">Install</p>
+            <template v-if="pwa.isStandalone || pwa.installed">
+              <p class="text-sm text-muted">
+                Fintrack is installed — launch it from your home screen or app list and it works offline.
+              </p>
+            </template>
+            <template v-else-if="pwa.isInstallable">
+              <p class="text-sm text-muted">
+                Install Fintrack for a full-screen, offline-capable experience.
+              </p>
+              <div class="action-grid install-actions">
+                <AppButton variant="primary" size="md" @click="installApp">
+                  <ion-icon :icon="downloadOutline" /> Install app
+                </AppButton>
+                <AppButton variant="ghost" size="md" @click="hideInstall">Not now</AppButton>
+              </div>
+            </template>
+            <template v-else>
+              <p class="text-sm text-muted">
+                On iPhone or iPad, tap
+                <ion-icon class="inline-icon" :icon="shareOutline" />
+                <strong>Share</strong>, then choose <strong>Add to Home Screen</strong>.
+              </p>
+              <div class="install-actions">
+                <AppButton variant="ghost" size="sm" @click="hideInstall">Got it</AppButton>
+              </div>
+            </template>
+          </div>
+        </section>
+
         <section class="section">
           <h2 class="section-title">About</h2>
           <div class="card">
@@ -380,6 +432,14 @@ async function queueSize() {
 }
 .sync-meta {
   margin-top: var(--density-gap);
+}
+.install-actions {
+  margin-top: var(--density-gap);
+}
+.inline-icon {
+  vertical-align: -2px;
+  font-size: 1em;
+  color: var(--accent);
 }
 .sync-tools {
   display: flex;

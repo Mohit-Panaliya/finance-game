@@ -21,6 +21,7 @@ import { useSyncStore } from '@/stores/syncStore'
 import { usePlatform } from '@/composables/usePlatform'
 import { usePwaInstall } from '@/composables/usePwaInstall'
 import AppModal from '@/components/ui/AppModal.vue'
+import AppUpdateBanner from '@/components/ui/AppUpdateBanner.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -59,10 +60,10 @@ const SIDE_NAV: NavEntry[] = [...TABS.slice(0, 4), ...MORE]
 
 // The PWA entry is optional by design: the composable is threaded in through
 // optional chaining so the sheet works with or without an install composable.
-const install = usePwaInstall?.()
+const install = usePwaInstall()
 const moreEntries = computed<NavEntry[]>(() => [
   ...MORE,
-  ...(install?.isInstallable
+  ...(install.isInstallable
     ? [
         {
           id: 'install-app',
@@ -70,7 +71,7 @@ const moreEntries = computed<NavEntry[]>(() => [
           icon: downloadOutline,
           label: 'Install app',
           hint: 'Add Fintrack to your home screen',
-          action: () => void install.install()
+          action: () => void install.promptInstall()
         }
       ]
     : [])
@@ -203,6 +204,8 @@ onUnmounted(() => {
         </button>
       </div>
     </AppModal>
+
+    <AppUpdateBanner />
   </ion-app>
 </template>
 

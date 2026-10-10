@@ -4,7 +4,8 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
-const outDir = path.join(root, 'public', 'icons')
+const publicDir = path.join(root, 'public')
+const outDir = path.join(publicDir, 'icons')
 fs.mkdirSync(outDir, { recursive: true })
 
 const CRC_TABLE = (() => {
@@ -32,51 +33,99 @@ function chunk(type, data) {
   return Buffer.concat([len, typeBuf, data, crcBuf])
 }
 
-function makePng(size) {
-  const px = Buffer.alloc(size * size * 4)
-  const set = (x, y, r, g, b, a = 255) => {
-    if (x < 0 || y < 0 || x >= size || y >= size) return
-    const i = (y * size + x) * 4
-    px[i] = r; px[i + 1] = g; px[i + 2] = b; px[i + 3] = a
+/* The mark is authored in a 512-unit design space and rasterised with 4x4
+   supersampling so every icon (192, 180, 48, 16 …) keeps clean anti-aliased
+   edges instead of the stair-stepped placeholder PNGs. */
+
+const BG = [15, 17, 21]
+const TILE_TOP = [32, 37, 46]
+const TILE_BOT = [18, 20, 26]
+const BORDER = [43, 49, 60]
+const ACCENT_TOP = [96, 160, 255]
+const ACCENT_BOT = [58, 110, 210]
+const SUCCESS = [52, 201, 138]
+
+function lerp(a, b, t) {
+  return [
+    Math.round(a[0] + (b[0] - a[0]) * t),
+    Math.round(a[1] + (b[1] - a[1]) * t),
+    Math.round(a[2] + (b[2] - a[2]) * t)
+  ]
+}
+
+/** Tile fill: a soft top-to-bottom gradient so the mark reads as a lit surface. */
+function tileAt(y) {
+  return lerp(TILE_TOP, TILE_BOT, y / 512)
+}
+
+/** Wallet fill: same treatment, anchored to the wallet's own vertical span. */
+function accentAt(y) {
+  return lerp(ACCENT_TOP, ACCENT_BOT, (y - 168) / 176)
+}
+
+function inRoundRect(x, y, cx, cy, w, h, r) {
+  const dx = Math.max(Math.abs(x - cx) - (w / 2 - r), 0)
+  const dy = Math.max(Math.abs(y - cy) - (h / 2 - r), 0)
+  return dx * dx + dy * dy <= r * r
+}
+
+function inCircle(x, y, cx, cy, r) {
+  const dx = x - cx
+  const dy = y - cy
+  return dx * dx + dy * dy <= r * r
+}
+
+/** Wallet body + seam + card slot + dot, scaled about the canvas centre. */
+function paintMark(x, y, scale) {
+  const sx = (x - 256) / scale + 256
+  const sy = (y - 256) / scale + 256
+  if (!inRoundRect(sx, sy, 256, 256, 288, 176, 26)) return null
+  let c = accentAt(sy)
+  if (Math.abs(sy - 219) <= 5) c = accentAt(168)
+  if (inRoundRect(sx, sy, 322, 256, 72, 56, 14)) {
+    c = tileAt(sy)
+    if (inCircle(sx, sy, 322, 256, 12)) c = SUCCESS
   }
-  // Match public/icon.svg: dark rounded tile, blue wallet body, green dot.
-  const BG = [15, 17, 21]
-  const TILE = [23, 26, 32]
-  const ACCENT = [76, 141, 255]
-  const ACCENT_DARK = [64, 118, 214]
-  const SUCCESS = [52, 201, 138]
-  const s = size / 512
+  return c
+}
+
+function sample(x, y, mode) {
+  const tile = tileAt(y)
+  if (mode === 'maskable') {
+    // Full-bleed tile-coloured canvas, mark centred inside the safe zone.
+    return paintMark(x, y, 1.42) || tile
+  }
+  let c = BG
+  if (inRoundRect(x, y, 256, 256, 452, 452, 104)) c = BORDER
+  if (inRoundRect(x, y, 256, 256, 436, 436, 96)) c = tile
+  const mark = paintMark(x, y, mode === 'apple' ? 1.06 : 1)
+  return mark || c
+}
+
+function makePng(size, mode) {
+  const SS = 4
+  const px = Buffer.alloc(size * size * 4)
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
-      const rx = Math.round(x / s), ry = Math.round(y / s)
-      let r = BG[0], g = BG[1], b = BG[2]
-
-      // Outer tile with a large corner radius (96/512 of the canvas).
-      const tileInset = 36
-      const tileR = 96
-      if (inTile(rx, ry, tileInset, 512 - tileInset, tileR)) {
-        r = TILE[0]; g = TILE[1]; b = TILE[2]
-
-        // Wallet body: rounded rect 112,168 → 288x176, radius 26.
-        if (inRect(rx, ry, 112, 168, 288, 176, 26)) {
-          r = ACCENT[0]; g = ACCENT[1]; b = ACCENT[2]
-
-          // Top seam highlight (thin darker band).
-          if (ry >= 216 && ry <= 222) {
-            r = ACCENT_DARK[0]; g = ACCENT_DARK[1]; b = ACCENT_DARK[2]
-          }
-
-          // Card slot with a green dot.
-          if (inRect(rx, ry, 286, 228, 72, 56, 14)) {
-            r = TILE[0]; g = TILE[1]; b = TILE[2]
-            const dx = rx - 322, dy = ry - 256
-            if (dx * dx + dy * dy <= 12 * 12) {
-              r = SUCCESS[0]; g = SUCCESS[1]; b = SUCCESS[2]
-            }
-          }
+      let r = 0
+      let g = 0
+      let b = 0
+      for (let sy = 0; sy < SS; sy++) {
+        for (let sx = 0; sx < SS; sx++) {
+          const dx = ((x + (sx + 0.5) / SS) * 512) / size
+          const dy = ((y + (sy + 0.5) / SS) * 512) / size
+          const c = sample(dx, dy, mode)
+          r += c[0]
+          g += c[1]
+          b += c[2]
         }
       }
-      set(x, y, r, g, b)
+      const n = SS * SS
+      const i = (y * size + x) * 4
+      px[i] = Math.round(r / n)
+      px[i + 1] = Math.round(g / n)
+      px[i + 2] = Math.round(b / n)
+      px[i + 3] = 255
     }
   }
   const raw = Buffer.alloc(size * (size * 4 + 1))
@@ -87,7 +136,8 @@ function makePng(size) {
   const ihdr = Buffer.alloc(13)
   ihdr.writeUInt32BE(size, 0)
   ihdr.writeUInt32BE(size, 4)
-  ihdr[8] = 8; ihdr[9] = 6; ihdr[10] = 0; ihdr[11] = 0; ihdr[12] = 0
+  ihdr[8] = 8
+  ihdr[9] = 6
   return Buffer.concat([
     Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
     chunk('IHDR', ihdr),
@@ -96,29 +146,101 @@ function makePng(size) {
   ])
 }
 
-/** Rounded-rectangle hit test with per-corner radius. */
-function inRect(x, y, rx, ry, w, h, radius) {
-  if (x < rx || y < ry || x >= rx + w || y >= ry + h) return false
-  const corners = [
-    [rx + radius, ry + radius],
-    [rx + w - radius - 1, ry + radius],
-    [rx + radius, ry + h - radius - 1],
-    [rx + w - radius - 1, ry + h - radius - 1]
-  ]
-  for (const [cx, cy] of corners) {
-    const dx = x < cx ? cx - x : x > cx ? x - cx : 0
-    const dy = y < cy ? cy - y : y > cy ? y - cy : 0
-    if (dx * dx + dy * dy > radius * radius) return false
+/** Minimal ICO container with PNG-compressed entries (supported by all modern browsers). */
+function makeIco(pngs) {
+  const count = pngs.length
+  const header = Buffer.alloc(6)
+  header.writeUInt16LE(0, 0)
+  header.writeUInt16LE(1, 2)
+  header.writeUInt16LE(count, 4)
+  const dir = Buffer.alloc(16 * count)
+  let offset = 6 + 16 * count
+  pngs.forEach(({ size, data }, i) => {
+    const b = i * 16
+    dir[b] = size >= 256 ? 0 : size
+    dir[b + 1] = size >= 256 ? 0 : size
+    dir[b + 2] = 0
+    dir[b + 3] = 0
+    dir.writeUInt16LE(1, b + 4)
+    dir.writeUInt16LE(32, b + 6)
+    dir.writeUInt32LE(data.length, b + 8)
+    dir.writeUInt32LE(offset, b + 12)
+    offset += data.length
+  })
+  return Buffer.concat([header, dir, ...pngs.map((p) => p.data)])
+}
+
+/** Decode one of our own non-interlaced truecolour PNGs for verification. */
+function analysePng(buf) {
+  let pos = 8
+  let width = 0
+  let height = 0
+  const idat = []
+  while (pos < buf.length) {
+    const len = buf.readUInt32BE(pos)
+    const type = buf.toString('ascii', pos + 4, pos + 8)
+    const data = buf.subarray(pos + 8, pos + 8 + len)
+    if (type === 'IHDR') {
+      width = data.readUInt32BE(0)
+      height = data.readUInt32BE(4)
+    } else if (type === 'IDAT') {
+      idat.push(data)
+    }
+    pos += 12 + len
   }
-  return true
+  const raw = zlib.inflateSync(Buffer.concat(idat))
+  const colors = new Set()
+  let nonBlank = 0
+  const stride = width * 4 + 1
+  for (let y = 0; y < height; y++) {
+    const row = raw.subarray(y * stride + 1, (y + 1) * stride)
+    for (let x = 0; x < width; x++) {
+      const i = x * 4
+      const r = row[i]
+      const g = row[i + 1]
+      const b = row[i + 2]
+      colors.add((r << 16) | (g << 8) | b)
+      if (r !== BG[0] || g !== BG[1] || b !== BG[2]) nonBlank++
+    }
+  }
+  return {
+    width,
+    height,
+    colors: colors.size,
+    coverage: nonBlank / (width * height)
+  }
 }
 
-function inTile(x, y, inset, max, radius) {
-  return inRect(x, y, inset, inset, max - inset * 2, max - inset * 2, radius)
+const outputs = [
+  { file: 'icon-192.png', size: 192, mode: 'regular' },
+  { file: 'icon-512.png', size: 512, mode: 'regular' },
+  { file: 'icon-maskable-512.png', size: 512, mode: 'maskable' },
+  { file: 'apple-touch-icon.png', size: 180, mode: 'apple' }
+]
+
+let failed = false
+for (const { file, size, mode } of outputs) {
+  const png = makePng(size, mode)
+  fs.writeFileSync(path.join(outDir, file), png)
+  const stats = analysePng(png)
+  const ok = stats.colors > 50 && stats.coverage > 0.2
+  if (!ok) failed = true
+  console.log(
+    `${ok ? 'ok  ' : 'FAIL'} icons/${file} ${stats.width}x${stats.height} ` +
+      `colors=${stats.colors} coverage=${(stats.coverage * 100).toFixed(1)}%`
+  )
 }
 
-for (const size of [192, 512]) {
-  const file = path.join(outDir, `icon-${size}.png`)
-  fs.writeFileSync(file, makePng(size))
-  console.log('wrote', file)
+const ico = makeIco([
+  { size: 16, data: makePng(16, 'regular') },
+  { size: 32, data: makePng(32, 'regular') },
+  { size: 48, data: makePng(48, 'regular') }
+])
+fs.writeFileSync(path.join(outDir, 'favicon.ico'), ico)
+fs.copyFileSync(path.join(outDir, 'favicon.ico'), path.join(publicDir, 'favicon.ico'))
+console.log(`ok   icons/favicon.ico (16/32/48) + public/favicon.ico`)
+
+if (failed) {
+  console.error('icon verification failed')
+  process.exit(1)
 }
