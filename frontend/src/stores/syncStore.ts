@@ -21,6 +21,28 @@ interface SyncState {
   initialized: boolean
 }
 
+// The reconnect listeners are module-scoped so they bind exactly once for the
+// whole app lifetime. `sync.init()` is deliberately re-runnable (logout resets
+// `initialized`), but re-adding the same listeners would double-trigger a
+// flush+pull on every reconnect.
+let listenersBound = false
+
+function onReconnected() {
+  const s = useSyncStore()
+  s.status = 'online'
+  s.message = 'Back online'
+  // Push the queued ops first, then pull anything changed meanwhile — running
+  // them concurrently could publish a stale watermark while the push was still
+  // in flight.
+  void s.flush().then(() => s.pull())
+}
+
+function onLostConnection() {
+  const s = useSyncStore()
+  s.status = 'offline'
+  s.message = 'Offline — changes queued'
+}
+
 export const useSyncStore = defineStore('sync', {
   state: (): SyncState => ({
     status: typeof navigator !== 'undefined' && navigator.onLine ? 'online' : 'offline',
@@ -32,19 +54,13 @@ export const useSyncStore = defineStore('sync', {
 
   actions: {
     async init() {
-      if (this.initialized) return
+      if (typeof window !== 'undefined' && !listenersBound) {
+        listenersBound = true
+        window.addEventListener('online', onReconnected)
+        window.addEventListener('offline', onLostConnection)
+      }
       this.initialized = true
       await this.refreshCount()
-      window.addEventListener('online', () => {
-        this.status = 'online'
-        this.message = 'Back online'
-        void this.flush()
-        void this.pull()
-      })
-      window.addEventListener('offline', () => {
-        this.status = 'offline'
-        this.message = 'Offline — changes queued'
-      })
       await this.pull()
       await this.flush()
     },
@@ -125,6 +141,15 @@ export const useSyncStore = defineStore('sync', {
         if (this.status !== 'pushing') this.status = 'synced'
         this.message = 'Pulled latest'
         window.dispatchEvent(new CustomEvent('ff:synced', { detail: res }))
+        // A pull can land ledger rows (incomes/expenses/assets/investments) written
+        // on another device, which moves bank/card balances server-side even though
+        // no banks/credit-cards row changed — so the linked lists are re-fetched.
+        if (res?.changes && typeof res.changes === 'object') {
+          const keys = Object.keys(res.changes as Record<string, unknown>)
+          if (LEDGER_SYNC_ENTITIES.some((e) => keys.includes(e))) {
+            await useFinanceStore().refreshLinkedBalances()
+          }
+        }
         return true
       } catch (e) {
         if (e instanceof ApiError && e.offline) {

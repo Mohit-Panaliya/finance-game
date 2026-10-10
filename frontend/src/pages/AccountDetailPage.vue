@@ -585,7 +585,7 @@ onMounted(() => {
               </p>
             </div>
           </div>
-          <SyncChip :status="sync.status" :pending="sync.queueCount" @sync="finance.refresh()" />
+          <SyncChip :status="sync.status" :pending="sync.queueCount" :last-sync-at="sync.lastSyncAt" @sync="finance.refresh()" />
         </header>
 
         <div class="toolbar">

@@ -7,7 +7,13 @@
             <h1 class="page-title">Notes</h1>
             <p class="page-subtitle">Capture ideas, lists and reminders</p>
           </div>
-          <sync-chip />
+          <HeaderActions
+            :status="sync.status"
+            :pending="sync.queueCount"
+            :last-sync-at="sync.lastSyncAt"
+            :actions="headerActions"
+            @sync="onSync"
+          />
         </header>
 
         <section class="section">
@@ -206,8 +212,23 @@ import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppModal from '@/components/ui/AppModal.vue'
-import SyncChip from '@/components/ui/SyncChip.vue'
+import HeaderActions from '@/components/ui/HeaderActions.vue'
+import type { HeaderAction } from '@/components/ui/HeaderActions.vue'
+import { useSyncStore } from '@/stores/syncStore'
 import { request, ApiError } from '@/api/client'
+
+const sync = useSyncStore()
+
+/** Header action mirrors the empty-state CTA and the bottom "New note" button. */
+const headerActions: HeaderAction[] = [
+  { id: 'new-note', icon: addOutline, label: 'New note', action: openCreate }
+]
+
+/** Sync then reload the local list so newly present notes appear immediately. */
+async function onSync() {
+  await sync.syncAll()
+  await loadNotes()
+}
 
 const colors = ['DEFAULT', 'WHITE', 'RED', 'ORANGE', 'YELLOW', 'GREEN', 'TEAL', 'BLUE', 'DARKBLUE', 'PURPLE', 'PINK', 'BROWN', 'GRAY']
 

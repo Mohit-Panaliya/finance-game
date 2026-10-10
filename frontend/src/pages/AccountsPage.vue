@@ -2,19 +2,37 @@
 import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { IonContent, IonIcon, IonPage } from '@ionic/vue'
-import { addOutline, chevronForwardOutline, walletOutline } from 'ionicons/icons'
+import { addOutline, chevronForwardOutline, gridOutline, walletOutline } from 'ionicons/icons'
 import { useFinanceStore } from '@/stores/financeStore'
 import { useSyncStore } from '@/stores/syncStore'
+import { useTheme } from '@/composables/useTheme'
 import { ACCOUNT_ENTITIES, entityConfig, rowTitle, rowValue, summaryHead } from '@/entityConfig'
 import type { EntityConfig } from '@/entityConfig'
 import type { AccountEntityType, FinanceRow } from '@/types'
 import { formatMoney, rowCurrency } from '@/utils/money'
 import AppButton from '@/components/ui/AppButton.vue'
-import SyncChip from '@/components/ui/SyncChip.vue'
+import HeaderActions from '@/components/ui/HeaderActions.vue'
+import type { HeaderAction } from '@/components/ui/HeaderActions.vue'
 
 const router = useRouter()
 const finance = useFinanceStore()
 const sync = useSyncStore()
+const theme = useTheme()
+
+/** Quick-add reuses the create-record form; the density toggle cycles two states. */
+const headerActions = computed<HeaderAction[]>(() => [
+  { id: 'quick-add', icon: addOutline, label: 'Add a record', to: '/accounts/banks/new' },
+  {
+    id: 'density',
+    icon: gridOutline,
+    label: 'Toggle density',
+    active: theme.density === 'compact',
+    action: () => {
+      const next = theme.density === 'compact' ? 'comfortable' : 'compact'
+      theme.setDensity(next)
+    }
+  }
+])
 
 interface Group {
   key: string
@@ -90,7 +108,13 @@ onMounted(() => {
             <h1 class="page-title">Accounts</h1>
             <p class="page-subtitle">{{ formatMoney(moneyTotal) }} tracked in {{ groups.length }} groups</p>
           </div>
-          <SyncChip :status="sync.status" :pending="sync.queueCount" @sync="finance.refresh()" />
+          <HeaderActions
+            :status="sync.status"
+            :pending="sync.queueCount"
+            :last-sync-at="sync.lastSyncAt"
+            :actions="headerActions"
+            @sync="finance.refresh()"
+          />
         </header>
 
         <section v-if="allocation.length" class="card">

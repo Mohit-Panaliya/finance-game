@@ -156,6 +156,24 @@ export function todayISO(): string {
   return `${p.y}-${pad(p.m)}-${pad(p.d)}`
 }
 
+/**
+ * Epoch milliseconds → `just now` / `5 min ago` / `3 hr ago` / `2 days ago`,
+ * falling back to a full date beyond a month. Powers the sync badge tooltip.
+ */
+export function relativeTime(value: unknown): string {
+  const ts = typeof value === 'number' ? value : Date.parse(String(value))
+  if (!Number.isFinite(ts) || ts <= 0) return '—'
+  const diff = Math.max(0, Date.now() - ts)
+  const min = Math.floor(diff / 60_000)
+  if (min < 1) return 'just now'
+  if (min < 60) return `${min} min${min === 1 ? '' : 's'} ago`
+  const hrs = Math.floor(min / 60)
+  if (hrs < 24) return `${hrs} hr${hrs === 1 ? '' : 's'} ago`
+  const days = Math.floor(hrs / 24)
+  if (days < 31) return `${days} day${days === 1 ? '' : 's'} ago`
+  return formatDate(new Date(ts))
+}
+
 /** `2026-03` bucket key used to group expenses by month client-side. */
 export function monthKey(value: unknown): string {
   if (typeof value === 'string') {

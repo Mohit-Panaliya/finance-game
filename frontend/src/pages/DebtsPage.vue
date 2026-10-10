@@ -23,7 +23,8 @@ import AppDatePicker from '@/components/ui/AppDatePicker.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
-import SyncChip from '@/components/ui/SyncChip.vue'
+import HeaderActions from '@/components/ui/HeaderActions.vue'
+import type { HeaderAction } from '@/components/ui/HeaderActions.vue'
 import DebtTopUpModal from '@/components/DebtTopUpModal.vue'
 
 const finance = useFinanceStore()
@@ -417,6 +418,35 @@ function openSettle(row: DebtRow) {
   settleResult.value = null
 }
 
+/**
+ * Most-pressing unsettled debt the settle shortcut should open: overdue first,
+ * then soonest due, then the largest outstanding amount left.
+ */
+const settleTarget = computed<DebtRow | null>(() => {
+  const open = debts.value.filter((r) => !r.is_settled)
+  if (!open.length) return null
+  const sorted = open.slice().sort((a, b) => {
+    const byRank = rank(a) - rank(b)
+    if (byRank !== 0) return byRank
+    const da = daysLeft(a) ?? Number.MAX_SAFE_INTEGER
+    const db = daysLeft(b) ?? Number.MAX_SAFE_INTEGER
+    if (da !== db) return da - db
+    return num(b.outstanding) - num(a.outstanding)
+  })
+  return sorted[0]
+})
+
+/** Settle shortcut opens the most-pressing open debt; add-debt starts a draft. */
+const headerActions = computed<HeaderAction[]>(() => [
+  { id: 'settle', icon: cashOutline, label: 'Repay the next due debt', action: settleNext, disabled: !settleTarget.value },
+  { id: 'add-debt', icon: addOutline, label: 'Record a debt', action: startCreate }
+])
+
+function settleNext() {
+  const row = settleTarget.value
+  if (row) openSettle(row)
+}
+
 function closeSettle() {
   settleRow.value = null
   settleAmount.value = ''
@@ -515,7 +545,13 @@ onMounted(() => {
             <h1 class="page-title">Debts</h1>
             <p class="page-subtitle">{{ headCounts }}</p>
           </div>
-          <SyncChip :status="sync.status" :pending="sync.queueCount" @sync="reload" />
+          <HeaderActions
+            :status="sync.status"
+            :pending="sync.queueCount"
+            :last-sync-at="sync.lastSyncAt"
+            :actions="headerActions"
+            @sync="reload"
+          />
         </header>
 
         <div class="debt-summary">

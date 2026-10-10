@@ -7,7 +7,13 @@
             <h1 class="page-title">Buy List</h1>
             <p class="page-subtitle">Track items you plan to purchase</p>
           </div>
-          <sync-chip />
+          <HeaderActions
+            :status="sync.status"
+            :pending="sync.queueCount"
+            :last-sync-at="sync.lastSyncAt"
+            :actions="headerActions"
+            @sync="onSync"
+          />
         </header>
 
         <section class="section">
@@ -155,10 +161,25 @@ import AppButton from '@/components/ui/AppButton.vue'
 import AppInput from '@/components/ui/AppInput.vue'
 import AppSelect from '@/components/ui/AppSelect.vue'
 import AppModal from '@/components/ui/AppModal.vue'
-import SyncChip from '@/components/ui/SyncChip.vue'
+import HeaderActions from '@/components/ui/HeaderActions.vue'
+import type { HeaderAction } from '@/components/ui/HeaderActions.vue'
 import { request, ApiError } from '@/api/client'
 import { useFinanceStore } from '@/stores/financeStore'
+import { useSyncStore } from '@/stores/syncStore'
 import { formatMoney } from '@/utils/money'
+
+const sync = useSyncStore()
+
+/** Header action mirrors the empty-state CTA and the bottom "New item" button. */
+const headerActions: HeaderAction[] = [
+  { id: 'new-item', icon: addOutline, label: 'New item', action: openCreate }
+]
+
+/** Sync then reload the local list so newly added items appear immediately. */
+async function onSync() {
+  await sync.syncAll()
+  await load()
+}
 
 const FILTERS = [
   { key: 'all', label: 'All' },

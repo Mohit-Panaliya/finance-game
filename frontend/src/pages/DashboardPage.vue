@@ -3,8 +3,10 @@ import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { IonContent, IonIcon, IonPage } from '@ionic/vue'
 import {
+  addOutline,
   chevronForwardOutline,
   pricetagOutline,
+  settingsOutline,
   statsChartOutline,
   walletOutline
 } from 'ionicons/icons'
@@ -16,12 +18,19 @@ import type { AccountEntityName, EntityConfig } from '@/entityConfig'
 import type { EntityType, FinanceRow } from '@/types'
 import { formatMoney, formatPercent, rowCurrency } from '@/utils/money'
 import { formatDate, monthKey } from '@/utils/date'
-import SyncChip from '@/components/ui/SyncChip.vue'
+import HeaderActions from '@/components/ui/HeaderActions.vue'
+import type { HeaderAction } from '@/components/ui/HeaderActions.vue'
 
 const router = useRouter()
 const finance = useFinanceStore()
 const sync = useSyncStore()
 const auth = useAuthStore()
+
+/** Quick-add drops straight into the create-record form; gear opens Settings. */
+const headerActions: HeaderAction[] = [
+  { id: 'quick-add', icon: addOutline, label: 'Quick add a record', to: '/accounts/banks/new' },
+  { id: 'settings', icon: settingsOutline, label: 'Open settings', to: '/settings' }
+]
 
 const greeting = computed(() => {
   const h = new Date().getHours()
@@ -156,7 +165,13 @@ onMounted(async () => {
             <p class="page-subtitle">{{ greeting }}<template v-if="displayName">, {{ displayName }}</template></p>
             <h1 class="page-title">Dashboard</h1>
           </div>
-          <SyncChip :status="sync.status" :pending="sync.queueCount" @sync="sync.syncAll()" />
+          <HeaderActions
+            :status="sync.status"
+            :pending="sync.queueCount"
+            :last-sync-at="sync.lastSyncAt"
+            :actions="headerActions"
+            @sync="sync.syncAll()"
+          />
         </header>
 
         <section class="card-hero">

@@ -116,7 +116,7 @@ onMounted(async () => {
               <p class="page-subtitle">{{ cfg.label }}</p>
             </div>
           </div>
-          <SyncChip :status="sync.status" :pending="sync.queueCount" @sync="finance.fetchList(entity)" />
+          <SyncChip :status="sync.status" :pending="sync.queueCount" :last-sync-at="sync.lastSyncAt" @sync="finance.fetchList(entity)" />
         </header>
 
         <p v-if="!accountLoading && !account && !statementLoading" class="form-error">

@@ -5,6 +5,7 @@ import { IonContent, IonIcon, IonPage } from '@ionic/vue'
 import {
   addOutline,
   createOutline,
+  funnelOutline,
   pricetagOutline,
   statsChartOutline,
   trashOutline
@@ -15,7 +16,8 @@ import type { EntityType, FinanceRow } from '@/types'
 import { formatMoney, formatSigned, rowCurrency } from '@/utils/money'
 import { formatDate, formatMonth, monthKey } from '@/utils/date'
 import AppButton from '@/components/ui/AppButton.vue'
-import SyncChip from '@/components/ui/SyncChip.vue'
+import HeaderActions from '@/components/ui/HeaderActions.vue'
+import type { HeaderAction } from '@/components/ui/HeaderActions.vue'
 import AppModal from '@/components/ui/AppModal.vue'
 
 type Kind = EntityType | 'all'
@@ -32,6 +34,20 @@ const fixedOnly = ref(false)
 const openRow = ref<string | null>(null)
 const range = ref<RangeKey>('this-month')
 const category = ref('all')
+
+/** Quick-add jumps to the create-expense form; the funnel mirrors the Fixed filter. */
+const headerActions = computed<HeaderAction[]>(() => [
+  { id: 'quick-add', icon: addOutline, label: 'Add an expense', to: '/accounts/expenses/new' },
+  {
+    id: 'fixed-only',
+    icon: funnelOutline,
+    label: 'Show fixed costs only',
+    active: fixedOnly.value,
+    action: () => {
+      fixedOnly.value = !fixedOnly.value
+    }
+  }
+])
 
 interface Entry {
   id: string
@@ -280,7 +296,13 @@ onMounted(() => {
             <h1 class="page-title">Activity</h1>
             <p class="page-subtitle">{{ filtered.length }} entries</p>
           </div>
-          <SyncChip :status="sync.status" :pending="sync.queueCount" @sync="finance.refresh()" />
+          <HeaderActions
+            :status="sync.status"
+            :pending="sync.queueCount"
+            :last-sync-at="sync.lastSyncAt"
+            :actions="headerActions"
+            @sync="finance.refresh()"
+          />
         </header>
 
         <section class="card">

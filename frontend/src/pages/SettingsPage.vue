@@ -28,7 +28,7 @@ import {
 } from '@/composables/useTheme'
 import { ENTITY_LIST } from '@/entityConfig'
 import AppButton from '@/components/ui/AppButton.vue'
-import SyncChip from '@/components/ui/SyncChip.vue'
+import HeaderActions from '@/components/ui/HeaderActions.vue'
 
 const auth = useAuthStore()
 const finance = useFinanceStore()
@@ -162,7 +162,12 @@ async function queueSize() {
             <h1 class="page-title">Settings</h1>
             <p class="page-subtitle">Sync, appearance and account</p>
           </div>
-          <SyncChip :status="sync.status" :pending="sync.queueCount" @sync="syncNow" />
+          <HeaderActions
+            :status="sync.status"
+            :pending="sync.queueCount"
+            :last-sync-at="sync.lastSyncAt"
+            @sync="syncNow"
+          />
         </header>
 
         <section class="card">

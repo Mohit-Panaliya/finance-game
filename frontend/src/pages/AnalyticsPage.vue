@@ -13,7 +13,7 @@ import type { BarDatum, DonutSlice, HeatmapDay, LineSeries } from '@/components/
 import { formatCompact, formatMoney, formatNumber, formatPercent } from '@/utils/money'
 import { daysBetween, formatDate, formatMonth, relativeDays, todayISO } from '@/utils/date'
 import AppButton from '@/components/ui/AppButton.vue'
-import SyncChip from '@/components/ui/SyncChip.vue'
+import HeaderActions from '@/components/ui/HeaderActions.vue'
 
 const finance = useFinanceStore()
 const sync = useSyncStore()
@@ -364,7 +364,12 @@ onMounted(() => {
             <h1 class="page-title">Insights</h1>
             <p class="page-subtitle">Computed from every account, deposit, investment and transaction</p>
           </div>
-          <SyncChip :status="sync.status" :pending="sync.queueCount" @sync="reload()" />
+          <HeaderActions
+            :status="sync.status"
+            :pending="sync.queueCount"
+            :last-sync-at="sync.lastSyncAt"
+            @sync="reload()"
+          />
         </header>
 
         <div class="chips ff-hide-scrollbar">
