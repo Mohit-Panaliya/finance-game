@@ -365,7 +365,8 @@ async function loadNotes() {
 
 async function loadLabels() {
   const res: any = await request('/api/notes/labels', { method: 'GET' })
-  labels.value = res || []
+  const _rows = Array.isArray(res) ? res : (res?.data ?? [])
+  labels.value = Array.isArray(_rows) ? _rows : []
 }
 
 function openCreate() {

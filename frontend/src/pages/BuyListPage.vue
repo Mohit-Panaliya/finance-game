@@ -288,7 +288,9 @@ async function load() {
 
 async function loadBanks() {
   const res: any = await request('/api/banks', { method: 'GET' })
-  banks.value = res || []
+  // Paged envelope { data, ... } (or a bare array from older builds).
+  const rows = Array.isArray(res) ? res : res?.data ?? []
+  banks.value = Array.isArray(rows) ? rows : []
 }
 
 function openCreate() {
