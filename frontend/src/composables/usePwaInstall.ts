@@ -50,6 +50,15 @@ const isIOS = ref(detectIos())
 let deferred: BeforeInstallPromptEvent | null = null
 let listenersBound = false
 
+function resetDismiss(): void {
+  dismissed.value = false
+  try {
+    localStorage.removeItem(DISMISS_KEY)
+  } catch {
+    /* storage blocked: in-memory reset is enough for this session */
+  }
+}
+
 function persistDismiss(): void {
   dismissed.value = true
   try {
@@ -98,6 +107,7 @@ export function usePwaInstall() {
   return readonly({
     promptInstall,
     dismiss: persistDismiss,
+    resetDismiss,
     isInstallable: computed(
       () => canPrompt.value && !installed.value && !dismissed.value && !standalone.value
     ),

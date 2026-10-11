@@ -51,6 +51,17 @@ function hideInstall() {
   pwa.dismiss()
   notify('Install entry hidden')
 }
+function showInstallAgain() {
+  pwa.resetDismiss()
+  notify('Install options restored')
+}
+async function tryInstallNow() {
+  const outcome = await pwa.promptInstall()
+  if (outcome === 'accepted') notify('Fintrack installed')
+  else if (outcome === 'unavailable')
+    notify('No install prompt right now - use your browser menu', 'warning')
+  else notify('Install prompt dismissed', 'warning')
+}
 
 /** Family groups for the picker; the default option carries its own caption. */
 const styleGroups = computed(() =>
@@ -352,10 +363,7 @@ async function queueSize() {
           </div>
         </section>
 
-        <section
-          v-if="pwa.isStandalone || ((pwa.isInstallable || pwa.showIosHint) && !pwa.isDismissed)"
-          class="section"
-        >
+        <section class="section">
           <h2 class="section-title">App</h2>
           <div class="card">
             <p class="card-label">Install</p>
@@ -375,7 +383,7 @@ async function queueSize() {
                 <AppButton variant="ghost" size="md" @click="hideInstall">Not now</AppButton>
               </div>
             </template>
-            <template v-else>
+            <template v-else-if="pwa.showIosHint">
               <p class="text-sm text-muted">
                 On iPhone or iPad, tap
                 <ion-icon class="inline-icon" :icon="shareOutline" />
@@ -383,6 +391,28 @@ async function queueSize() {
               </p>
               <div class="install-actions">
                 <AppButton variant="ghost" size="sm" @click="hideInstall">Got it</AppButton>
+              </div>
+            </template>
+            <template v-else-if="pwa.isDismissed">
+              <p class="text-sm text-muted">
+                Install options were hidden earlier. Show them again any time.
+              </p>
+              <div class="install-actions">
+                <AppButton variant="primary" size="md" @click="showInstallAgain"
+                  >Show install options</AppButton
+                >
+              </div>
+            </template>
+            <template v-else>
+              <p class="text-sm text-muted">
+                To install, open Fintrack in Chrome or Edge and use the
+                browser menu (Install / Save and share - Install). On
+                iPhone or iPad, use Share - Add to Home Screen.
+              </p>
+              <div class="install-actions">
+                <AppButton variant="primary" size="md" @click="tryInstallNow"
+                  >Try install now</AppButton
+                >
               </div>
             </template>
           </div>
