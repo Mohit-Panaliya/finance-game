@@ -5,7 +5,7 @@ use sea_orm::entity::prelude::*;
 /// Kept separate from `assets` deliberately. A wanted laptop is not a depreciating
 /// asset, and recording it as one would start a schedule for money that never left the
 /// bank. `converted_asset_id` is the bridge once the purchase actually happens.
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, serde::Serialize)]
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, serde::Serialize, serde::Deserialize)]
 #[sea_orm(table_name = "asset_buy_list")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]

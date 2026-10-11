@@ -45,6 +45,7 @@ mod error;
 mod row;
 
 pub use connection::TursoConnection;
+pub use connection::TursoTransaction;
 pub use error::TursoError;
 
 // Re-export turso types for convenience

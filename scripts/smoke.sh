@@ -579,6 +579,25 @@ body -X PUT "$BASE/api/notes/$REM_ID" "${AUTH[@]}" "${JSON[@]}" -d '{"remind_at"
   && ok "clearing reminder works" || bad "clearing reminder works"
 
 
+head_ "backup export + restore (R-050)"
+
+BK="$(body "$BASE/api/backup/export" "${AUTH[@]}")"
+printf '%s' "$BK" | jq_has 'd.get("app")=="fintrack" and d.get("version")==1 and isinstance(d.get("data",{}).get("banks"),list)' | grep -q yes \
+  && ok "export envelope shape" || bad "export envelope shape"
+printf '%s' "$BK" | python3 -c "import sys,json;raw=open('/dev/stdin').read().lower()
+import sys;sys.exit(0 if all(w not in raw for w in ['password','hash','secret','token']) else 1)" 2>/dev/null \
+  && ok "export leaks no secrets" || bad "export leaks no secrets"
+expect_status 400 "bad envelope rejected" \
+  -X POST "$BASE/api/backup/import" "${AUTH[@]}" "${JSON[@]}" -d '{"app":"nope","version":1,"data":{}}'
+printf '%s' "$BK" > /tmp/smoke_backup.json
+WIPE="$(body -X POST "$BASE/api/backup/import" "${AUTH[@]}" "${JSON[@]}" -d '{"app":"fintrack","version":1,"data":{}}')"
+printf '%s' "$WIPE" | jq_has 'all(v==0 for v in d.get("imported",{}).values())' | grep -q yes \
+  && ok "empty import wipes to zero" || bad "empty import wipes to zero"
+REST="$(body -X POST "$BASE/api/backup/import" "${AUTH[@]}" "${JSON[@]}" --data-binary @/tmp/smoke_backup.json)"
+printf '%s' "$REST" | jq_has 'sum(d.get("imported",{}).values())>=1 and all(v==0 for v in d.get("skipped",{}).values())' | grep -q yes \
+  && ok "restore brings rows back, nothing skipped" || bad "restore brings rows back" "${REST:0:160}"
+
+
 printf '\n%s%d passed%s, %s%d failed%s\n' "$c_g" "$PASS" "$c_0" \
   "$([ "$FAIL" -gt 0 ] && printf '%s' "$c_r" || printf '%s' "$c_d")" "$FAIL" "$c_0"
 [ "$FAIL" -eq 0 ]

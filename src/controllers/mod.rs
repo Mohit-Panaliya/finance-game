@@ -2,6 +2,7 @@ pub mod analysis;
 pub mod asset_ledger;
 pub mod assets;
 pub mod auth;
+pub mod backup;
 pub mod banks;
 pub mod credit_cards;
 pub mod debts;
@@ -26,8 +27,6 @@ pub async fn uid(ctx: &AppContext, auth_jwt: &loco_rs::prelude::auth::JWT) -> Re
         .one(&ctx.db)
         .await
         .map_err(|e| Error::string(&e.to_string()))?
-        .ok_or_else(|| Error::Unauthorized(
-            "session expired - please sign in again".to_string(),
-        ))?;
+        .ok_or_else(|| Error::Unauthorized("session expired - please sign in again".to_string()))?;
     Ok(user.id)
 }

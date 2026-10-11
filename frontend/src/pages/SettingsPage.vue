@@ -18,6 +18,7 @@ import { useFinanceStore } from '@/stores/financeStore'
 import { useSyncStore } from '@/stores/syncStore'
 import { usePwaInstall } from '@/composables/usePwaInstall'
 import { getQueue } from '@/services/offlineQueue'
+import { request } from '@/api/client'
 import { formatNumber } from '@/utils/money'
 import { formatDateTime } from '@/utils/date'
 import {
@@ -32,6 +33,7 @@ import {
 import { ENTITY_LIST } from '@/entityConfig'
 import AppButton from '@/components/ui/AppButton.vue'
 import HeaderActions from '@/components/ui/HeaderActions.vue'
+import AppModal from '@/components/ui/AppModal.vue'
 
 const auth = useAuthStore()
 const finance = useFinanceStore()
@@ -47,6 +49,119 @@ async function installApp() {
   else if (outcome === 'unavailable') notify('Install from your browser menu', 'warning')
   else notify('Install prompt dismissed', 'warning')
 }
+interface BackupPreview {
+  version: number | null
+  exported_at: string
+  counts: Record<string, number>
+  raw: unknown
+}
+
+const backupBusy = ref(false)
+const backupInfo = ref('')
+const backupPreview = ref<BackupPreview | null>(null)
+const backupConfirmOpen = ref(false)
+let backupFileEl: HTMLInputElement | null = null
+
+function backupFileName(): string {
+  const d = new Date()
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `fintrack-backup-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}.json`
+}
+
+async function exportBackup() {
+  backupBusy.value = true
+  backupInfo.value = ''
+  try {
+    const data: any = await request('/api/backup/export', { method: 'GET' })
+    const blob = new Blob([JSON.stringify(data)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = backupFileName()
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 5000)
+    const counts = data?.data ?? {}
+    const total = Object.values(counts).reduce(
+      (acc: number, v: any) => acc + (Array.isArray(v) ? v.length : 0),
+      0,
+    )
+    backupInfo.value = `Saved ${total} records across ${Object.keys(counts).length} tables.`
+    notify('Backup downloaded')
+  } catch (e) {
+    notify(e instanceof Error ? e.message : String(e), 'warning')
+  } finally {
+    backupBusy.value = false
+  }
+}
+
+function pickBackupFile() {
+  if (!backupFileEl) {
+    backupFileEl = document.createElement('input')
+    backupFileEl.type = 'file'
+    backupFileEl.accept = '.json,application/json'
+    backupFileEl.addEventListener('change', readBackupFile)
+  }
+  backupFileEl.value = ''
+  backupFileEl.click()
+}
+
+async function readBackupFile() {
+  backupInfo.value = ''
+  const f = backupFileEl?.files?.[0]
+  if (!f) return
+  if (f.size > 10 * 1024 * 1024) {
+    notify('File too large (max 10 MB)', 'warning')
+    return
+  }
+  try {
+    const parsed: any = JSON.parse(await f.text())
+    if (parsed?.app !== 'fintrack' || parsed?.version !== 1 || typeof parsed?.data !== 'object') {
+      notify('Not a Fintrack backup file', 'warning')
+      return
+    }
+    const counts: Record<string, number> = {}
+    for (const [k, v] of Object.entries(parsed.data as Record<string, unknown>)) {
+      counts[k] = Array.isArray(v) ? v.length : 0
+    }
+    backupPreview.value = {
+      version: parsed.version,
+      exported_at: String(parsed.exported_at ?? 'unknown date'),
+      counts,
+      raw: parsed,
+    }
+    backupConfirmOpen.value = true
+  } catch {
+    notify('Could not read that file as JSON', 'warning')
+  }
+}
+
+async function confirmRestore() {
+  if (!backupPreview.value) return
+  backupBusy.value = true
+  try {
+    const res: any = await request('/api/backup/import', {
+      method: 'POST',
+      body: backupPreview.value.raw,
+    })
+    const imported = res?.imported ?? {}
+    const total = Object.values(imported).reduce(
+      (acc: number, v: any) => acc + (typeof v === 'number' ? v : 0),
+      0,
+    )
+    backupConfirmOpen.value = false
+    backupPreview.value = null
+    backupInfo.value = `Restored ${total} records.`
+    await finance.refresh()
+    notify(`Restore complete — ${total} records`)
+  } catch (e) {
+    notify(e instanceof Error ? e.message : String(e), 'warning')
+  } finally {
+    backupBusy.value = false
+  }
+}
+
 function hideInstall() {
   pwa.dismiss()
   notify('Install entry hidden')
@@ -417,6 +532,61 @@ async function queueSize() {
             </template>
           </div>
         </section>
+
+        <section class="section">
+          <h2 class="section-title">Backup</h2>
+          <div class="card">
+            <p class="text-sm text-muted">
+              Download everything in your account as one JSON file, or restore
+              from a file. Restoring replaces all current data.
+            </p>
+            <p v-if="backupInfo" class="text-sm">{{ backupInfo }}</p>
+          </div>
+
+          <div class="action-grid">
+            <AppButton
+              variant="primary"
+              size="md"
+              :disabled="backupBusy"
+              @click="exportBackup"
+            >
+              <ion-icon :icon="downloadOutline" /> Export backup
+            </AppButton>
+            <AppButton
+              variant="neutral"
+              size="md"
+              :disabled="backupBusy"
+              @click="pickBackupFile"
+            >
+              <ion-icon :icon="cloudUploadOutline" /> Restore from file
+            </AppButton>
+          </div>
+        </section>
+
+        <app-modal
+          :open="backupConfirmOpen"
+          title="Replace all data?"
+          subtitle="Restore from backup file"
+          @close="backupConfirmOpen = false"
+        >
+          <p class="confirm-text" v-if="backupPreview">
+            This file holds
+            <strong>{{ Object.values(backupPreview.counts).reduce((a: number, v: number) => a + v, 0) }} records</strong>
+            (exported {{ backupPreview.exported_at }}) across
+            {{ Object.keys(backupPreview.counts).length }} tables.
+            Restoring <strong>deletes everything currently in your account</strong>
+            and replaces it with the file. This cannot be undone — export first
+            if you are unsure.
+          </p>
+          <template #footer>
+            <app-button variant="neutral" size="md" @click="backupConfirmOpen = false"
+              >Cancel</app-button
+            >
+            <app-button variant="danger" size="md" :disabled="backupBusy" @click="confirmRestore"
+              >Replace everything</app-button
+            >
+          </template>
+        </app-modal>
 
         <section class="section">
           <h2 class="section-title">About</h2>
