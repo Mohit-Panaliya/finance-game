@@ -9,7 +9,7 @@ use crate::ledger;
 use crate::models::credit_cards::{
     self, CreateCreditCardRequest, CreditCardResponse, CreditCardSummary, UpdateCreditCardRequest,
 };
-use crate::models::{banks, expenses};
+use crate::models::{banks, card_repayment};
 
 pub fn routes() -> Routes {
     Routes::new()
@@ -106,7 +106,7 @@ async fn repay(
         .await
         .map_err(|e| Error::string(&e.to_string()))?;
     let result = apply_repayment(&txn, uid, &card, applied, bank_id.as_ref()).await;
-    let (card_out, expense) = match result {
+    let (card_out, repayment) = match result {
         Ok(v) => {
             if let Err(e) = txn.commit().await {
                 return Err(Error::string(&e.to_string()));
@@ -132,7 +132,7 @@ async fn repay(
     format::json(serde_json::json!({
         "card": CreditCardResponse::from(card_out),
         "bank": bank,
-        "expense": expense,
+        "repayment": repayment,
         "amount_applied": applied,
         "bank_id": bank_id,
     }))
@@ -146,43 +146,23 @@ async fn apply_repayment(
     card: &credit_cards::Model,
     applied: f64,
     bank_id: Option<&String>,
-) -> Result<(credit_cards::Model, expenses::Model)> {
+) -> Result<(credit_cards::Model, card_repayment::Model)> {
     let now = Utc::now();
     let stamp = now.to_rfc3339();
-    let expense = expenses::ActiveModel {
+    let now = Utc::now();
+    let stamp = now.to_rfc3339();
+    // A repayment is a transfer (bank -> card), not an expense: the purchase it
+    // settles was already recorded when the card was charged. Writing it as an
+    // expense would double-count spending in lists, summaries and analytics, so
+    // it lives in card_repayments and never touches the expenses ledger.
+    let repayment = card_repayment::ActiveModel {
         id: Set(uuid::Uuid::new_v4().to_string()),
         user_id: Set(uid),
-        title: Set(format!("Card repayment — {}", card.name)),
-        description: Set(Some(format!("Repayment applied to {}", card.name))),
+        card_id: Set(card.id.clone()),
+        bank_id: Set(bank_id.map(|b| b.to_string())),
         amount: Set(applied),
-        currency: Set("INR".to_string()),
-        expense_type: Set("debt".to_string()),
-        category: Set("other".to_string()),
-        expense_date: Set(now.format("%Y-%m-%d").to_string()),
-        is_recurring: Set(false),
-        recurrence: Set(None),
-        recurrence_end_date: Set(None),
-        payment_method: Set(if bank_id.is_some() {
-            "bank_transfer".to_string()
-        } else {
-            "cash".to_string()
-        }),
-        // Deliberately unlinked, so the expense ledger hooks move nothing. The card
-        // id rides in `tags` so the card statement can still surface the repayment.
-        bank_id: Set(None),
-        credit_card_id: Set(None),
-        tags: Set(Some(match bank_id {
-            Some(bid) => format!("card-repayment:{}/bank-repayment:{}", card.id, bid),
-            None => format!("card-repayment:{}", card.id),
-        })),
-        receipt_url: Set(None),
-        location: Set(None),
-        is_fixed: Set(false),
-        priority: Set("medium".to_string()),
-        sync_status: Set("pending".to_string()),
-        last_synced_at: Set(None),
-        created_at: Set(Some(stamp.clone())),
-        updated_at: Set(Some(stamp)),
+        paid_on: Set(now.format("%Y-%m-%d").to_string()),
+        created_at: Set(stamp),
     }
     .insert(db)
     .await
@@ -202,7 +182,7 @@ async fn apply_repayment(
         .map_err(|e| Error::string(&e.to_string()))?
         .ok_or_else(|| Error::BadRequest("card no longer exists".to_string()))?;
 
-    Ok((card_out, expense))
+    Ok((card_out, repayment))
 }
 
 #[debug_handler]

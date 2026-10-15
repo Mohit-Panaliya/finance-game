@@ -20,7 +20,7 @@
 use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter};
 use serde::Serialize;
 
-use crate::models::{asset_buy_list, assets, expenses, incomes, investments};
+use crate::models::{asset_buy_list, assets, card_repayment, expenses, incomes, investments};
 
 /// Money is `f64` in the schema, so round at every boundary. `-0.0` normalises to `0.0`.
 fn round2(v: f64) -> f64 {
@@ -183,26 +183,24 @@ pub async fn for_bank(
         );
     }
 
-    // Card repayments drawn from this bank: the trail row is deliberately
-    // unlinked (linking it would move the money twice), so the bank id rides
-    // in tags as bank-repayment:{bank_id} (see credit_cards repay).
-    let bank_tag = format!("bank-repayment:{bank_id}");
-    for e in expenses::Entity::find()
-        .filter(expenses::Column::UserId.eq(user_id))
-        .filter(expenses::Column::BankId.is_null())
-        .filter(expenses::Column::Tags.contains(&bank_tag))
+    // Card repayments drawn from this bank: a transfer (bank -> card) recorded in
+    // card_repayments — never an expense, which would double-count the purchase
+    // it settles. The bank side of the trail shows it as an outflow.
+    for r in card_repayment::Entity::find()
+        .filter(card_repayment::Column::UserId.eq(user_id))
+        .filter(card_repayment::Column::BankId.eq(bank_id))
         .all(db)
         .await?
     {
         Row::push(
             &mut rows,
-            "expense",
-            e.id,
-            e.title,
-            e.amount,
-            -e.amount,
-            e.expense_date,
-            e.created_at,
+            "repayment",
+            r.id,
+            "Card repayment".to_string(),
+            r.amount,
+            -r.amount,
+            r.paid_on,
+            Some(r.created_at),
         );
     }
 
@@ -252,10 +250,9 @@ pub async fn for_bank(
 /// Full trail for a credit card, newest first. A charge raises the amount owed, so its
 /// signed amount is positive; a repayment lowers it, so its signed amount is negative.
 ///
-/// Repayments are deliberately *not* linked to the card (see `credit_cards::repay`) so
-/// the expense ledger hooks do not move the money a second time. They still belong on
-/// the statement, so the card id is carried in the expense `tags` as
-/// `card-repayment:{card_id}` and matched back here.
+/// Repayments are transfers (bank -> card) recorded in `card_repayments`, never
+/// expenses: the purchase they settle was already recorded when the card was
+/// charged, so listing a repayment as an expense would double-count spending.
 pub async fn for_card(
     db: &impl ConnectionTrait,
     user_id: i64,
@@ -285,23 +282,21 @@ pub async fn for_card(
         );
     }
 
-    let tag = format!("card-repayment:{card_id}");
-    for e in expenses::Entity::find()
-        .filter(expenses::Column::UserId.eq(user_id))
-        .filter(expenses::Column::CreditCardId.is_null())
-        .filter(expenses::Column::Tags.contains(&tag))
+    for r in card_repayment::Entity::find()
+        .filter(card_repayment::Column::UserId.eq(user_id))
+        .filter(card_repayment::Column::CardId.eq(card_id))
         .all(db)
         .await?
     {
         Row::push(
             &mut rows,
-            "expense",
-            e.id,
-            e.title,
-            e.amount,
-            -e.amount,
-            e.expense_date,
-            e.created_at,
+            "repayment",
+            r.id,
+            "Card repayment".to_string(),
+            r.amount,
+            -r.amount,
+            r.paid_on,
+            Some(r.created_at),
         );
     }
 

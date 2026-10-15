@@ -508,6 +508,16 @@ printf '%s' "$REPAY_STMT" | jq_has "any(e['title'].startswith('Card repayment') 
   && ok "the card statement shows the repayment entry" || bad "card statement shows the repayment" "$(printf '%s' "$REPAY_STMT" | head -c 260)"
 printf '%s' "$REPAY_STMT" | jq_has "len([e for e in d if e['title'].startswith('Card repayment')]) == 3" >/dev/null \
   && ok "all three repayments appear on the trail" || bad "repayment trail count" "$(printf '%s' "$REPAY_STMT" | head -c 260)"
+
+# a repayment is a transfer, never an expense: the expenses feed stays clean
+EXPS_AFTER="$(body "$BASE/api/expenses" "${AUTH[@]}")"
+printf '%s' "$EXPS_AFTER" | jq_has "not any('Card repayment' in (x.get('title') or '') for x in (d if isinstance(d,list) else d.get('data',[])))" >/dev/null \
+  && ok "repayment never appears in the expenses feed" || bad "repayment leaked into expenses" "${EXPS_AFTER:0:200}"
+
+# the bank side of the transfer shows on the bank statement
+BREPAY_STMT="$(stmt_of banks "$REPAY_BANK_ID")"
+printf '%s' "$BREPAY_STMT" | jq_has "any(e['title'].startswith('Card repayment') and e['signed_amount'] < 0 for e in d)" >/dev/null \
+  && ok "bank statement shows the repayment outflow" || bad "bank statement shows the repayment" "${BREPAY_STMT:0:200}"
 printf '%s' "$REPAY_STMT" | jq_has "all(e['signed_amount'] <= 0 for e in d if e['title'].startswith('Card repayment'))" >/dev/null \
   && ok "a repayment lowers the amount owed (negative signed amount)" || bad "repayment sign"
 

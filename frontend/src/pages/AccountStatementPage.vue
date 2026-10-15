@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { IonContent, IonIcon, IonPage } from '@ionic/vue'
 import {
   arrowBackOutline,
+  arrowUpCircleOutline,
   cardOutline,
   pricetagOutline,
   statsChartOutline,
@@ -86,6 +87,7 @@ function entryHref(entry: StatementEntry): string {
 }
 
 function entryIcon(entry: StatementEntry) {
+  if (entry.entry_type === 'repayment') return arrowUpCircleOutline
   if (entry.entry_type === 'income') return statsChartOutline
   if (entry.entry_type === 'expense') return pricetagOutline
   return walletOutline

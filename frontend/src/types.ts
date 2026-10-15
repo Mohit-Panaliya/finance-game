@@ -28,7 +28,7 @@ export interface Paged<T> {
  * Newest first; `balance_after` is walked backwards from the account's stored balance.
  */
 export interface StatementEntry {
-  entry_type: 'income' | 'expense' | 'asset' | 'investment'
+  entry_type: 'income' | 'expense' | 'asset' | 'investment' | 'repayment'
   id: string
   title: string
   amount: number

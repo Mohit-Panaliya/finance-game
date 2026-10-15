@@ -10,6 +10,7 @@ mod m20261006_000006_notes;
 mod m20261008_000007_debt_loans;
 mod m20261010_000008_note_reminders;
 mod m20261010_000009_buy_actual;
+mod m20261013_000010_card_repayments;
 
 pub struct Migrator;
 
@@ -25,6 +26,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20261008_000007_debt_loans::Migration),
             Box::new(m20261010_000008_note_reminders::Migration),
             Box::new(m20261010_000009_buy_actual::Migration),
+            Box::new(m20261013_000010_card_repayments::Migration),
             // inject-above (do not remove this comment)
         ]
     }

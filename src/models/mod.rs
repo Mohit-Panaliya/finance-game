@@ -1,6 +1,7 @@
 pub mod asset_buy_list;
 pub mod assets;
 pub mod banks;
+pub mod card_repayment;
 pub mod credit_cards;
 pub mod debts;
 pub mod depreciation_entry;
