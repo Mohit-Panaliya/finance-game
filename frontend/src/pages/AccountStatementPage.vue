@@ -10,6 +10,8 @@ import {
   statsChartOutline,
   walletOutline
 } from 'ionicons/icons'
+import AppButton from '@/components/ui/AppButton.vue'
+import CardRepayModal from '@/components/CardRepayModal.vue'
 import { useFinanceStore } from '@/stores/financeStore'
 import { useSyncStore } from '@/stores/syncStore'
 import { entityConfig, isEntityType, rowSubtitle, rowValue } from '@/entityConfig'
@@ -48,6 +50,18 @@ const statementLoading = ref(false)
 const statementError = ref('')
 /** Guards against a slow response landing after the route changed. */
 const statementFor = ref('')
+
+/** Card repayment sheet: only cards with an outstanding balance can be repaid. */
+const repayOpen = ref(false)
+const cardOwed = computed(() =>
+  entity.value === 'credit-cards' ? Math.max(0, Number(balance.value) || 0) : 0,
+)
+
+async function closeRepay(): Promise<void> {
+  repayOpen.value = false
+  await finance.fetchList(entity.value)
+  await loadStatement()
+}
 
 /** Header meta line: the account's configured subtitle columns, or a plain fallback. */
 const accountMeta = computed(() => {
@@ -134,6 +148,14 @@ onMounted(async () => {
             <p class="card-foot account-meta">
               {{ accountMeta }} · {{ entity === 'banks' ? 'Bank' : 'Card' }}
             </p>
+            <AppButton
+              v-if="entity === 'credit-cards' && cardOwed > 0"
+              variant="primary"
+              size="md"
+              @click="repayOpen = true"
+            >
+              Repay {{ formatMoney(cardOwed, currency) }}
+            </AppButton>
           </template>
           <p v-else class="text-sm text-muted">Loading account…</p>
         </section>
@@ -181,6 +203,8 @@ onMounted(async () => {
           </div>
         </section>
       </div>
+
+      <CardRepayModal :open="repayOpen" :card="account" @close="void closeRepay()" />
     </ion-content>
   </ion-page>
 </template>
