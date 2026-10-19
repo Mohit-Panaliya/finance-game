@@ -24,10 +24,7 @@ pub struct OverviewStats {
     pub roi: f64,
 }
 
-async fn overview_stats(
-    db: &sea_orm_turso::TursoConnection,
-    user_id: i64,
-) -> Result<OverviewStats> {
+async fn overview_stats(db: &crate::db_backend::FinanceDb, user_id: i64) -> Result<OverviewStats> {
     let banks = banks::Entity::find()
         .filter(banks::Column::UserId.eq(user_id))
         .all(db)
@@ -83,7 +80,7 @@ async fn overview_stats(
 async fn stats(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Response> {
     let db = ctx
         .shared_store
-        .get_ref::<sea_orm_turso::TursoConnection>()
+        .get_ref::<crate::db_backend::FinanceDb>()
         .unwrap();
     let user_id = super::uid(&ctx, &auth).await?;
     let s = overview_stats(&*db, user_id).await?;
@@ -240,7 +237,7 @@ fn month_key(date: &str) -> String {
 }
 
 async fn fetch_incomes(
-    db: &sea_orm_turso::TursoConnection,
+    db: &crate::db_backend::FinanceDb,
     user_id: i64,
     start: Option<&str>,
     end: Option<&str>,
@@ -256,7 +253,7 @@ async fn fetch_incomes(
 }
 
 async fn fetch_expenses(
-    db: &sea_orm_turso::TursoConnection,
+    db: &crate::db_backend::FinanceDb,
     user_id: i64,
     start: Option<&str>,
     end: Option<&str>,
@@ -285,7 +282,7 @@ async fn analysis(
 ) -> Result<Response> {
     let db = ctx
         .shared_store
-        .get_ref::<sea_orm_turso::TursoConnection>()
+        .get_ref::<crate::db_backend::FinanceDb>()
         .unwrap();
     let user_id = super::uid(&ctx, &auth).await?;
 

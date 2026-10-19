@@ -22,7 +22,7 @@ async fn list(
 ) -> Result<Response> {
     let db = ctx
         .shared_store
-        .get_ref::<sea_orm_turso::TursoConnection>()
+        .get_ref::<crate::db_backend::FinanceDb>()
         .unwrap();
     let search = params.get("search").and_then(|v| v.as_str()).unwrap_or("");
     let page = params.get("page").and_then(|v| v.as_u64()).unwrap_or(1);
@@ -61,7 +61,7 @@ async fn show(
 ) -> Result<Response> {
     let db = ctx
         .shared_store
-        .get_ref::<sea_orm_turso::TursoConnection>()
+        .get_ref::<crate::db_backend::FinanceDb>()
         .unwrap();
     let item = fixed_deposits::Entity::find_by_id(&id)
         .filter(fixed_deposits::Column::UserId.eq(super::uid(&ctx, &auth).await?))
@@ -81,7 +81,7 @@ async fn create(
 ) -> Result<Response> {
     let db = ctx
         .shared_store
-        .get_ref::<sea_orm_turso::TursoConnection>()
+        .get_ref::<crate::db_backend::FinanceDb>()
         .unwrap();
     let now = Utc::now().to_rfc3339();
     let principal = params.principal_amount;
@@ -131,7 +131,7 @@ async fn update(
 ) -> Result<Response> {
     let db = ctx
         .shared_store
-        .get_ref::<sea_orm_turso::TursoConnection>()
+        .get_ref::<crate::db_backend::FinanceDb>()
         .unwrap();
     let existing = fixed_deposits::Entity::find_by_id(&id)
         .filter(fixed_deposits::Column::UserId.eq(super::uid(&ctx, &auth).await?))
@@ -203,7 +203,7 @@ async fn remove(
 ) -> Result<Response> {
     let db = ctx
         .shared_store
-        .get_ref::<sea_orm_turso::TursoConnection>()
+        .get_ref::<crate::db_backend::FinanceDb>()
         .unwrap();
     let existing = fixed_deposits::Entity::find_by_id(&id)
         .filter(fixed_deposits::Column::UserId.eq(super::uid(&ctx, &auth).await?))
@@ -223,7 +223,7 @@ async fn remove(
 async fn summary(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Response> {
     let db = ctx
         .shared_store
-        .get_ref::<sea_orm_turso::TursoConnection>()
+        .get_ref::<crate::db_backend::FinanceDb>()
         .unwrap();
     let rows = fixed_deposits::Entity::find()
         .filter(fixed_deposits::Column::UserId.eq(super::uid(&ctx, &auth).await?))

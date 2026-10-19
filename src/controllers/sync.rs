@@ -23,7 +23,7 @@ async fn push(
 ) -> Result<Response> {
     let db = ctx
         .shared_store
-        .get_ref::<sea_orm_turso::TursoConnection>()
+        .get_ref::<crate::db_backend::FinanceDb>()
         .ok_or_else(|| Error::string("database unavailable"))?;
     let results = apply_push(&db, super::uid(&ctx, &auth).await?, &body.ops)
         .await
@@ -39,7 +39,7 @@ async fn pull(
 ) -> Result<Response> {
     let db = ctx
         .shared_store
-        .get_ref::<sea_orm_turso::TursoConnection>()
+        .get_ref::<crate::db_backend::FinanceDb>()
         .ok_or_else(|| Error::string("database unavailable"))?;
     // `since` may arrive as an RFC3339 string or as a numeric epoch-ms value
     let since = params.get("since").and_then(|v| {

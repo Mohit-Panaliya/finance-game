@@ -69,7 +69,7 @@ async fn show_depreciation(
 ) -> Result<Response> {
     let db = ctx
         .shared_store
-        .get_ref::<sea_orm_turso::TursoConnection>()
+        .get_ref::<crate::db_backend::FinanceDb>()
         .unwrap();
     let user_id = super::uid(&ctx, &auth).await?;
     let Some(asset) = owned_asset(&*db, user_id, &id).await? else {
@@ -97,7 +97,7 @@ async fn rebuild_depreciation(
 ) -> Result<Response> {
     let db = ctx
         .shared_store
-        .get_ref::<sea_orm_turso::TursoConnection>()
+        .get_ref::<crate::db_backend::FinanceDb>()
         .unwrap();
     let user_id = super::uid(&ctx, &auth).await?;
     let Some(asset) = owned_asset(&*db, user_id, &id).await? else {
@@ -144,7 +144,7 @@ async fn list(
 ) -> Result<Response> {
     let db = ctx
         .shared_store
-        .get_ref::<sea_orm_turso::TursoConnection>()
+        .get_ref::<crate::db_backend::FinanceDb>()
         .unwrap();
     let user_id = super::uid(&ctx, &auth).await?;
     let mut q = asset_buy_list::Entity::find().filter(asset_buy_list::Column::UserId.eq(user_id));
@@ -188,7 +188,7 @@ async fn show(
 ) -> Result<Response> {
     let db = ctx
         .shared_store
-        .get_ref::<sea_orm_turso::TursoConnection>()
+        .get_ref::<crate::db_backend::FinanceDb>()
         .unwrap();
     let user_id = super::uid(&ctx, &auth).await?;
     match find_item(&*db, user_id, &id).await? {
@@ -245,7 +245,7 @@ async fn create(
 ) -> Result<Response> {
     let db = ctx
         .shared_store
-        .get_ref::<sea_orm_turso::TursoConnection>()
+        .get_ref::<crate::db_backend::FinanceDb>()
         .unwrap();
     let user_id = super::uid(&ctx, &auth).await?;
     let now = Utc::now().to_rfc3339();
@@ -284,7 +284,7 @@ async fn update(
 ) -> Result<Response> {
     let db = ctx
         .shared_store
-        .get_ref::<sea_orm_turso::TursoConnection>()
+        .get_ref::<crate::db_backend::FinanceDb>()
         .unwrap();
     let user_id = super::uid(&ctx, &auth).await?;
     let Some(existing) = find_item(&*db, user_id, &id).await? else {
@@ -344,7 +344,7 @@ async fn remove(
 ) -> Result<Response> {
     let db = ctx
         .shared_store
-        .get_ref::<sea_orm_turso::TursoConnection>()
+        .get_ref::<crate::db_backend::FinanceDb>()
         .unwrap();
     let user_id = super::uid(&ctx, &auth).await?;
     let Some(existing) = find_item(&*db, user_id, &id).await? else {
@@ -381,7 +381,7 @@ async fn convert(
 ) -> Result<Response> {
     let db = ctx
         .shared_store
-        .get_ref::<sea_orm_turso::TursoConnection>()
+        .get_ref::<crate::db_backend::FinanceDb>()
         .unwrap();
     let user_id = super::uid(&ctx, &auth).await?;
     let Some(item) = find_item(&*db, user_id, &id).await? else {

@@ -58,7 +58,7 @@ async fn list(
 ) -> Result<Response> {
     let db = ctx
         .shared_store
-        .get_ref::<sea_orm_turso::TursoConnection>()
+        .get_ref::<crate::db_backend::FinanceDb>()
         .unwrap();
     let search = params
         .get("search")
@@ -117,7 +117,7 @@ async fn show(
 ) -> Result<Response> {
     let db = ctx
         .shared_store
-        .get_ref::<sea_orm_turso::TursoConnection>()
+        .get_ref::<crate::db_backend::FinanceDb>()
         .unwrap();
     let item = debts::Entity::find_by_id(&id)
         .filter(debts::Column::UserId.eq(super::uid(&ctx, &auth).await?))
@@ -137,7 +137,7 @@ async fn create(
 ) -> Result<Response> {
     let db = ctx
         .shared_store
-        .get_ref::<sea_orm_turso::TursoConnection>()
+        .get_ref::<crate::db_backend::FinanceDb>()
         .unwrap();
     check_loan_fields(
         params.interest_rate,
@@ -186,7 +186,7 @@ async fn update(
 ) -> Result<Response> {
     let db = ctx
         .shared_store
-        .get_ref::<sea_orm_turso::TursoConnection>()
+        .get_ref::<crate::db_backend::FinanceDb>()
         .unwrap();
     let existing = debts::Entity::find_by_id(&id)
         .filter(debts::Column::UserId.eq(super::uid(&ctx, &auth).await?))
@@ -272,7 +272,7 @@ async fn settle(
 ) -> Result<Response> {
     let db = ctx
         .shared_store
-        .get_ref::<sea_orm_turso::TursoConnection>()
+        .get_ref::<crate::db_backend::FinanceDb>()
         .unwrap();
     let existing = debts::Entity::find_by_id(&id)
         .filter(debts::Column::UserId.eq(super::uid(&ctx, &auth).await?))
@@ -325,7 +325,7 @@ async fn top_up(
 ) -> Result<Response> {
     let db = ctx
         .shared_store
-        .get_ref::<sea_orm_turso::TursoConnection>()
+        .get_ref::<crate::db_backend::FinanceDb>()
         .unwrap();
     let Some(existing) = debts::Entity::find_by_id(&id)
         .filter(debts::Column::UserId.eq(super::uid(&ctx, &auth).await?))
@@ -369,7 +369,7 @@ async fn remove(
 ) -> Result<Response> {
     let db = ctx
         .shared_store
-        .get_ref::<sea_orm_turso::TursoConnection>()
+        .get_ref::<crate::db_backend::FinanceDb>()
         .unwrap();
     let existing = debts::Entity::find_by_id(&id)
         .filter(debts::Column::UserId.eq(super::uid(&ctx, &auth).await?))
@@ -389,7 +389,7 @@ async fn remove(
 async fn summary(auth: auth::JWT, State(ctx): State<AppContext>) -> Result<Response> {
     let db = ctx
         .shared_store
-        .get_ref::<sea_orm_turso::TursoConnection>()
+        .get_ref::<crate::db_backend::FinanceDb>()
         .unwrap();
     let rows = debts::Entity::find()
         .filter(debts::Column::UserId.eq(super::uid(&ctx, &auth).await?))

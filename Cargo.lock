@@ -1927,6 +1927,7 @@ dependencies = [
  "async-trait",
  "axum",
  "chrono",
+ "libsqlite3-sys",
  "loco-rs",
  "migration",
  "rand 0.8.8",

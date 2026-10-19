@@ -36,13 +36,21 @@ regex = { version = "1.11" }
 migration = { path = "migration" }
 sea-orm = { workspace = true }
 sea-orm-migration = { workspace = true }
-sea-orm-turso = { path = "crates/sea-orm-turso" }
+
 chrono = { version = "0.4", features = ["serde"] }
 validator = { version = "0.20" }
 uuid = { version = "1.6", features = ["v4", "serde"] }
 argon2 = { version = "0.5" }
 rand = { version = "0.8" }
 rust-embed = { version = "8", features = ["interpolate-folder-path"] }
+
+# The vendored Turso/libsql engine is server-only; Android links stock SQLite
+# (libsqlite3-sys bundled) for the same file format.
+[target.'cfg(not(target_os = "android"))'.dependencies]
+sea-orm-turso = { path = "crates/sea-orm-turso" }
+
+[target.'cfg(target_os = "android")'.dependencies]
+libsqlite3-sys = { version = "0.37", features = ["bundled"] }
 
 [[bin]]
 name = "finance-game-cli"

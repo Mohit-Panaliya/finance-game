@@ -35,12 +35,10 @@ const TURSO_TABLES: &[&str] = &[
 ];
 const NOTES_TABLES: &[&str] = &["notes", "list_items", "labels", "note_labels"];
 
-async fn turso(
-    ctx: &AppContext,
-) -> Result<sea_orm_turso::TursoConnection, loco_rs::prelude::Error> {
+async fn turso(ctx: &AppContext) -> Result<crate::db_backend::FinanceDb, loco_rs::prelude::Error> {
     Ok(ctx
         .shared_store
-        .get_ref::<sea_orm_turso::TursoConnection>()
+        .get_ref::<crate::db_backend::FinanceDb>()
         .unwrap()
         .clone())
 }
@@ -59,7 +57,7 @@ macro_rules! dump_turso {
 /// caller as owner. Returns (imported, skipped).
 #[allow(clippy::too_many_arguments)]
 async fn load_turso<E>(
-    db: &sea_orm_turso::TursoConnection,
+    db: &crate::db_backend::FinanceDb,
     uid: i64,
     arr: &[Value],
     owner_col_set: fn(<E as EntityTrait>::ActiveModel, i64),

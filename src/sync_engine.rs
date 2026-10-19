@@ -46,7 +46,7 @@ pub struct SyncOpResult {
     pub server_ts: String,
 }
 
-pub type DbRef<'a> = sea_orm_turso::TursoConnection;
+pub type DbRef<'a> = crate::db_backend::FinanceDb;
 
 async fn already_applied(
     db: &DbRef<'_>,

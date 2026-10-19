@@ -1,5 +1,6 @@
 pub mod app;
 pub mod controllers;
+pub mod db_backend;
 pub mod depreciation;
 pub mod depreciation_service;
 pub mod embedded;
