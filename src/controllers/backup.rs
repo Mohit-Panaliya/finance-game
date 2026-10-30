@@ -392,7 +392,7 @@ async fn import_all(
     format::json(serde_json::json!({"imported": imported, "skipped": skipped}))
 }
 
-async fn wipe_finance(txn: &sea_orm_turso::TursoTransaction, uid: i64) -> Result<()> {
+async fn wipe_finance(txn: &sea_orm::DatabaseTransaction, uid: i64) -> Result<()> {
     banks::Entity::delete_many()
         .filter(banks::Column::UserId.eq(uid))
         .exec(txn)

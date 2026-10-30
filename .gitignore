@@ -34,3 +34,12 @@ Thumbs.db
 # Build artifacts
 dist/
 build/
+
+# Android
+android/.gradle/
+android/app/build/
+android/local.properties
+android/.idea/
+
+# OpenCode tooling
+.opencode/

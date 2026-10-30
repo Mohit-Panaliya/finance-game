@@ -23,6 +23,9 @@ sea-orm-migration = { version = "2.0", default-features = false, features = [
   "runtime-tokio-rustls",
 ] }
 
+[lib]
+crate-type = ["lib", "cdylib"]
+
 [dependencies]
 loco-rs = { workspace = true }
 serde = { version = "1", features = ["derive"] }
@@ -49,8 +52,6 @@ rust-embed = { version = "8", features = ["interpolate-folder-path"] }
 [target.'cfg(not(target_os = "android"))'.dependencies]
 sea-orm-turso = { path = "crates/sea-orm-turso" }
 
-[target.'cfg(target_os = "android")'.dependencies]
-libsqlite3-sys = { version = "0.37", features = ["bundled"] }
 
 [[bin]]
 name = "finance-game-cli"
@@ -65,3 +66,9 @@ serial_test = { version = "3.1.1" }
 # Vendored patched fork removes the Box wrappers.
 [patch.crates-io]
 sea-orm = { path = "vendor/sea-orm" }
+
+[target.'cfg(target_os = "android")'.dependencies]
+jni = "0.21"
+libc = "0.2"
+libsqlite3-sys = { version = "0.37", features = ["bundled"] }
+
