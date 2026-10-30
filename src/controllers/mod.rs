@@ -12,6 +12,7 @@ pub mod incomes;
 pub mod investments;
 pub mod notes;
 pub mod sync;
+pub mod transfers;
 
 use loco_rs::prelude::*;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};

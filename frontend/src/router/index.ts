@@ -100,6 +100,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/DepreciationPage.vue'),
     meta: { tab: 'assets', title: 'Depreciation' }
   },
+  {
+    path: '/transfers',
+    name: 'transfers',
+    component: () => import('@/pages/TransfersPage.vue'),
+    meta: { tab: 'transfers', title: 'Transfers' }
+  },
   { path: '/:pathMatch(.*)*', redirect: '/dashboard' }
 ]
 

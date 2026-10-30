@@ -11,7 +11,7 @@ use crate::models::{
 /// Entities the sync whitelist accepts, in canonical snake_case form.
 /// Client payloads are normalised (`-` -> `_`) before matching, so a client
 /// may send either `credit_cards` or `credit-cards`.
-const SYNC_ENTITIES: [&str; 8] = [
+const SYNC_ENTITIES: [&str; 9] = [
     "banks",
     "assets",
     "expenses",
@@ -20,6 +20,7 @@ const SYNC_ENTITIES: [&str; 8] = [
     "investments",
     "incomes",
     "debts",
+    "transfers",
 ];
 
 fn normalise_entity(entity: &str) -> String {

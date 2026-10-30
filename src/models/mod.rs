@@ -10,6 +10,7 @@ pub mod fixed_deposits;
 pub mod incomes;
 pub mod investments;
 pub mod sync;
+pub mod transfers;
 pub mod users;
 
 pub mod notes;

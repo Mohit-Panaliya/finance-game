@@ -141,6 +141,7 @@ impl Hooks for App {
             .add_route(controllers::sync::routes())
             .add_route(controllers::notes::routes())
             .add_route(controllers::backup::routes())
+            .add_route(controllers::transfers::routes())
             .add_route(crate::server_control::routes())
         // inject-routes-below (do not remove this comment)
     }
