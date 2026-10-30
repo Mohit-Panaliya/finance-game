@@ -1,0 +1,59 @@
+# Loco configuration file documentation
+
+logger:
+  enable: true
+  pretty_backtrace: true
+  level: <%= get_env(name="LOG_LEVEL", default="debug") %>
+  format: compact
+
+server:
+  port: <%= get_env(name="PORT", default="5155") %>
+  binding: <%= get_env(name="BINDING", default="127.0.0.1") %>
+  host: http://localhost
+  middlewares:
+    fallback:
+      enable: false
+    static:
+      enable: true
+      must_exist: false
+      precompressed: false
+      folder:
+        uri: "/"
+        path: "frontend/dist"
+      fallback: "frontend/dist/index.html"
+    # Allow PWA + API from dev server
+    set_cors:
+      enable: true
+
+workers:
+  mode: BackgroundAsync
+  enable: false
+
+database:
+  uri: <%= get_env(name="DATABASE_URL", default="sqlite://finance_game_development_loco.sqlite?mode=rwc") %>
+  enable_logging: <%= get_env(name="DB_LOGGING", default="false") %>
+  connect_timeout: 5000
+  idle_timeout: 86400000
+  min_connections: 1
+  max_connections: 1
+  auto_migrate: true
+  dangerously_truncate: false
+  dangerously_recreate: false
+
+auth:
+  jwt:
+    secret: <%= get_env(name="JWT_SECRET", default="ZmluYW5jZS1nYW1lLWRldi1zZWNyZXQtMjAyNi1jaGFuZ2UtbWUh") %>
+    expiration: 604800
+    location:
+      - from: Cookie
+        name: token
+      - from: Bearer
+
+seeder:
+  enable: false
+
+mailer:
+  enable: false
+
+tuning:
+  content_length_limit: 262144

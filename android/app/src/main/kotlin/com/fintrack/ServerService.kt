@@ -60,26 +60,44 @@ class ServerService : Service() {
         try {
             val binary = extractBinary()
             val dataDir = filesDir.absolutePath
-            val dbPath = "$dataDir/finance_game.sqlite"
+
+            // Extract config files
+            extractConfig()
 
             val pb = ProcessBuilder(
                 binary.absolutePath,
                 "start",
                 "-e", "development",
-                "-p", port.toString()
+                "-p", port.toString(),
+                "-b", "0.0.0.0"
             )
             pb.directory(filesDir)
             pb.environment()["DATABASE_URL"] = "sqlite://$dataDir/finance_game_development_loco.sqlite?mode=rwc"
             pb.environment()["PORT"] = port.toString()
             pb.environment()["BINDING"] = "0.0.0.0"
-            pb.environment()["LOG_LEVEL"] = "info"
+            pb.environment()["LOG_LEVEL"] = "debug"
             pb.redirectErrorStream(true)
 
             process = pb.start()
 
-            // Read output
-            process?.inputStream?.bufferedReader()?.forEachLine { line ->
-                android.util.Log.d("FintrackServer", line)
+            // Read output in a separate thread
+            Thread {
+                try {
+                    process?.inputStream?.bufferedReader()?.forEachLine { line ->
+                        android.util.Log.d("FintrackServer", line)
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("FintrackServer", "Error reading output", e)
+                }
+            }.start()
+
+            // Wait and check if process is alive
+            Thread.sleep(5000)
+            if (process?.isAlive == true) {
+                android.util.Log.d("FintrackServer", "Server is running on 0.0.0.0:$port")
+            } else {
+                val exitCode = process?.exitValue()
+                android.util.Log.e("FintrackServer", "Server exited with code: $exitCode")
             }
         } catch (e: Exception) {
             android.util.Log.e("FintrackServer", "Failed to start server", e)
@@ -97,6 +115,31 @@ class ServerService : Service() {
             outFile.setExecutable(true)
         }
         return outFile
+    }
+
+    private fun extractConfig() {
+        val configDir = File(filesDir, "config")
+        if (!configDir.exists()) {
+            configDir.mkdirs()
+        }
+        try {
+            assets.open("config/development.yaml").use { input ->
+                FileOutputStream(File(configDir, "development.yaml")).use { output ->
+                    input.copyTo(output)
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("FintrackServer", "No config/development.yaml in assets")
+        }
+        try {
+            assets.open("config/production.yaml").use { input ->
+                FileOutputStream(File(configDir, "production.yaml")).use { output ->
+                    input.copyTo(output)
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("FintrackServer", "No config/production.yaml in assets")
+        }
     }
 
     override fun onDestroy() {
@@ -131,7 +174,7 @@ class ServerService : Service() {
         )
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Fintrack Server")
-            .setContentText("Running on port $port (0.0.0.0)")
+            .setContentText("Running on 0.0.0.0:$port")
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentIntent(pendingIntent)
             .setOngoing(true)

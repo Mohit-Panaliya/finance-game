@@ -1,0 +1,63 @@
+# Production config
+# Boots standalone: every secret/address has a default so the single release
+# binary `finance-game-cli` starts without extra env vars. Override via env:
+#   JWT_SECRET, DATABASE_URL, PORT, BINDING, HOST, LOG_LEVEL
+logger:
+  enable: true
+  pretty_backtrace: false
+  level: <%= get_env(name="LOG_LEVEL", default="info") %>
+  format: compact
+
+server:
+  port: <%= get_env(name="PORT", default="5155") %>
+  binding: <%= get_env(name="BINDING", default="0.0.0.0") %>
+  host: <%= get_env(name="HOST", default="http://localhost") %>
+  middlewares:
+    # Frontend is embedded (rust-embed + serve_embedded_assets in src/app.rs);
+    # the loco fallback middleware must stay OFF so the router fallback wins.
+    fallback:
+      enable: false
+    # Disk static middleware kept identical to development.yaml. must_exist
+    # is false so boot does not depend on frontend/dist being present next
+    # to the binary.
+    static:
+      enable: true
+      must_exist: false
+      precompressed: false
+      folder:
+        uri: "/"
+        path: "frontend/dist"
+      fallback: "frontend/dist/index.html"
+
+workers:
+  mode: BackgroundAsync
+  enable: false
+
+database:
+  uri: <%= get_env(name="DATABASE_URL", default="sqlite://finance_game_production_loco.sqlite?mode=rwc") %>
+  enable_logging: false
+  connect_timeout: 5000
+  idle_timeout: 86400000
+  min_connections: 1
+  max_connections: 1
+  auto_migrate: true
+  dangerously_truncate: false
+  dangerously_recreate: false
+
+auth:
+  jwt:
+    secret: <%= get_env(name="JWT_SECRET", default="bDZtOCtwIFcEWsSRbLYNeAbB8puKhrNaaijjJTu09oY=") %>
+    expiration: 604800
+    location:
+      - from: Cookie
+        name: token
+      - from: Bearer
+
+seeder:
+  enable: false
+
+mailer:
+  enable: false
+
+tuning:
+  content_length_limit: 262144
