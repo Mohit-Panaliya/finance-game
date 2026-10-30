@@ -10,6 +10,8 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import java.io.File
+import java.io.FileOutputStream
 
 class ServerService : Service() {
 
@@ -35,6 +37,7 @@ class ServerService : Service() {
     }
 
     private var port: Int = 5155
+    private var process: Process? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -46,18 +49,60 @@ class ServerService : Service() {
         val notification = buildNotification()
         startForeground(NOTIFICATION_ID, notification)
 
-        // Start the Rust server on a background thread
         Thread {
-            val dataDir = filesDir.absolutePath
-            RustServer.startServer(dataDir, port)
+            startServer()
         }.start()
 
         return START_STICKY
     }
 
+    private fun startServer() {
+        try {
+            val binary = extractBinary()
+            val dataDir = filesDir.absolutePath
+            val dbPath = "$dataDir/finance_game.sqlite"
+
+            val pb = ProcessBuilder(
+                binary.absolutePath,
+                "start",
+                "-e", "development",
+                "-p", port.toString()
+            )
+            pb.directory(filesDir)
+            pb.environment()["DATABASE_URL"] = "sqlite://$dataDir/finance_game_development_loco.sqlite?mode=rwc"
+            pb.environment()["PORT"] = port.toString()
+            pb.environment()["BINDING"] = "0.0.0.0"
+            pb.environment()["LOG_LEVEL"] = "info"
+            pb.redirectErrorStream(true)
+
+            process = pb.start()
+
+            // Read output
+            process?.inputStream?.bufferedReader()?.forEachLine { line ->
+                android.util.Log.d("FintrackServer", line)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("FintrackServer", "Failed to start server", e)
+        }
+    }
+
+    private fun extractBinary(): File {
+        val outFile = File(filesDir, "finance-game-cli")
+        if (!outFile.exists()) {
+            assets.open("finance-game-cli").use { input ->
+                FileOutputStream(outFile).use { output ->
+                    input.copyTo(output)
+                }
+            }
+            outFile.setExecutable(true)
+        }
+        return outFile
+    }
+
     override fun onDestroy() {
         super.onDestroy()
-        RustServer.stopServer()
+        process?.destroy()
+        process = null
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -86,7 +131,7 @@ class ServerService : Service() {
         )
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("Fintrack Server")
-            .setContentText("Running on port $port")
+            .setContentText("Running on port $port (0.0.0.0)")
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
